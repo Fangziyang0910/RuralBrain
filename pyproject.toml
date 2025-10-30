@@ -1,0 +1,11 @@
+[project]
+name = "ruralbrain"
+version = "0.1.0"
+description = "乡村复杂决策系统智慧大脑"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "langchain>=1.0.3",
+    "langgraph>=1.0.2",
+    "langsmith>=0.4.38",
+]
