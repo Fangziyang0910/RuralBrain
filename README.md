@@ -5,11 +5,9 @@
 ![LangSmith](https://img.shields.io/badge/LangSmith-0.4%2B-orange?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.13%2B-blue?style=flat-square)
 
-> 基于 LLM Agent 的乡村智慧大脑
-
 ## 📋 项目简介
 
-**RuralBrain（乡村大脑）** 是一个复杂的乡村决策系统，利用大语言模型 Agent 技术，为乡村治理和发展提供智能化决策支持。
+**RuralBrain（乡村智慧大脑）** 是一个复杂的乡村决策系统，利用大语言模型 Agent 技术，为乡村治理和发展提供智能化决策支持。
 
 ### 核心能力
 
@@ -23,29 +21,39 @@
 - **LangGraph**: 实现复杂 Agent 工作流编排
 - **LangSmith**: 提供 Agent 行为可观测性和调试能力
 - **Python 3.13**: 开发语言
-- **docker**：跨平台快速部署
 
 ## 🚀 快速开始
 
 ### 环境要求
 
-- Python 3.13
-- [uv](https://github.com/astral-sh/uv)  Python 包管理工具
-- git 版本管理工具
-- wsl（推荐）： Windows 下 Linux 开发环境
+在开始之前，请确保你的系统已安装以下工具：
+
+- **[Python 3.13](https://www.python.org/downloads/)**：项目运行所需的 Python 版本。如果未安装，uv 会自动下载所需版本
+- **[uv](https://github.com/astral-sh/uv)**：Python 包管理工具，用于快速安装依赖和管理虚拟环境
+- **[Git](https://git-scm.com/downloads)**：版本管理工具，用于克隆和同步代码仓库
+- **[WSL](https://learn.microsoft.com/zh-cn/windows/wsl/install)（推荐）**：Windows 用户推荐使用 WSL（Windows Subsystem for Linux）以获得更好的开发体验
 
 ### 安装依赖
 
 ```bash
-# 使用 uv 安装依赖
-git clone 
-cd 
+# 克隆仓库
+git clone https://github.com/Fangziyang0910/RuralBrain.git
+
+# 进入项目目录
+cd RuralBrain
+
+# 使用 uv 安装依赖并创建虚拟环境
 uv sync
 ```
 
 ### 使用 uv 运行代码
 
 ```bash
-# 运行代码（例子）
+# 运行主程序
 uv run main.py
+
+# 或者激活虚拟环境后直接运行
+source .venv/bin/activate  # Linux（WSL）/Mac
+# .venv\Scripts\activate   # Windows
+python main.py
 ```
