@@ -32,3 +32,6 @@ weights_xj
 ehthumbs.db
 Thumbs.db
 Desktop.ini
+
+#旧代码
+*_backup.py
