@@ -18,12 +18,14 @@ def main():
     while True:
         user_input = input("用户> ")
         print("助手> ", end="", flush=True)
-        for chunk, _ in agent.stream(
+        for chunk, metadata in agent.stream(
             {"messages": [{"role": "user", "content": user_input}]},
             config,
             stream_mode="messages",
         ):
-            print(chunk.content, end="", flush=True)
+            # 只输出 AI 消息，过滤掉工具消息和用户消息
+            if type(chunk).__name__ == "AIMessageChunk" and chunk.content:
+                print(chunk.content, end="", flush=True)
         print("\n")
         
 if __name__ == "__main__":
