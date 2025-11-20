@@ -97,8 +97,7 @@ def pest_detection_tool(image_path: str) -> str:
             "image": image_base64
         }
         
-        # 3. 调用检测接口
-        print(f"🔍 正在调用检测服务 {DETECTION_API_URL} ...")
+        # 3. 调用检测接口（静默执行，不打印调试信息）
         response = requests.post(
             DETECTION_API_URL,
             json=payload,
