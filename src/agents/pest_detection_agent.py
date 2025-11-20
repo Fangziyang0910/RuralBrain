@@ -1,6 +1,7 @@
 from langchain.chat_models import init_chat_model
 from langchain.agents import create_agent
 from src.tools.pest_detection_tool import pest_detection_tool
+from langgraph.checkpoint.memory import InMemorySaver
 
 # 系统提示词
 SYSTEM_PROMPT = """你是一位资深的农业专家，擅长通过虫害识别工具分析图片并提供防治建议。
@@ -20,7 +21,7 @@ SYSTEM_PROMPT = """你是一位资深的农业专家，擅长通过虫害识别�
 # 初始化模型
 model = init_chat_model(
     "deepseek-chat",
-    temperature=0
+    temperature=0,
 )
 
 # 创建带工具的 agent
@@ -28,4 +29,5 @@ agent = create_agent(
     model=model,
     tools=[pest_detection_tool],
     system_prompt=SYSTEM_PROMPT,
+    checkpointer=InMemorySaver()
 )
