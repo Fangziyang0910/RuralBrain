@@ -7,8 +7,9 @@ import warnings
 # 1. 导入必要模块
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.messages import HumanMessage, SystemMessage
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
+from langchain_core.messages import AIMessageChunk
 
 # 导入工具
 from tools.rice_tool_func import rice_recognition_tool
@@ -28,82 +29,77 @@ tools = [rice_recognition_tool]
 llm = ChatDeepSeek(model="deepseek-chat", temperature=0)
 memory = InMemorySaver()
 
-# 系统提示词内容
-SYSTEM_PROMPT_TEXT = (
-    "你是一个名为'乡村振兴大脑'的AI工具调用助手，你的唯一使命是根据用户请求，精确地调用已提供的工具来完成任务。"
-    "你的行为准则如下，你必须无条件遵守：\n"
-    "1. **禁止对话**：你不是一个聊天机器人，不要与用户进行任何形式的对话、澄清或反问。你的任务是执行，而不是沟通。\n"
-    "2. **工具优先**：分析用户意图，如果与提供的工具功能匹配，必须立即、直接地调用该工具。\n"
-    "3. **自主执行**：一旦确定工具和参数，你必须立即执行，严禁在执行前向用户进行任何形式的确认。本地文件路径请直接读取。\n"
-    "4. **总结结果**：工具调用成功后，用自然、友好的语言总结'分析摘要'作为最终回答。"
-)
+# --- 新的系统提示词 (XML结构) ---
+SYSTEM_PROMPT = """
+<role>
+你是一位资深的大米鉴定与农业专家，专注于大米品种识别与品质评估。你不仅能识别大米，还能根据其品种提供烹饪建议和储存知识。
+</role>
 
-# --- 【核心重构】 ---
-# 1. 去掉了报错的 state_modifier/messages_modifier 参数
-# 这样无论哪个版本的 langgraph 都能兼容
-app = create_react_agent(model=llm, tools=tools, checkpointer=memory)
+<tools>
+你可以使用以下工具：
+- rice_recognition_tool：调用视觉识别服务，分析大米图片的品种
+  - 输入：图片文件路径
+  - 输出：识别到的品种名称、置信度/数量统计
+</tools>
+
+<task>
+当用户提供图片时，请按以下流程工作：
+1. **响应请求**：礼貌地告知用户正在开始识别。
+2. **调用工具**：使用 rice_recognition_tool 进行分析。
+3. **解读结果**：根据工具返回的品种信息，向用户确认识别结果。
+4. **专家建议**：
+   - 介绍该品种大米的口感特点（如：软糯、Q弹、有嚼劲）。
+   - 推荐最佳烹饪方式（如：煮粥、炒饭、做寿司）。
+   - (可选) 简单的储存建议。
+</task>
+
+<constraints>
+- 保持专业、亲切的语气。
+- 如果工具识别失败或结果不明确，请诚实告知用户并建议重试。
+- 不要捏造事实，仅基于工具返回的结果扩展相关农业知识。
+</constraints>
+"""
+
+
+agent = create_agent(
+    model=llm, 
+    tools=tools, 
+    checkpointer=memory,
+    system_prompt=SYSTEM_PROMPT # LangGraph 新版推荐写法，替代 system_message
+)
 
 
 # --- 主执行函数 ---
 if __name__ == "__main__":
-    print("--- 欢迎使用乡村振兴大脑 Agent (极简版 / 内存记忆) ---")
+    print("--- 乡村振兴大脑 (大米专家版) ---")
     
-    conversation_id = None
-    while not conversation_id:
-        choice = input("\n请选择操作: (1) 开启新对话 (2) 继续旧对话(仅本次运行有效): ")
-        if choice == "1":
-            conversation_id = str(uuid.uuid4())
-            print(f"\n已开启新对话 ID: {conversation_id}")
-        elif choice == "2":
-            saved_id = input("请输入 thread_id: ")
-            if saved_id:
-                conversation_id = saved_id
-                print(f"\n已继续对话 ID: {conversation_id}")
-            else:
-                print("无效输入")
-        else:
-            print("无效输入")
-
+    # 生成临时会话 ID
+    conversation_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": conversation_id}}
-
-    # 检查是否是新对话（通过检查内存中是否有历史记录）
-    # 如果是新对话，我们需要手动发送 System Prompt
-    current_state = app.get_state(config)
-    is_first_turn = len(current_state.values) == 0
-
+    
     while True:
-        user_input = input("\n请输入指令 (输入 '退出' 结束): ")
-        if user_input.lower() == "退出":
+        user_input = input("\n用户> ")
+        if user_input.lower() in ["退出", "exit"]:
             print("再见！")
             break
-        print("--- Agent 正在思考...")
         
-        messages_to_send = []
+        print("专家> ", end="", flush=True)
         
-        # 【关键修改】手动注入 System Prompt
-        # 只有在对话的第一轮，我们将 SystemMessage 插在最前面
-        if is_first_turn:
-            messages_to_send.append(SystemMessage(content=SYSTEM_PROMPT_TEXT))
-            is_first_turn = False # 标记后续不再发送 System Prompt
-            
-        messages_to_send.append(HumanMessage(content=user_input))
-        
-        inputs = {"messages": messages_to_send}
-        
-        final_answer = None
         try:
-            for event in app.stream(inputs, config=config, stream_mode="updates"):
-                if "agent" in event:
-                    last_msg = event["agent"]["messages"][-1]
-                    final_answer = last_msg.content
+            # --- 核心修改：更稳健的流式输出循环 ---
+            for chunk, _ in agent.stream(
+                {"messages": [HumanMessage(content=user_input)]},
+                config,
+                stream_mode="messages"
+            ):
+                # 1. 判断是否为 AI 回复的片段 (AIMessageChunk)
+                # 2. 并且内容不能为空 (过滤掉工具调用产生的空内容片段)
+                if isinstance(chunk, AIMessageChunk) and chunk.content:
+                    print(chunk.content, end="", flush=True)
+                    
+            print("\n") # 对话结束后换行
             
-            if final_answer:
-                print(f"\n--- Agent 回答 ---\n{final_answer}")
-            else:
-                print("(Agent 执行完成，但未生成文本，可能是正在调用工具...)")
-                
         except Exception as e:
-            print(f"发生错误: {e}")
-            # 打印详细错误以便调试
+            print(f"\n发生错误: {e}")
             import traceback
             traceback.print_exc()

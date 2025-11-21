@@ -1,62 +1,75 @@
 import requests
 import base64
 import os
+import uuid
 from langchain_core.tools import tool
-from typing import Optional
+from typing import Dict, Any
 
-# 定义常量
 API_URL = "http://127.0.0.1:8081/predict"
 
+# 1. 辅助函数：处理图片编码
+def encode_image_to_base64(image_path: str) -> str:
+    """读取本地图片并转换为 Base64"""
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"文件不存在: {image_path}")
+    
+    # 这里可以加一些简单的格式校验，例如检查文件是否是图片格式
+    if not image_path.lower().endswith(('.jpg', '.jpeg', '.png')):
+        raise ValueError(f"不支持的图片格式: {image_path}")
+    
+    with open(image_path, "rb") as f:
+        return base64.b64encode(f.read()).decode('utf-8')
+
+# 2. 辅助函数：格式化结果给 LLM 看
+def format_rice_result(api_response: Dict[str, Any]) -> str:
+    """将后端复杂的 JSON 简化为 LLM 易读的自然语言"""
+    if not api_response.get("success"):
+        return f"识别服务报错: {api_response.get('message', '未知错误')}"
+    
+    detections = api_response.get("detections", [])
+    if not detections:
+        return "识别完成，但在图片中未检测到明显的大米颗粒。"
+    
+    # 拼接结果
+    summary = []
+    for item in detections:
+        name = item.get("name", "未知品种")
+        count = item.get("count", 0)
+        summary.append(f"{name}({count}粒)")
+    
+    result_str = "识别成功。检测结果: " + "、".join(summary)
+    
+    # 注意：我们不再返回 result_image 的 base64 给 LLM
+    # 如果后端生成了标记图，我们可以返回保存路径（如果后端支持返回路径的话）
+    # 或者直接忽略图片返回，只告诉 LLM 结果文本。
+    return result_str
+
 @tool
-def rice_recognition_tool(task_type: str, image_path: Optional[str] = None, image_base64: Optional[str] = None) -> dict:
+def rice_recognition_tool(image_path: str, task_type: str = "品种分类") -> str:
     """
-    （网络版）大米识别工具。
-    当你需要根据图片识别大米的品种或新旧时使用此工具。
-    
+    调用大米识别服务。
     Args:
-        task_type: 识别任务的类型，必须是 '品种分类' 或 '新旧识别' 中的一个。
-        image_path: 本地图片的绝对路径（例如 /home/user/rice.jpg）。优先使用此参数。
-        image_base64: 图片的Base64编码字符串。如果提供了路径，则不需要提供此项。
+        image_path: 本地图片的绝对路径。
+        task_type: 任务类型，默认为'品种分类'。
+    Returns:
+        识别结果的文字摘要。
     """
-    
-    # --- 以下逻辑与之前的 _run 方法完全一致 ---
     try:
-        final_base64 = image_base64
-
-        # 1. 处理输入：如果 Agent 传来了路径，工具负责转成 Base64
-        if image_path and not final_base64:
-            if os.path.exists(image_path):
-                try:
-                    with open(image_path, "rb") as f:
-                        final_base64 = base64.b64encode(f.read()).decode('utf-8')
-                except Exception as e:
-                    return {"success": False, "message": f"读取本地文件失败: {str(e)}"}
-            else:
-                return {"success": False, "message": f"文件不存在: {image_path}"}
-        
-        # 校验
-        if not final_base64:
-            return {"success": False, "message": "参数错误：必须提供图片路径(image_path)或Base64编码(image_base64)"}
-
-        # 2. 调用后端 API
+        # 1. 准备数据
+        img_base64 = encode_image_to_base64(image_path)
         payload = {
-            "image_base64": final_base64,
-            "task_type": task_type
+            "image_base64": img_base64,
+            "task_type": task_type,
+            "session_id": str(uuid.uuid4())  # 生成一个唯一的 session_id
         }
-        headers = {'Content-Type': 'application/json'}
-
-        response = requests.post(API_URL, json=payload, headers=headers, timeout=60)
-        response.raise_for_status()
-        full_result = response.json()
-
-        # 3. Token 瘦身 (核心修复)
-        safe_result = full_result.copy()
-        if "result_image" in safe_result:
-            safe_result["result_image"] = "<image_base64_hidden_to_save_tokens>"
         
-        return safe_result
+        # 2. 调用 API
+        resp = requests.post(API_URL, json=payload, headers={'Content-Type': 'application/json'}, timeout=60)
+        resp.raise_for_status()
+        
+        # 3. 格式化并返回
+        # 这里直接返回字符串，LLM 读起来更轻松，且完全没有 Token 爆炸风险
+        return format_rice_result(resp.json())
 
-    except requests.exceptions.RequestException as e:
-        return {"success": False, "message": f"调用API时发生网络错误: {e}"}
     except Exception as e:
-        return {"success": False, "message": f"处理API响应时发生未知错误: {e}"}
+        return f"工具调用过程发生错误: {str(e)}"
