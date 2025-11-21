@@ -28,3 +28,6 @@ ENV/
 ehthumbs.db
 Thumbs.db
 Desktop.ini
+
+# Specific files
+.github/copilot-instructions.md
