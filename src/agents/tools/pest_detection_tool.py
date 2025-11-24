@@ -3,7 +3,7 @@ import base64
 import json
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import requests
 from langchain_core.tools import tool
 

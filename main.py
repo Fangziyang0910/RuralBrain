@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()  # 加载 .env
 
-from src.agents.pest_detection_agent import agent
+from src.agents import agent
 
 def main():
     config = {"configurable": {"thread_id": "1"}}
