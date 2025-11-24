@@ -1,6 +1,6 @@
 from langchain.chat_models import init_chat_model
 from langchain.agents import create_agent
-from src.agents.tools import pest_detection_tool
+from .tools import pest_detection_tool
 from langgraph.checkpoint.memory import InMemorySaver
 
 # 系统提示词
