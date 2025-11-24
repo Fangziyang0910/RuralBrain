@@ -1,6 +1,0 @@
-flask
-opencv-python
-numpy
-torch
-ultralytics
-websocket-client
