@@ -4,7 +4,7 @@ from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
 # 导入工具
-from tools.rice_detection_tool import rice_recognition_tool
+from .tools.rice_detection_tool import rice_recognition_tool
 
 # --- 核心组件设置 ---
 tools = [rice_recognition_tool]

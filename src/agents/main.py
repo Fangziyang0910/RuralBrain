@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import AIMessageChunk
 
-from agents.rice_detecition_agent import agent
+from .rice_detecition_agent import agent
 
 # 忽略警告配置
 warnings.filterwarnings("ignore", category=DeprecationWarning, module='pydantic.v1')

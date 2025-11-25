@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()  # 加载 .env
 
-from src.agents import agent
+from src.agents import pest_detection_agent
 
 def main():
     config = {"configurable": {"thread_id": "1"}}
@@ -18,7 +18,7 @@ def main():
     while True:
         user_input = input("用户> ")
         print("助手> ", end="", flush=True)
-        for chunk, metadata in agent.stream(
+        for chunk, metadata in pest_detection_agent.stream(
             {"messages": [{"role": "user", "content": user_input}]},
             config,
             stream_mode="messages",
