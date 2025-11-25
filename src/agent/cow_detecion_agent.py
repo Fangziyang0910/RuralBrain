@@ -76,29 +76,5 @@ agent = create_agent(
     checkpointer=InMemorySaver()
 )
 
-# 简单的对话函数
-def chat_with_agent(user_input: str, thread_id: str = "default") -> str:
-    """与agent进行对话"""
-    config = {"configurable": {"thread_id": thread_id}}
-    
-    result = ""
-    for chunk, _ in agent.stream(
-        {"messages": [{"role": "user", "content": user_input}]},
-        config,
-        stream_mode="messages",
-    ):
-        # 只输出 AI 消息
-        if type(chunk).__name__ == "AIMessageChunk" and chunk.content:
-            result += chunk.content
-    
-    return result
-
-if __name__ == "__main__":
-    # 简单的测试对话
-    print("牛识别助手已启动，请输入图片路径或问题：")
-    while True:
-        user_input = input("用户> ")
-        if user_input.lower() in ["退出", "quit", "exit"]:
-            break
-        response = chat_with_agent(user_input)
-        print(f"助手> {response}")
+# 导出agent实例供外部使用
+__all__ = ['agent', 'SYSTEM_PROMPT']
