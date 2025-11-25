@@ -21,9 +21,6 @@ ENV/
 .vscode/
 .cursor/
 .idea/ 
-res/
-weights_fl/
-weights_xj
 
 # OS generated files
 .DS_Store

@@ -19,7 +19,7 @@ def main():
     while True:
         user_input = input("用户> ")
         print("助手> ", end="", flush=True)
-        for chunk, metadata in pest_detection_agent.stream(
+        for chunk, metadata in rice_detection_agent.stream(
             {"messages": [HumanMessage(content=user_input)]},
             config,
             stream_mode="messages",
