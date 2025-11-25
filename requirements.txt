@@ -1,0 +1,16 @@
+ultralytics==8.2.103
+opencv-python-headless>=4.7.0.72
+numpy>=1.23.0
+Pillow>=9.4.0
+streamlit>=1.33.0
+torch>=2.0.0
+av>=10.0.0
+streamlit-webrtc>=0.47.1
+flask>=2.3.0
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.10
+langchain-openai>=0.1.0
+langgraph>=0.1.0
+openai>=1.0.0
+requests>=2.31.0

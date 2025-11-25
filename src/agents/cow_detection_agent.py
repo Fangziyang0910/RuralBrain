@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from langchain.chat_models import init_chat_model
 from langchain.agents import create_agent
-from src.tools.cow_detection_tools import cow_detection_tool
+from src.tools.cow_detection_tool import cow_detection_tool
 from langgraph.checkpoint.memory import InMemorySaver
 
 # 加载环境变量

@@ -1,5 +1,10 @@
+import os
+import sys
 from dotenv import load_dotenv
 load_dotenv()  # 加载 .env
+
+# 添加当前目录到Python路径，确保可以导入src模块
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from src.agents.cow_detection_agent import agent
 

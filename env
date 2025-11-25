@@ -1,8 +1,0 @@
-# Deepseek API配置
-# 请将下面的示例密钥替换为您的实际Deepseek API密钥
-DEEPSEEK_API_KEY=
-
-# 使用说明：
-# 1. 访问 https://platform.deepseek.com/ 获取API密钥
-# 2. 将 your_deepseek_api_key_here 替换为您的实际Deepseek API密钥
-# 3. 应用会自动读取环境变量
