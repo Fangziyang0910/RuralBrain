@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()  # 加载 .env
 
-from src.agents.cow_detection_agent import agent
+from src.agent.cow_detection_agent import agent
 
 def chat_with_agent(user_input: str, thread_id: str = "default") -> str:
     """与agent进行对话"""
