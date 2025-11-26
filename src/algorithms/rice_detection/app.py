@@ -8,9 +8,9 @@ from flask import Flask, request, jsonify
 from ultralytics import YOLO
 import traceback
 
-# --- 1. 使用绝对路径，让应用健壮 ---
+# --- 1. 使用绝对路径,让应用健壮 ---
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(APP_ROOT)
+PROJECT_ROOT = APP_ROOT  # 所有文件都保持在 rice_detection/ 目录下
 
 app = Flask(__name__)
 
