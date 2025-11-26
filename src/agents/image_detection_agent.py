@@ -76,7 +76,6 @@ SYSTEM_PROMPT = """
 </output_format>
 """
 
-
 # 创建带工具的 agent
 agent = create_agent(
     model=model,

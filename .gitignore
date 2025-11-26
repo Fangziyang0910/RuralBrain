@@ -32,3 +32,6 @@ Desktop.ini
 
 # Specific files
 .github/copilot-instructions.md
+
+# algorithms output
+src/algorithms/rice_detection/res/
