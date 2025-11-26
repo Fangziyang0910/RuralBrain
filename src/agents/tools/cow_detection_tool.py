@@ -103,7 +103,9 @@ def cow_detection_tool(file_path: str) -> str:
         return json.dumps({"success": False, "error": f"文件路径不存在: {file_path}"}, ensure_ascii=False)
     
     try:
-        model = YOLO('yolov8n.pt')
+        # 使用标准化的模型路径
+        model_path = os.path.join('src', 'algorithms', 'cow_detection', 'weights', 'yolov8n.pt')
+        model = YOLO(model_path)
     except Exception as e:
         return json.dumps({"success": False, "error": f"模型加载失败: {e}"}, ensure_ascii=False)
     
