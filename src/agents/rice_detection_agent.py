@@ -4,10 +4,10 @@ from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
 # 导入工具
-from .tools.rice_detection_tool import rice_recognition_tool
+from .tools.rice_detection_tool import rice_detection_tool
 
 # --- 核心组件设置 ---
-tools = [rice_recognition_tool]
+tools = [rice_detection_tool]
 llm = ChatDeepSeek(model="deepseek-chat", temperature=0)
 memory = InMemorySaver()
 
@@ -19,7 +19,7 @@ SYSTEM_PROMPT = """
 
 <tools>
 你可以使用以下工具：
-- rice_recognition_tool：调用视觉识别服务，分析大米图片的品种
+- rice_detection_tool：调用视觉识别服务，分析大米图片的品种
   - 输入：图片文件路径
   - 输出：识别到的品种名称、置信度/数量统计
 </tools>
@@ -27,7 +27,7 @@ SYSTEM_PROMPT = """
 <task>
 当用户提供图片时，请按以下流程工作：
 1. **响应请求**：礼貌地告知用户正在开始识别。
-2. **调用工具**：使用 rice_recognition_tool 进行分析。
+2. **调用工具**：使用 rice_detection_tool 进行分析。
 3. **解读结果**：根据工具返回的品种信息，向用户确认识别结果。
 4. **专家建议**：
    - 介绍该品种大米的口感特点（如：软糯、Q弹、有嚼劲）。

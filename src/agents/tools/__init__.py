@@ -4,6 +4,7 @@
 """
 
 from .pest_detection_tool import pest_detection_tool
-from .rice_detection_tool import rice_recognition_tool
+from .rice_detection_tool import rice_detection_tool
+from .cow_detection_tool import cow_detection_tool
 
-__all__ = ["pest_detection_tool", "rice_recognition_tool"]
+__all__ = ["pest_detection_tool", "rice_detection_tool", "cow_detection_tool"]

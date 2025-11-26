@@ -55,7 +55,7 @@ SYSTEM_PROMPT = """
 </output_format>
 """
 
-# 初始化模型 - 使用 ChatDeepSeek 而不是 init_chat_model
+# 初始化模型
 model = ChatDeepSeek(
     model="deepseek-chat",
     temperature=0,

@@ -9,6 +9,8 @@ sys.stdout.flush()
 
 from src.agents import pest_detection_agent
 from src.agents import rice_detection_agent
+from src.agents import cow_detection_agent
+from src.agents.image_detection_agent import agent as image_detection_agent
 from langchain_core.messages import HumanMessage, AIMessageChunk
 
 print("✓ 系统加载完成！\n")
@@ -19,7 +21,7 @@ def main():
     while True:
         user_input = input("用户> ")
         print("助手> ", end="", flush=True)
-        for chunk, metadata in rice_detection_agent.stream(
+        for chunk, metadata in image_detection_agent.stream(
             {"messages": [HumanMessage(content=user_input)]},
             config,
             stream_mode="messages",
