@@ -12,7 +12,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.messages import AIMessageChunk
 
 # 导入工具
-from tools.rice_detection_tool import rice_recognition_tool
+from src.tools.rice_detection_tool import rice_recognition_tool
 
 # 忽略警告
 warnings.filterwarnings("ignore", category=DeprecationWarning, module='pydantic.v1')
