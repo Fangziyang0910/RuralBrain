@@ -12,7 +12,7 @@ def detect_cows(image_path: str, model) -> dict:
         return {"success": False, "error": "无法读取图片文件"}
     
     height, width = image.shape[:2]
-    results = model(image)
+    results = model(image, verbose=False)
     
     cow_boxes = []
     for result in results:
@@ -58,7 +58,7 @@ def process_video(video_path: str, model) -> dict:
             break
         
         if frame_count % 10 == 0:
-            results = model(frame)
+            results = model(frame, verbose=False)
             cow_count = 0
             for result in results:
                 boxes = result.boxes
