@@ -7,9 +7,6 @@ load_dotenv()  # 加载 .env
 print("正在加载 AI 模型和工具...")
 sys.stdout.flush()
 
-from src.agents import pest_detection_agent
-from src.agents import rice_detection_agent
-from src.agents import cow_detection_agent
 from src.agents.image_detection_agent import agent as image_detection_agent
 from langchain_core.messages import HumanMessage, AIMessageChunk
 
