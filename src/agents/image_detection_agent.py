@@ -1,5 +1,6 @@
 from langchain_deepseek import ChatDeepSeek
 from langchain.agents import create_agent
+from langchain.agents.middleware import SummarizationMiddleware
 from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -82,5 +83,15 @@ agent = create_agent(
     model=model,
     tools=[pest_detection_tool, rice_detection_tool, cow_detection_tool],
     system_prompt=SYSTEM_PROMPT,
-    checkpointer=InMemorySaver()
+    checkpointer=InMemorySaver(),
+    middleware=[
+        SummarizationMiddleware(
+            # 使用 deepseek-chat 模型进行总结(保持与主模型一致)
+            model="deepseek-chat",
+            # 触发条件: 当对话超过 4000 tokens 时自动触发
+            trigger=("tokens", 4000),
+            # 保留策略: 保留最近的 10 条消息,对更早的消息进行总结
+            keep=("messages", 10),
+        ),
+    ],
 )
