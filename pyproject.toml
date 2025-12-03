@@ -11,10 +11,18 @@ dependencies = [
     "langgraph>=1.0.2",
     "langsmith>=0.4.38",
     "requests>=2.31.0",
+    # 害虫检测API依赖
+    "fastapi>=0.104.1",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.4.2",
+    "pydantic-settings>=2.0.3",
+    "python-multipart>=0.0.6",
+    # 图像处理和深度学习依赖
     "flask>=3.1.2",
     "opencv-python>=4.8.0",
     "numpy>=1.24.0",
-    "torch>=2.0.0",
+    "torch>=2.0.1",
+    "torchvision>=0.15.2",
     "ultralytics>=8.0.0",
     "websocket-client>=1.6.0",
 ]
