@@ -89,9 +89,39 @@ class RiceService:
         except Exception as e:
             return {'success': False, 'message': f'模型推理失败: {e}', 'detections': []}
 
+        # 解析文字结果 (保持你原有的辅助函数调用)
         detections = self._parse_results(results)
 
-        return {'success': True, 'detections': detections, 'result_image': None}
+        # --- [新增] 生成标注图片逻辑 ---
+        result_image_b64 = None
+        try:
+            # 1. 获取推理结果对象
+            first_result = results[0]
+            
+            # 2. 调用 ultralytics 的 plot() 方法在图上画框
+            # 返回的是一个 numpy 数组 (BGR格式)
+            plot_img = first_result.plot()
+            
+            # 3. 将 numpy 图片在内存中编码为 jpg 格式
+            # cv2.imencode 返回两个值: (bool_success, buffer)
+            success, buffer = cv2.imencode('.jpg', plot_img)
+            
+            if success:
+                # 4. 将 buffer 转为 Base64 字符串
+                result_image_b64 = base64.b64encode(buffer).decode('utf-8')
+            else:
+                print("Warning: 图片内存编码失败")
+                
+        except Exception as e:
+            # 画图失败不应导致整个请求报错，打印日志即可
+            print(f"Warning: 生成标注图片时发生错误: {e}")
+
+        # 返回结果，包含标注好的图片 Base64
+        return {
+            'success': True, 
+            'detections': detections, 
+            'result_image': result_image_b64
+        }
 
 
 # 单例：模块导入时创建（或你可以在 main 中显式创建）

@@ -12,5 +12,5 @@ class DetectionResult(BaseModel):
 class RicePredictionResponse(BaseModel):
     success: bool
     detections: List[DetectionResult]
-    result_image: Optional[str] = None
+    result_image: Optional[str] = Field(None, description="标注好的结果图片(Base64)")
     message: Optional[str] = None

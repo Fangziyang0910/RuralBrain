@@ -1,4 +1,4 @@
-# 文件名: src/main_simple.py
+# 文件名: src/main.py
 import uuid
 import os
 from dotenv import load_dotenv
@@ -6,7 +6,7 @@ import warnings
 
 # 1. 导入必要模块
 from langchain_deepseek import ChatDeepSeek
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 from langchain_core.messages import AIMessageChunk

@@ -2,6 +2,7 @@ import requests
 import base64
 import os
 import uuid
+import time
 from langchain_core.tools import tool
 from typing import Dict, Any
 
@@ -60,16 +61,48 @@ def rice_recognition_tool(image_path: str, task_type: str = "品种分类") -> s
         payload = {
             "image_base64": img_base64,
             "task_type": task_type,
-            "session_id": str(uuid.uuid4())  # 生成一个唯一的 session_id
+            "session_id": str(uuid.uuid4())
         }
         
         # 2. 调用 API
         resp = requests.post(API_URL, json=payload, headers={'Content-Type': 'application/json'}, timeout=60)
         resp.raise_for_status()
         
-        # 3. 格式化并返回
-        # 这里直接返回字符串，LLM 读起来更轻松，且完全没有 Token 爆炸风险
-        return format_rice_result(resp.json())
+        # 获取原始 JSON 结果
+        result = resp.json()
+
+        # --- [新增] 拦截并保存标注图片 (核心逻辑) ---
+        # 师兄要求：Tools内部获取图片后不提供给LLM，用state存起来(此处暂存文件模拟)
+        if result.get("success") and result.get("result_image"):
+            try:
+                # 提取 Base64 字符串
+                img_b64 = result["result_image"]
+                
+                # 定义保存路径 (项目根目录/res/labeled_images/)
+                # 这里模拟将图片存入"前端可访问的资源目录"
+                save_dir = os.path.join("res", "labeled_images")
+                os.makedirs(save_dir, exist_ok=True)
+                
+                # 生成唯一文件名
+                filename = f"labeled_{int(time.time())}.jpg"
+                file_path = os.path.join(save_dir, filename)
+                
+                # 解码并写入磁盘
+                with open(file_path, "wb") as f:
+                    f.write(base64.b64decode(img_b64))
+                
+                print(f"✅ [Tool] 后端标注图片已拦截并保存至: {file_path}")
+                
+                # [关键步骤] 阉割数据：
+                # 从字典中彻底删除 result_image 字段，确保巨大的 Base64 串
+                # 绝对不会传递给 format_rice_result，也不会进入 LLM 的上下文。
+                del result["result_image"]
+                
+            except Exception as e:
+                print(f"⚠️ [Tool] 保存标注图片时发生错误 (不影响主流程): {e}")
+
+        # 3. 格式化并返回 (此时 result 里已经没有图片数据了，只有纯文本统计)
+        return format_rice_result(result)
 
     except Exception as e:
         return f"工具调用过程发生错误: {str(e)}"
