@@ -45,7 +45,7 @@ def format_rice_result(api_response: Dict[str, Any]) -> str:
     return result_str
 
 @tool
-def rice_detection_tool(image_path: str, task_type: str = "品种分类") -> str:
+def rice_recognition_tool(image_path: str, task_type: str = "品种分类") -> str:
     """
     调用大米识别服务。
     Args:

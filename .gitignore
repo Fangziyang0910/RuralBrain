@@ -21,6 +21,9 @@ ENV/
 .vscode/
 .cursor/
 .idea/ 
+res/
+weights_fl/
+weights_xj
 
 # OS generated files
 .DS_Store
@@ -32,6 +35,3 @@ Desktop.ini
 
 # Specific files
 .github/copilot-instructions.md
-
-# algorithms output
-src/algorithms/rice_detection/res/
