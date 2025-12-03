@@ -8,7 +8,7 @@ import requests
 from langchain_core.tools import tool
 
 
-DETECTION_API_URL = "http://127.0.0.1:8000/detect"
+DETECTION_API_URL = "http://127.0.0.1:8001/detect"
 
 
 def encode_image_to_base64(image_path: str) -> str:
