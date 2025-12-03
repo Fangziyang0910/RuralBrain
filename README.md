@@ -46,6 +46,20 @@ cd RuralBrain
 uv sync
 ```
 
+### 配置环境变量
+
+复制 `.env.example` 文件为 `.env`,并填入你的 API 密钥:
+
+```bash
+# 复制配置文件
+cp .env.example .env
+
+# 编辑 .env 文件,填入你的 API 密钥
+# 至少需要配置以下之一:
+# - DEEPSEEK_API_KEY: DeepSeek API 密钥
+# - ZHIPUAI_API_KEY: 智谱AI API 密钥
+```
+
 ### 使用 uv 运行代码
 
 ```bash
@@ -57,3 +71,26 @@ source .venv/bin/activate  # Linux（WSL）/Mac
 # .venv\Scripts\activate   # Windows
 python main.py
 ```
+
+## 🎯 模型管理
+
+RuralBrain 支持多个大语言模型供应商,可以灵活切换:
+
+### 支持的模型
+
+- **DeepSeek**: 高性价比的国产大模型
+- **智谱AI (GLM)**: 国产领先的大语言模型
+
+### 切换模型
+
+在 `.env` 文件中设置 `MODEL_PROVIDER`:
+
+```bash
+# 使用 DeepSeek (默认)
+MODEL_PROVIDER=deepseek
+
+# 使用智谱AI
+MODEL_PROVIDER=glm
+```
+
+详细的模型配置和使用方法,请参考 [模型管理文档](docs/model_management.md)。
