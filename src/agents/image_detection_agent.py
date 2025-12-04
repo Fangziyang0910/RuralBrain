@@ -87,10 +87,10 @@ agent = create_agent(
         SummarizationMiddleware(
             # 使用与主模型一致的配置进行总结
             model=model_manager.get_chat_model(),
-            # 触发条件: 当对话超过 4000 tokens 时自动触发
-            trigger=("tokens", 4000),
-            # 保留策略: 保留最近的 10 条消息,对更早的消息进行总结
-            keep=("messages", 10),
+            # 触发条件: 当对话超过 8000 tokens 时自动触发
+            trigger=("tokens", 8000),
+            # 保留策略: 保留最近的 15 条消息,对更早的消息进行总结
+            keep=("messages", 15),
         ),
     ],
 )
