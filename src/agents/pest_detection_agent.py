@@ -1,4 +1,4 @@
-from langchain.chat_models import init_chat_model
+from langchain_deepseek import ChatDeepSeek
 from langchain.agents import create_agent
 from .tools import pest_detection_tool
 from langgraph.checkpoint.memory import InMemorySaver
@@ -56,8 +56,8 @@ SYSTEM_PROMPT = """
 """
 
 # 初始化模型
-model = init_chat_model(
-    "deepseek-chat",
+model = ChatDeepSeek(
+    model="deepseek-chat",
     temperature=0,
 )
 
