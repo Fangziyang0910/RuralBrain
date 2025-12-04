@@ -21,10 +21,6 @@ ENV/
 .vscode/
 .cursor/
 .idea/ 
-<<<<<<< HEAD
-res/
-=======
->>>>>>> parent of 96866ac (Revert "Merge branch 'dev' of https://github.com/Fangziyang0910/RuralBrain into dev")
 
 # OS generated files
 .DS_Store
@@ -38,4 +34,5 @@ Desktop.ini
 .github/copilot-instructions.md
 
 # algorithms output
+pest_detection_results/
 src/algorithms/rice_detection/res/

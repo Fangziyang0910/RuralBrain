@@ -1,14 +1,40 @@
 """虫害检测工具：调用检测服务分析图片中的害虫情况。"""
 import base64
-import json
-import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
+
 import requests
 from langchain_core.tools import tool
 
 
 DETECTION_API_URL = "http://127.0.0.1:8001/detect"
+RESULT_IMAGES_DIR = Path("pest_detection_results")
+
+
+def save_result_image(image_base64: str) -> str:
+    """保存检测结果图像到本地。
+    
+    Args:
+        image_base64: base64编码的结果图像
+        
+    Returns:
+        保存的图像文件路径
+    """
+    # 确保结果目录存在
+    RESULT_IMAGES_DIR.mkdir(exist_ok=True)
+    
+    # 生成带时间戳的文件名
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"pest_detection_{timestamp}.jpg"
+    filepath = RESULT_IMAGES_DIR / filename
+    
+    # 解码并保存图像
+    image_data = base64.b64decode(image_base64)
+    with open(filepath, "wb") as f:
+        f.write(image_data)
+    
+    return str(filepath)
 
 
 def encode_image_to_base64(image_path: str) -> str:
@@ -45,11 +71,12 @@ def encode_image_to_base64(image_path: str) -> str:
         return base64.b64encode(image_bytes).decode("utf-8")
 
 
-def format_detection_result(api_response: Dict[str, Any]) -> str:
+def format_detection_result(api_response: Dict[str, Any], saved_image_path: str = None) -> str:
     """将检测接口返回的结果格式化为简洁的数据摘要。
     
     Args:
         api_response: 检测接口返回的 JSON 数据
+        saved_image_path: 保存的结果图像路径（可选，内部使用不返回给agent）
         
     Returns:
         简洁的检测结果数据，供 agent 分析使用
@@ -77,30 +104,41 @@ def format_detection_result(api_response: Dict[str, Any]) -> str:
 def pest_detection_tool(image_path: str) -> str:
     """调用害虫检测服务分析图片中的害虫种类和数量。
     
-    该工具会读取指定路径的图片文件，将其发送到害虫检测服务进行分析，
-    并返回识别到的害虫种类和数量的数据。
+    该工具会：
+    1. 读取指定路径的图片文件
+    2. 将图片发送到害虫检测服务（基于YOLOv8模型）进行分析
+    3. 自动保存带标注框的检测结果图像到本地（pest_detection_results目录）
+    4. 返回害虫检测的文字摘要结果
+    
+    注意：检测结果图像会自动保存为 pest_detection_YYYYMMDD_HHMMSS.jpg 格式，
+    但不会在返回结果中包含图像路径，以避免占用过多token。
     
     Args:
-        image_path: 图片文件的本地路径，支持格式：jpg、png、bmp、webp
+        image_path: 图片文件的本地路径，支持格式：jpg、jpeg、png、bmp、webp
         
     Returns:
         检测结果字符串，格式如下：
         - 成功："检测结果: 瓜实蝇(3只)、斜纹夜蛾(1只)"
         - 未检测到："检测完成，未发现害虫。"
         - 失败："检测失败: [错误原因]"
+        
+    Examples:
+        >>> pest_detection_tool("test_images/pest1.jpg")
+        "检测结果: 瓜实蝇(3只)、斜纹夜蛾(1只)"
+        
+        >>> pest_detection_tool("test_images/empty.jpg")
+        "检测完成，未发现害虫。"
     """
     try:
         # 1. 编码图片
         image_base64 = encode_image_to_base64(image_path)
         
-        # 2. 构建请求数据（包含 session_id）
-        session_id = str(uuid.uuid4())
+        # 2. 构建请求数据（使用新的字段名）
         payload = {
-            "session_id": session_id,
-            "image": image_base64
+            "image_base64": image_base64
         }
         
-        # 3. 调用检测接口（静默执行，不打印调试信息）
+        # 3. 调用检测接口
         response = requests.post(
             DETECTION_API_URL,
             json=payload,
@@ -114,8 +152,17 @@ def pest_detection_tool(image_path: str) -> str:
         # 4. 解析响应
         api_response = response.json()
         
-        # 5. 格式化并返回结果
-        return format_detection_result(api_response)
+        # 5. 保存结果图像（如果存在）
+        saved_image_path = None
+        if api_response.get("success") and api_response.get("result_image"):
+            try:
+                saved_image_path = save_result_image(api_response["result_image"])
+            except Exception as e:
+                # 图像保存失败不影响检测结果返回
+                pass
+        
+        # 6. 格式化并返回结果（不包含图像路径）
+        return format_detection_result(api_response, saved_image_path)
         
     except FileNotFoundError as e:
         return f"文件错误: {str(e)}"
@@ -127,9 +174,9 @@ def pest_detection_tool(image_path: str) -> str:
         return f"检测服务请求超时，请检查服务是否正常运行"
     
     except requests.ConnectionError:
-        return f"无法连接到检测服务，请确认服务已启动"
+        return "无法连接到检测服务，请确认服务已启动 (URL: http://127.0.0.1:8001/detect)"
     
-    except json.JSONDecodeError as e:
+    except requests.exceptions.JSONDecodeError as e:
         return f"检测服务返回数据格式错误: {str(e)}"
     
     except Exception as e:
