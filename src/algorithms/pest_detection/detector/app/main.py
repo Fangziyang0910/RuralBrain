@@ -1,8 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from src.algorithms.pest_detection.detector.app.core.config import settings
-from src.algorithms.pest_detection.detector.app.api.routes import router as api_router
+
+# 兼容 Docker 和本地环境的导入
+try:
+    # Docker 环境：使用相对导入
+    from app.core.config import settings
+    from app.api.routes import router as api_router
+except ImportError:
+    # 本地环境：使用绝对导入
+    from src.algorithms.pest_detection.detector.app.core.config import settings
+    from src.algorithms.pest_detection.detector.app.api.routes import router as api_router
 
 # 创建FastAPI应用实例
 app = FastAPI(

@@ -2,17 +2,27 @@ import os
 import sys
 from pathlib import Path
 
-# 添加项目根目录到 Python 路径
-project_root = Path(__file__).parent.parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
 # 确保工作目录正确设置为脚本所在目录
 # 这样相对路径（如 models/best.pt）才能正确解析
 script_dir = os.path.dirname(os.path.abspath(__file__))
 os.chdir(script_dir)
 
+# 检测运行环境：Docker 或本地
+# Docker环境中，当前目录就是 /app，直接使用相对导入
+# 本地环境中，需要添加项目根目录到 Python 路径
+if not os.path.exists('/app'):  # 本地环境
+    project_root = Path(__file__).parent.parent.parent.parent.parent
+    sys.path.insert(0, str(project_root))
+
 import uvicorn
-from src.algorithms.pest_detection.detector.app.core.config import settings
+
+# 根据环境使用不同的导入方式
+try:
+    # Docker环境：使用相对导入
+    from app.core.config import settings
+except ImportError:
+    # 本地环境：使用绝对导入
+    from src.algorithms.pest_detection.detector.app.core.config import settings
 
 if __name__ == "__main__":
     print(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}...")

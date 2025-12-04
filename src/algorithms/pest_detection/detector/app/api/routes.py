@@ -1,9 +1,18 @@
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import JSONResponse
 from typing import List, Dict, Any, Union
-from src.algorithms.pest_detection.detector.app.schemas.detection import DetectRequest, DetectResponse, Detection, ErrorResponse
-from src.algorithms.pest_detection.detector.app.services.model_service import model_service
-from src.algorithms.pest_detection.detector.app.core.config import settings
+
+# 兼容 Docker 和本地环境的导入
+try:
+    # Docker 环境：使用相对导入
+    from app.schemas.detection import DetectRequest, DetectResponse, Detection, ErrorResponse
+    from app.services.model_service import model_service
+    from app.core.config import settings
+except ImportError:
+    # 本地环境：使用绝对导入
+    from src.algorithms.pest_detection.detector.app.schemas.detection import DetectRequest, DetectResponse, Detection, ErrorResponse
+    from src.algorithms.pest_detection.detector.app.services.model_service import model_service
+    from src.algorithms.pest_detection.detector.app.core.config import settings
 import logging
 import traceback
 from datetime import datetime

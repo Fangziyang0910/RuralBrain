@@ -5,7 +5,14 @@ import os
 import threading
 from typing import Dict, List, Tuple, Optional
 from ultralytics import YOLO
-from src.algorithms.pest_detection.detector.app.core.config import settings
+
+# 兼容 Docker 和本地环境的导入
+try:
+    # Docker 环境：使用相对导入
+    from app.core.config import settings
+except ImportError:
+    # 本地环境：使用绝对导入
+    from src.algorithms.pest_detection.detector.app.core.config import settings
 
 
 class ModelService:
