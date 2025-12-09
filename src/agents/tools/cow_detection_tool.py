@@ -103,8 +103,17 @@ def cow_detection_tool(file_path: str) -> str:
         return json.dumps({"success": False, "error": f"文件路径不存在: {file_path}"}, ensure_ascii=False)
     
     try:
-        # 使用标准化的模型路径
-        model_path = os.path.join('src', 'algorithms', 'cow_detection', 'weights', 'yolov8n.pt')
+        # 获取项目根目录
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        
+        # 使用已下载的模型文件路径
+        model_path = os.path.join(project_root, 'src', 'algorithms', 'cow_detection', 'detector', 'models', 'yolov8n.pt')
+        
+        # 检查模型文件是否存在
+        if not os.path.exists(model_path):
+            return json.dumps({"success": False, "error": f"模型文件不存在: {model_path}"}, ensure_ascii=False)
+        
+        # 使用本地模型，禁用自动下载
         model = YOLO(model_path)
     except Exception as e:
         return json.dumps({"success": False, "error": f"模型加载失败: {e}"}, ensure_ascii=False)

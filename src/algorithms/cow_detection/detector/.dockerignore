@@ -1,0 +1,55 @@
+# 忽略虚拟环境
+venv/
+.venv/
+env/
+.env/
+
+# 忽略Python缓存和临时文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache/
+.tox/
+
+# 忽略IDE和编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 忽略日志和临时文件
+*.log
+logs/
+tmp/
+temp/
+
+# 忽略Git文件
+.git/
+.gitignore
+
+# 忽略Docker相关
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# 忽略部署包和压缩文件
+*.zip
+*.tar.gz
+deployment_package/
+
+# 忽略测试文件
+test/
+tests/
+
+# 忽略文档
+*.md
+docs/
+
+# 忽略OS文件
+.DS_Store
+Thumbs.db

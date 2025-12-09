@@ -1,0 +1,22 @@
+services:
+  cow-detector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cow-detector-api
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  default:
+    driver: bridge
