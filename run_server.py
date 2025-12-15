@@ -22,8 +22,10 @@ if __name__ == "__main__":
     # 启动服务
     uvicorn.run(
         "service.server:app",
-        host="0.0.0.0",
+        host="127.0.0.1", 
         port=8080,
+        # 开发模式热重载 - 修改代码并保存时自动重启服务
+        # 生产环境设为 False
         reload=True,
         log_level="info",
     )

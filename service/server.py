@@ -2,11 +2,16 @@
 RuralBrain FastAPI 服务器
 提供图像检测对话接口
 """
+import sys
+from pathlib import Path
+
+# 添加项目根目录到 Python 路径，确保可以直接运行此文件
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import os
 import json
 import uuid
 import logging
-from pathlib import Path
 from typing import AsyncGenerator
 from datetime import datetime
 
