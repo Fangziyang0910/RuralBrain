@@ -36,3 +36,6 @@ Desktop.ini
 # algorithms output
 pest_detection_results/
 src/algorithms/rice_detection/res/
+
+#rag
+src/data
