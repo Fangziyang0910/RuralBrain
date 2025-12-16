@@ -13,8 +13,13 @@ except Exception:
     YOLO = None
 
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-WEIGHTS_PATH = os.getenv('WEIGHTS_PATH', os.path.join(PROJECT_ROOT, 'src', 'algorithms', 'rice_detection', 'weights_fl', 'best.pt'))
+# 兼容 Docker 和本地环境的导入
+try:
+    # Docker 环境：使用相对导入
+    from app.core.config import settings
+except ImportError:
+    # 本地环境：使用绝对导入
+    from src.algorithms.rice_detection.detector.app.core.config import settings
 
 
 class RiceService:
@@ -23,7 +28,7 @@ class RiceService:
     """
 
     def __init__(self, weights_path: str = None, name_map: Dict[str, str] = None):
-        self.weights_path = weights_path or WEIGHTS_PATH
+        self.weights_path = weights_path or settings.WEIGHTS_PATH_FL
         self.model = None
         self.name_map = name_map or {}
         self._load_model()
@@ -53,26 +58,44 @@ class RiceService:
         if results is None or len(results) == 0:
             return []
         res = results[0]
-        # 尝试从结果中拿类别id数组
-        try:
-            cls_tensor = res.boxes.cls.cpu().numpy().astype(int)
-        except Exception:
-            # 如果没有检测框，返回空列表
-            cls_tensor = np.array([], dtype=int)
-
-        counts = Counter(cls_tensor.tolist())
-        detections = []
-
-        # 使用模型内部 names（如果存在）优先，否则尝试映射
-        model_names = getattr(res, 'names', None)
-        for cls_id, cnt in counts.most_common():
-            if model_names is not None and cls_id in model_names:
+        
+        # 如果没有检测框，返回空列表
+        if res.boxes is None or len(res.boxes) == 0:
+            return []
+            
+        # 获取模型类别名称
+        model_names = getattr(res, 'names', {})
+        
+        # 按类别统计数量
+        class_counts = {}
+        
+        # 遍历每个检测框
+        for box in res.boxes:
+            # 获取类别ID
+            cls_id = int(box.cls[0].cpu().numpy())
+            
+            # 获取类别名称
+            if cls_id in model_names:
                 raw_name = model_names[cls_id]
             else:
                 raw_name = str(cls_id)
+                
             # 映射 name_map（例如将 '1' -> '糯米'）
             display_name = self.name_map.get(str(raw_name), raw_name)
-            detections.append({'name': display_name, 'count': int(cnt)})
+            
+            # 统计数量
+            if display_name in class_counts:
+                class_counts[display_name] += 1
+            else:
+                class_counts[display_name] = 1
+
+        # 转换为检测结果格式
+        detections = []
+        for name, count in class_counts.items():
+            detections.append({
+                'name': name,
+                'count': count
+            })
 
         return detections
 
