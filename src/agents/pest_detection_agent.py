@@ -3,6 +3,9 @@ from langchain.agents import create_agent
 from .tools import pest_detection_tool
 from langgraph.checkpoint.memory import InMemorySaver
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # 系统提示词
 SYSTEM_PROMPT = """
 <role>

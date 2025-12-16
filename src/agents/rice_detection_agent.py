@@ -11,6 +11,10 @@ tools = [rice_detection_tool]
 llm = ChatDeepSeek(model="deepseek-chat", temperature=0)
 memory = InMemorySaver()
 
+from dotenv import load_dotenv
+load_dotenv()
+
+
 # --- 新的系统提示词 (XML结构) ---
 SYSTEM_PROMPT = """
 <role>
