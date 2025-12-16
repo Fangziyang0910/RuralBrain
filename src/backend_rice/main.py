@@ -52,4 +52,4 @@ async def predict_endpoint(req: RicePredictionRequest):
 if __name__ == '__main__':
     import uvicorn
     port = int(os.getenv('PORT', 8081))
-    uvicorn.run('src.backend.main:app', host='0.0.0.0', port=port, reload=False)
+    uvicorn.run('src.backend_rice.main:app', host='0.0.0.0', port=port, reload=False)

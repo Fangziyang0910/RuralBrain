@@ -14,7 +14,7 @@ except Exception:
 
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-WEIGHTS_PATH = os.getenv('WEIGHTS_PATH', os.path.join(PROJECT_ROOT, 'weights_fl', 'best.pt'))
+WEIGHTS_PATH = os.getenv('WEIGHTS_PATH', os.path.join(PROJECT_ROOT, 'src', 'algorithms', 'rice_detection', 'weights_fl', 'best.pt'))
 
 
 class RiceService:
