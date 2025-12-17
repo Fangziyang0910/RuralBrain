@@ -171,23 +171,8 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
               <img
                 src={toolCall.resultImage}
                 alt="工具检测结果"
-                className="rounded-lg border border-gray-200 w-auto h-auto max-w-xs"
+                className="rounded-lg border border-gray-200 w-auto h-auto max-w-md"
               />
-            </div>
-          )}
-          
-          {/* 检测结果摘要 */}
-          {toolCall.summary && toolCall.summary.length > 0 && (
-            <div>
-              <div className="text-sm text-gray-500 mb-1.5">检测数据：</div>
-              <div className="bg-gray-50 rounded p-2 space-y-1">
-                {toolCall.summary.map((item, idx) => (
-                  <div key={idx} className="text-sm text-gray-700 flex items-start">
-                    <span className="text-green-600 mr-1.5">•</span>
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           )}
         </div>

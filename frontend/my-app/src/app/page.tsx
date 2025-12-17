@@ -198,6 +198,24 @@ export default function Home() {
                         : msg
                     )
                   );
+                } else if (data.type === "tool_call") {
+                  // 处理工具调用事件
+                  const toolCall = {
+                    name: data.tool_name,
+                    status: data.status as "运行中" | "已完成",
+                    resultImage: data.result_image,
+                  };
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? {
+                            ...msg,
+                            toolCalls: [...(msg.toolCalls || []), toolCall],
+                          }
+                        : msg
+                    )
+                  );
+                  console.log("工具调用:", data.tool_name, "结果图片:", data.result_image);
                 } else if (data.type === "end") {
                   streamCompleted = true;
                   setMessages((prev) =>

@@ -17,7 +17,8 @@ from datetime import datetime
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import HumanMessage, AIMessageChunk
 
 from service.settings import (
@@ -48,6 +49,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 挂载静态文件目录，提供检测结果图片访问
+# 挂载上传文件目录
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
+# 挂载害虫检测结果目录
+pest_results_dir = Path("pest_detection_results")
+pest_results_dir.mkdir(exist_ok=True)
+app.mount("/pest_results", StaticFiles(directory=str(pest_results_dir)), name="pest_results")
+
+# 挂载牛只检测结果目录
+cow_results_dir = Path("cow_detection_results")
+cow_results_dir.mkdir(exist_ok=True)
+app.mount("/cow_results", StaticFiles(directory=str(cow_results_dir)), name="cow_results")
+
+# 挂载大米检测结果目录
+rice_results_dir = Path("src/algorithms/rice_detection/temp_input")
+rice_results_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/rice_results", StaticFiles(directory=str(rice_results_dir)), name="rice_results")
 
 # --------延迟加载机制--------
 # 延迟导入 agent，避免启动时加载模型，缩短启动时间
@@ -178,21 +198,65 @@ async def chat_stream(request: ChatRequest):
                 
                 # 流式处理 agent 响应
                 full_content = ""
-                for chunk, metadata in agent.stream(
+                async for event in agent.astream_events(
                     {"messages": [HumanMessage(content=message_content)]},
                     config,
-                    stream_mode="messages",
+                    version="v2",
                 ):
-                    # 只处理 AI 消息块
-                    if isinstance(chunk, AIMessageChunk) and chunk.content:
-                        full_content += chunk.content
+                    kind = event["event"]
+                    
+                    # 处理流式消息内容（AI 的回答）
+                    if kind == "on_chat_model_stream":
+                        content = event["data"]["chunk"].content
+                        if content:
+                            full_content += content
+                            event_data = {
+                                "type": "content",
+                                "content": content,
+                            }
+                            yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+                    
+                    # 处理工具调用结束事件
+                    elif kind == "on_tool_end":
+                        tool_name = event["name"]
                         
-                        # 发送内容块
-                        event_data = {
-                            "type": "content",
-                            "content": chunk.content,
+                        # 查找对应的结果图片路径
+                        result_image = None
+                        if tool_name == "pest_detection_tool":
+                            # 查找最新的害虫检测结果图片
+                            result_dir = Path("pest_detection_results")
+                            if result_dir.exists():
+                                images = sorted(result_dir.glob("pest_detection_*.jpg"), 
+                                              key=lambda p: p.stat().st_mtime, reverse=True)
+                                if images:
+                                    result_image = f"/pest_results/{images[0].name}"
+                        
+                        elif tool_name == "rice_detection_tool":
+                            # 查找最新的大米检测结果图片
+                            result_dir = Path("src/algorithms/rice_detection/temp_input")
+                            if result_dir.exists():
+                                images = sorted(result_dir.glob("*_output.jpg"), 
+                                              key=lambda p: p.stat().st_mtime, reverse=True)
+                                if images:
+                                    result_image = f"/rice_results/{images[0].name}"
+                        
+                        elif tool_name == "cow_detection_tool":
+                            # 查找最新的牛只检测结果图片
+                            result_dir = Path("cow_detection_results")
+                            if result_dir.exists():
+                                images = sorted(result_dir.glob("cow_detection_*.jpg"), 
+                                              key=lambda p: p.stat().st_mtime, reverse=True)
+                                if images:
+                                    result_image = f"/cow_results/{images[0].name}"
+                        
+                        # 发送工具调用完成事件
+                        tool_event = {
+                            "type": "tool_call",
+                            "tool_name": tool_name,
+                            "status": "已完成",
+                            "result_image": result_image,
                         }
-                        yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+                        yield f"data: {json.dumps(tool_event, ensure_ascii=False)}\n\n"
                 
                 # 发送完成事件
                 yield f"data: {json.dumps({'type': 'end', 'full_content': full_content}, ensure_ascii=False)}\n\n"
