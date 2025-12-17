@@ -65,7 +65,7 @@ cow_results_dir.mkdir(exist_ok=True)
 app.mount("/cow_results", StaticFiles(directory=str(cow_results_dir)), name="cow_results")
 
 # 挂载大米检测结果目录
-rice_results_dir = Path("src/algorithms/rice_detection/temp_input")
+rice_results_dir = Path("rice_detection_results")
 rice_results_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/rice_results", StaticFiles(directory=str(rice_results_dir)), name="rice_results")
 
