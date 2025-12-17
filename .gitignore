@@ -33,6 +33,8 @@ Desktop.ini
 # Specific files
 .github/copilot-instructions.md
 
-# algorithms output
+# algorithms input and output
+uploads/
 pest_detection_results/
+cow_detection_results/
 src/algorithms/rice_detection/res/
