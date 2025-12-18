@@ -18,7 +18,8 @@ export type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
-  image?: string;
+  image?: string;  // 兼容旧版本：单图片
+  images?: string[];  // 新版本：多图片
   isStreaming?: boolean;
   toolCalls?: ToolCall[];
 };
@@ -109,13 +110,30 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
         </div>
 
         {/* 用户上传的图片 */}
-        {isUser && message.image && (
+        {isUser && (message.images || message.image) && (
           <div className="mt-1">
-            <img
-              src={message.image}
-              alt="上传的图片"
-              className="rounded-lg border border-gray-200 w-auto h-auto max-w-xs"
-            />
+            {message.images && message.images.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-md">
+                {message.images.map((img, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={img}
+                      alt={`上传的图片 ${index + 1}`}
+                      className="rounded-lg border border-gray-200 w-full h-32 object-cover hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute top-1 right-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+                      {index + 1}/{message.images?.length ?? 0}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <img
+                src={message.image}
+                alt="上传的图片"
+                className="rounded-lg border border-gray-200 w-auto h-auto max-w-xs"
+              />
+            )}
           </div>
         )}
       </div>

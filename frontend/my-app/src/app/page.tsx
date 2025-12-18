@@ -12,8 +12,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [threadId] = useState(() => `thread_${Date.now()}`);
   const [input, setInput] = useState("");
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,20 +51,47 @@ export default function Home() {
   }, [input]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
+    const files = Array.from(e.target.files || []);
+    
+    // 限制最多10张图片
+    const MAX_IMAGES = 10;
+    const totalImages = selectedImages.length + files.length;
+    
+    if (totalImages > MAX_IMAGES) {
+      alert(`最多只能上传 ${MAX_IMAGES} 张图片，当前已选 ${selectedImages.length} 张`);
+      return;
+    }
+    
+    // 读取所有图片的预览
+    const newPreviews: string[] = [];
+    let loadedCount = 0;
+    
+    files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        newPreviews.push(reader.result as string);
+        loadedCount++;
+        
+        if (loadedCount === files.length) {
+          setSelectedImages(prev => [...prev, ...files]);
+          setImagePreviews(prev => [...prev, ...newPreviews]);
+        }
       };
       reader.readAsDataURL(file);
-    }
+    });
   };
 
-  const handleRemoveImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    if (fileInputRef.current && selectedImages.length === 1) {
+      fileInputRef.current.value = "";
+    }
+  };
+  
+  const handleRemoveAllImages = () => {
+    setSelectedImages([]);
+    setImagePreviews([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -72,15 +99,14 @@ export default function Home() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if ((!input.trim() && !selectedImage) || loading) return;
+    if ((!input.trim() && selectedImages.length === 0) || loading) return;
 
-    handleSendMessage(input.trim() || "请帮我识别这张图片", selectedImage || undefined);
+    const messageText = input.trim() || 
+      (selectedImages.length === 1 ? "请帮我识别这张图片" : `请帮我识别这 ${selectedImages.length} 张图片`);
+    
+    handleSendMessage(messageText, selectedImages.length > 0 ? selectedImages : undefined);
     setInput("");
-    setSelectedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    handleRemoveAllImages();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -91,9 +117,9 @@ export default function Home() {
   };
 
   const handleSendMessage = useCallback(
-    async (message: string, image?: File) => {
-      let imagePath: string | undefined;
-      let imagePreviewUrl: string | undefined;
+    async (message: string, images?: File[]) => {
+      let imagePaths: string[] | undefined;
+      let imagePreviewUrls: string[] | undefined;
       let assistantMessageId: string | null = null;
 
       // 添加用户消息
@@ -101,16 +127,18 @@ export default function Home() {
         id: `user_${Date.now()}`,
         role: "user",
         content: message,
-        image: image ? URL.createObjectURL(image) : undefined,
+        images: images ? images.map(img => URL.createObjectURL(img)) : undefined,
       };
       setMessages((prev) => [...prev, userMessage]);
       setLoading(true);
 
       try {
-        // 1. 如果有图片，先上传
-        if (image) {
+        // 1. 如果有图片，先批量上传
+        if (images && images.length > 0) {
           const formData = new FormData();
-          formData.append("file", image);
+          images.forEach(image => {
+            formData.append("files", image);
+          });
 
           const uploadResponse = await fetch(`${API_BASE}/upload`, {
             method: "POST",
@@ -122,8 +150,8 @@ export default function Home() {
           }
 
           const uploadData = await uploadResponse.json();
-          imagePath = uploadData.file_path;
-          imagePreviewUrl = userMessage.image;
+          imagePaths = uploadData.file_paths;
+          imagePreviewUrls = userMessage.images;
         }
 
         // 2. 发送聊天请求（SSE流式）
@@ -134,7 +162,7 @@ export default function Home() {
           },
           body: JSON.stringify({
             message,
-            image_path: imagePath,
+            image_paths: imagePaths,
             thread_id: threadId,
           }),
         });
@@ -321,20 +349,33 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             {/* 图片预览 */}
-            {imagePreview && (
-              <div className="relative inline-block">
-                <img
-                  src={imagePreview}
-                  alt="预览"
-                  className="h-20 w-20 object-cover rounded-lg border border-gray-200"
-                />
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                >
-                  <X className="w-3 h-3" />
-                </button>
+            {imagePreviews.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="relative inline-block">
+                    <img
+                      src={preview}
+                      alt={`预览 ${index + 1}`}
+                      className="h-20 w-20 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-lg"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {imagePreviews.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAllImages}
+                    className="px-3 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200"
+                  >
+                    清除全部
+                  </button>
+                )}
               </div>
             )}
 
@@ -345,6 +386,7 @@ export default function Home() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleImageSelect}
                 className="hidden"
               />
@@ -374,7 +416,7 @@ export default function Home() {
               {/* 发送按钮 */}
               <Button
                 type="submit"
-                disabled={(!input.trim() && !selectedImage) || loading}
+                disabled={(!input.trim() && selectedImages.length === 0) || loading}
                 className="flex-none bg-green-600 hover:bg-green-700"
                 size="icon"
               >

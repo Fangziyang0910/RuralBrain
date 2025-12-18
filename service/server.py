@@ -111,47 +111,61 @@ async def health_check():
 
 
 @app.post("/upload", response_model=UploadResponse)
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(files: list[UploadFile] = File(...)):
     """
-    上传图片接口
+    上传图片接口（支持单张或多张）
     
     Args:
-        file: 上传的图片文件
+        files: 上传的图片文件列表（最多10张）
         
     Returns:
-        上传响应，包含文件路径
+        上传响应，包含文件路径列表
     """
+    # 限制上传图片数量
+    MAX_FILES = 10
+    if len(files) > MAX_FILES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"一次最多上传 {MAX_FILES} 张图片",
+        )
+    
     try:
-        # 检查文件大小
-        contents = await file.read()
-        if len(contents) > MAX_UPLOAD_SIZE:
-            raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"文件大小超过限制 ({MAX_UPLOAD_SIZE / 1024 / 1024}MB)",
-            )
+        file_paths = []
         
-        # 检查文件扩展名
-        file_ext = Path(file.filename).suffix.lower()
-        if file_ext not in ALLOWED_EXTENSIONS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"不支持的文件格式，仅支持: {', '.join(ALLOWED_EXTENSIONS)}",
-            )
+        for file in files:
+            # 检查文件大小
+            contents = await file.read()
+            if len(contents) > MAX_UPLOAD_SIZE:
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail=f"文件 {file.filename} 大小超过限制 ({MAX_UPLOAD_SIZE / 1024 / 1024}MB)",
+                )
+            
+            # 检查文件扩展名
+            file_ext = Path(file.filename).suffix.lower()
+            if file_ext not in ALLOWED_EXTENSIONS:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"文件 {file.filename} 格式不支持，仅支持: {', '.join(ALLOWED_EXTENSIONS)}",
+                )
+            
+            # 生成唯一文件名
+            filename = f"{uuid.uuid4()}{file_ext}"
+            file_path = UPLOAD_DIR / filename
+            
+            # 保存文件
+            with open(file_path, "wb") as f:
+                f.write(contents)
+            
+            file_paths.append(str(file_path))
+            logger.info(f"文件上传成功: {filename}")
         
-        # 生成唯一文件名
-        filename = f"{uuid.uuid4()}{file_ext}"
-        file_path = UPLOAD_DIR / filename
-        
-        # 保存文件
-        with open(file_path, "wb") as f:
-            f.write(contents)
-        
-        logger.info(f"文件上传成功: {filename}")
-        
+        # 兼容旧版本：如果只有一张图片，同时返回 file_path
         return UploadResponse(
             success=True,
-            file_path=str(file_path),
-            message="上传成功",
+            file_path=file_paths[0] if len(file_paths) == 1 else None,
+            file_paths=file_paths,
+            message=f"成功上传 {len(file_paths)} 张图片",
         )
         
     except HTTPException:
@@ -184,11 +198,16 @@ async def chat_stream(request: ChatRequest):
         
         # 构建消息内容
         message_content = request.message
-        if request.image_path:
-            # 如果有图片，在消息中包含图片路径
-            message_content = f"{request.message}\n\n[图片路径: {request.image_path}]"
         
-        logger.info(f"收到对话请求 [thread_id={thread_id}]: {request.message}")
+        # 支持多图片路径（新版本）或单图片路径（兼容旧版本）
+        image_paths = request.image_paths or ([request.image_path] if request.image_path else [])
+        
+        if image_paths:
+            # 如果有图片，在消息中包含所有图片路径
+            paths_text = "\n".join([f"[图片路径 {i+1}: {path}]" for i, path in enumerate(image_paths)])
+            message_content = f"{request.message}\n\n{paths_text}"
+        
+        logger.info(f"收到对话请求 [thread_id={thread_id}]: {request.message}, 图片数量: {len(image_paths)}")
         
         async def event_generator() -> AsyncGenerator[str, None]:
             """SSE 事件生成器"""
