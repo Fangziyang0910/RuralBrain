@@ -37,6 +37,7 @@ Desktop.ini
 uploads/
 pest_detection_results/
 cow_detection_results/
+rice_detection_results/
 src/algorithms/rice_detection/res/
 res/
 knowledge_base/

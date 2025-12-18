@@ -4,6 +4,7 @@ import os
 import cv2
 import uuid
 from datetime import datetime
+from pathlib import Path
 from ultralytics import YOLO
 from langchain.tools import tool
 
@@ -34,17 +35,14 @@ def detect_cows(image_path: str, model) -> dict:
                         'center': [(x1 + x2) / 2, (y1 + y2) / 2]
                     })
     
-    # 获取项目根目录
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    
-    # 创建service/cow_detection_results目录
-    results_dir = os.path.join(project_root, 'service', 'cow_detection_results')
-    os.makedirs(results_dir, exist_ok=True)
+    # 定义结果保存目录（项目根目录下）
+    results_dir = Path("cow_detection_results")
+    results_dir.mkdir(exist_ok=True)
     
     # 生成结果图片文件名
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     result_image_name = f"cow_result_{timestamp}_{uuid.uuid4().hex[:8]}.jpg"
-    result_image_path = os.path.join(results_dir, result_image_name)
+    result_image_path = results_dir / result_image_name
     
     # 绘制检测框并保存结果图片
     result_image = image.copy()
@@ -62,14 +60,14 @@ def detect_cows(image_path: str, model) -> dict:
         cv2.putText(result_image, label, (x1, y1 - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
     
     # 保存结果图片
-    cv2.imwrite(result_image_path, result_image)
+    cv2.imwrite(str(result_image_path), result_image)
     
     return {
         "success": True,
         "cow_count": len(cow_boxes),
         "cow_boxes": cow_boxes,
         "image_size": {"width": width, "height": height},
-        "result_image_path": result_image_path,
+        "result_image_path": str(result_image_path),
         "result_image_name": result_image_name
     }
 
