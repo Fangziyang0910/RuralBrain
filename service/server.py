@@ -252,9 +252,9 @@ async def chat_stream(request: ChatRequest):
                         
                         elif tool_name == "rice_detection_tool":
                             # 查找最新的大米检测结果图片
-                            result_dir = Path("src/algorithms/rice_detection/temp_input")
+                            result_dir = Path("rice_detection_results")
                             if result_dir.exists():
-                                images = sorted(result_dir.glob("*_output.jpg"), 
+                                images = sorted(result_dir.glob("rice_detection_*.jpg"), 
                                               key=lambda p: p.stat().st_mtime, reverse=True)
                                 if images:
                                     result_image = f"/rice_results/{images[0].name}"
@@ -263,7 +263,7 @@ async def chat_stream(request: ChatRequest):
                             # 查找最新的牛只检测结果图片
                             result_dir = Path("cow_detection_results")
                             if result_dir.exists():
-                                images = sorted(result_dir.glob("cow_detection_*.jpg"), 
+                                images = sorted(result_dir.glob("cow_result_*.jpg"), 
                                               key=lambda p: p.stat().st_mtime, reverse=True)
                                 if images:
                                     result_image = f"/cow_results/{images[0].name}"
