@@ -2,6 +2,8 @@
 import json
 import os
 import cv2
+import uuid
+from datetime import datetime
 from ultralytics import YOLO
 from langchain.tools import tool
 
@@ -32,11 +34,43 @@ def detect_cows(image_path: str, model) -> dict:
                         'center': [(x1 + x2) / 2, (y1 + y2) / 2]
                     })
     
+    # 获取项目根目录
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    
+    # 创建service/cow_detection_results目录
+    results_dir = os.path.join(project_root, 'service', 'cow_detection_results')
+    os.makedirs(results_dir, exist_ok=True)
+    
+    # 生成结果图片文件名
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    result_image_name = f"cow_result_{timestamp}_{uuid.uuid4().hex[:8]}.jpg"
+    result_image_path = os.path.join(results_dir, result_image_name)
+    
+    # 绘制检测框并保存结果图片
+    result_image = image.copy()
+    for cow in cow_boxes:
+        x1, y1, x2, y2 = map(int, cow['bbox'])
+        confidence = cow['confidence']
+        
+        # 绘制矩形框
+        cv2.rectangle(result_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        
+        # 绘制标签
+        label = f"Cow: {confidence:.2f}"
+        label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)[0]
+        cv2.rectangle(result_image, (x1, y1 - label_size[1] - 4), (x1 + label_size[0], y1), (0, 255, 0), -1)
+        cv2.putText(result_image, label, (x1, y1 - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
+    
+    # 保存结果图片
+    cv2.imwrite(result_image_path, result_image)
+    
     return {
         "success": True,
         "cow_count": len(cow_boxes),
         "cow_boxes": cow_boxes,
-        "image_size": {"width": width, "height": height}
+        "image_size": {"width": width, "height": height},
+        "result_image_path": result_image_path,
+        "result_image_name": result_image_name
     }
 
 
