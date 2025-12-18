@@ -1,3 +1,4 @@
+// 客户端组件：聊天消息气泡，支持用户和助手消息展示，包含文本、图片及工具调用结果的渲染。
 "use client";
 
 import React, { useState } from "react";
@@ -14,6 +15,7 @@ interface ToolCall {
   summary?: string[];
 }
 
+// export 表示该类型可在其他文件中导入使用
 export type Message = {
   id: string;
   role: "user" | "assistant";
@@ -29,6 +31,7 @@ interface ChatMessageBubbleProps {
 }
 
 export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
+  // 解构参数获取消息内容
   message,
 }) => {
   const isUser = message.role === "user";
@@ -50,6 +53,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
       {/* 消息内容 */}
       <div className={`flex flex-col gap-2 max-w-3xl ${isUser ? "items-end" : "items-start"}`}>
         {/* 工具调用展示 */}
+        {/* 条件渲染 */}
         {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
           <div className="w-full">
             {message.toolCalls.map((toolCall, idx) => (

@@ -50,7 +50,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 挂载静态文件目录，提供检测结果图片访问
+# --------挂载静态文件目录--------
+# 将服务器本地的文件目录映射为可通过 HTTP 访问的静态资源路径
 # 挂载上传文件目录
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
@@ -290,9 +291,12 @@ async def chat_stream(request: ChatRequest):
                 }
                 yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
         
+        # 使用 StreamingResponse 包装生成器
         return StreamingResponse(
             event_generator(),
+            # 设置 SSE 媒体类型
             media_type="text/event-stream",
+            # 禁用缓存，防止代理服务器缓冲响应，确保实时性
             headers={
                 "Cache-Control": "no-cache",
                 "X-Accel-Buffering": "no",

@@ -1,3 +1,4 @@
+// 告知系统：这个文件要在浏览器端（客户端）运行
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, FormEvent } from "react";
@@ -7,6 +8,7 @@ import { Upload, Send, X, Loader2 } from "lucide-react";
 
 const API_BASE = "/api";
 
+// export default 导出这个函数，让其他文件可以使用
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -20,6 +22,8 @@ export default function Home() {
 
   // 自动滚动到底部
   const scrollToBottom = () => {
+    // messagesEndRef 指向聊天消息底部的指针
+    // ?. 可选链操作符，如果元素存在才执行
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
@@ -37,9 +41,9 @@ export default function Home() {
       scrollToBottom();
       prevMessageCountRef.current = messages.length;
     }
-  }, [messages]);
+  }, [messages]); // 依赖项：当 messages 变化时执行
 
-  // 自动调整文本框高度
+  // 自动调整文本输入框高度
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -50,7 +54,9 @@ export default function Home() {
     }
   }, [input]);
 
+  // 选择图片处理
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 用户选择图片
     const files = Array.from(e.target.files || []);
     
     // 限制最多10张图片
@@ -66,6 +72,7 @@ export default function Home() {
     const newPreviews: string[] = [];
     let loadedCount = 0;
     
+    //使用 FileReader 读取图片数据
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -81,6 +88,7 @@ export default function Home() {
     });
   };
 
+  // 删除图片处理
   const handleRemoveImage = (index: number) => {
     setSelectedImages(prev => prev.filter((_, i) => i !== index));
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
@@ -88,7 +96,7 @@ export default function Home() {
       fileInputRef.current.value = "";
     }
   };
-  
+  // 删除全部图片处理
   const handleRemoveAllImages = () => {
     setSelectedImages([]);
     setImagePreviews([]);
@@ -97,18 +105,25 @@ export default function Home() {
     }
   };
 
+  // 处理提交消息（点击发送按钮时执行）
+  // FormEvent: TypeScript 表单事件类型
   const handleSubmit = (e: FormEvent) => {
+    // 阻止表单默认提交行为
     e.preventDefault();
+    // 如果没有输入内容且没有选择图片，或者正在加载中，则不处理
     if ((!input.trim() && selectedImages.length === 0) || loading) return;
 
     const messageText = input.trim() || 
       (selectedImages.length === 1 ? "请帮我识别这张图片" : `请帮我识别这 ${selectedImages.length} 张图片`);
     
+    // 调用发送消息函数
     handleSendMessage(messageText, selectedImages.length > 0 ? selectedImages : undefined);
+    //清空输入框和已选图片
     setInput("");
     handleRemoveAllImages();
   };
 
+  // 处理键盘按键（回车发送，Shift+回车换行）
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -116,6 +131,7 @@ export default function Home() {
     }
   };
 
+  // 发送消息函数，支持图片上传和SSE流式响应
   const handleSendMessage = useCallback(
     async (message: string, images?: File[]) => {
       let imagePaths: string[] | undefined;
@@ -293,7 +309,7 @@ export default function Home() {
           {
             id: `error_${Date.now()}`,
             role: "assistant",
-            content: `❌ 抱歉，发生了错误:\n\n${errorMessage}\n\n${
+            content: `抱歉，发生了错误:\n\n${errorMessage}\n\n${
               isNetworkError ? "💡 提示：请检查网络连接或后端服务是否正常运行。" : ""
             }`,
           },
@@ -317,7 +333,7 @@ export default function Home() {
                 AI农业智能检测助手
               </h1>
               <p className="text-sm text-green-600 mt-0.5">
-                基于大模型的病虫害、水稻、牛只智能检测
+                基于大模型的病虫害、大米、牛只智能检测
               </p>
             </div>
           </div>
@@ -327,6 +343,7 @@ export default function Home() {
       {/* 对话区域 */}
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6">
+          {/* 条件渲染，显示欢迎信息或聊天消息 */}
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-green-400 pt-20">
               <div className="text-6xl mb-4">🌾</div>
@@ -335,6 +352,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-6">
+              {/* 数组映射，把每条信息都渲染成一个消息气泡组件 */}
               {messages.map((message) => (
                 <ChatMessageBubble key={message.id} message={message} />
               ))}

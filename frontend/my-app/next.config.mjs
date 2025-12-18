@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 开启 React 严格模式
   reactStrictMode: true,
   async rewrites() {
     return [
