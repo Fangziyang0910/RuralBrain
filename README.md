@@ -24,7 +24,52 @@
 
 ## 🚀 快速开始
 
-### 环境要求
+### 方式一：Docker 部署（推荐）
+
+#### 环境要求
+- **[Docker](https://www.docker.com/get-started/)**：20.10+
+- **[Docker Compose](https://docs.docker.com/compose/install/)**：1.29+
+- **内存**：至少 8GB
+- **磁盘空间**：至少 10GB
+
+#### 一键部署
+```bash
+# 克隆仓库
+git clone https://github.com/Fangziyang0910/RuralBrain.git
+cd RuralBrain
+
+# 启动所有服务（前端 + 后端 + 所有检测算法服务）
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+```
+
+#### 服务访问地址
+- **前端界面**: http://localhost:3000
+- **后端 API**: http://localhost:8080
+- **API 文档**: http://localhost:8080/docs
+- **病虫害检测**: http://localhost:8001
+- **大米识别**: http://localhost:8081
+- **奶牛检测**: http://localhost:8002
+
+#### 停止服务
+```bash
+# 停止所有服务
+docker-compose down
+
+# 停止并删除数据卷
+docker-compose down -v
+```
+
+---
+
+### 方式二：本地开发
+
+#### 环境要求
 
 在开始之前，请确保你的系统已安装以下工具：
 
@@ -60,17 +105,40 @@ cp .env.example .env
 # - ZHIPUAI_API_KEY: 智谱AI API 密钥
 ```
 
-### 使用 uv 运行代码
+### 运行服务
 
 ```bash
-# 运行主程序
-uv run main.py
+# 启动后端服务
+uv run python run_server.py
 
-# 或者激活虚拟环境后直接运行
-source .venv/bin/activate  # Linux（WSL）/Mac
-# .venv\Scripts\activate   # Windows
-python main.py
+# 在另一个终端启动前端服务
+cd frontend/my-app
+npm install
+npm run dev
 ```
+
+前端将运行在 http://localhost:3000，后端 API 在 http://localhost:8080
+
+## 📦 Docker 部署说明
+
+### Docker 镜像说明
+项目包含以下 Docker 镜像：
+- **ruralbrain-frontend**: Next.js 前端应用
+- **ruralbrain-backend**: FastAPI 后端服务（含 Agent 系统）
+- **pest-detector**: 病虫害检测服务
+- **rice-detector**: 大米识别服务
+- **cow-detector**: 奶牛检测服务
+
+### Docker Compose 配置
+- **[docker-compose.yml](docker-compose.yml)**: 完整的服务编排（前端 + 后端 + 所有检测服务）
+- **[docker-compose.all.yml](docker-compose.all.yml)**: 仅检测算法服务编排
+
+### 生产环境部署建议
+1. 设置环境变量 `ENVIRONMENT=production`
+2. 配置适当的资源限制
+3. 使用 secrets 管理敏感信息
+4. 启用健康检查和自动重启
+5. 配置日志收集和监控
 
 ## 🎯 模型管理
 

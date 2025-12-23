@@ -1,0 +1,80 @@
+# .dockerignore for RuralBrain Backend
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.uv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+tests/
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Model files (too large)
+*.pth
+*.pt
+*.onnx
+*.weights
+
+# Uploads and results (will be mounted as volumes)
+uploads/*
+pest_results/*
+cow_results/*
+rice_results/*
+!uploads/.gitkeep
+!pest_results/.gitkeep
+!cow_results/.gitkeep
+!rice_results/.gitkeep
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Frontend (not needed in backend image)
+frontend/

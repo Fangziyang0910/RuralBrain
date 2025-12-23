@@ -2,7 +2,7 @@
 
 ## 🌟 项目概述
 
-本项目是一个基于FastAPI的多智能体检测系统，集成了农作物病害检测、大米品种识别和奶牛检测等功能。系统采用微服务架构，每个检测服务独立部署，通过Docker容器化运行。
+本项目是一个基于 FastAPI + Next.js 的全栈智能检测系统，集成了农作物病害检测、大米品种识别和奶牛检测等功能。系统采用微服务架构，前端使用 Next.js 14 + TypeScript，后端使用 Python + FastAPI + LangChain/LangGraph，所有服务均支持 Docker 容器化部署。
 
 ## 🏗️ 系统架构
 
@@ -11,21 +11,38 @@
 RuralBrain/
 ├── src/agents/                    # 智能体核心逻辑
 │   ├── cow_detection_agent.py     # 奶牛检测智能体
-│   ├── pest_detection_agent.py      # 病虫害检测智能体  
-│   ├── rice_detection_agent.py      # 大米识别智能体
-│   └── tools/                       # 工具函数
+│   ├── pest_detection_agent.py    # 病虫害检测智能体
+│   ├── rice_detection_agent.py    # 大米识别智能体
+│   └── tools/                     # 工具函数
 ├── src/algorithms/                # 检测算法服务
 │   ├── cow_detection/             # 奶牛检测服务
-│   ├── pest_detection/              # 病虫害检测服务
-│   └── rice_detection/              # 大米识别服务
+│   ├── pest_detection/            # 病虫害检测服务
+│   └── rice_detection/            # 大米识别服务
+├── service/                       # FastAPI 主服务
+├── frontend/my-app/               # Next.js 前端应用
 ├── tests/resources/               # 测试资源
 ├── docs/                          # 项目文档
+├── Dockerfile.backend             # 后端 Docker 配置
+├── docker-compose.yml             # 完整服务编排配置
+├── docker-compose.all.yml         # 检测服务编排配置
 ├── deploy_all.bat                 # 统一部署脚本 (Windows)
-├── docker-compose.all.yml         # 统一Docker Compose配置
-└── PROJECT_OVERVIEW.md           # 项目总体说明文档
+└── PROJECT_OVERVIEW.md            # 项目总体说明文档
 ```
 
+### 技术栈
+- **前端**: Next.js 14, TypeScript, Tailwind CSS, Radix UI
+- **后端**: Python 3.13, FastAPI, LangChain, LangGraph
+- **AI/ML**: PyTorch, Ultralytics YOLO, OpenCV
+- **部署**: Docker, Docker Compose
+
 ## 🔧 服务配置
+
+### 0. 前端应用 (Frontend)
+- **服务目录**: `frontend/my-app/`
+- **端口**: 3000
+- **访问地址**: http://localhost:3000
+- **Docker服务名**: frontend
+- **主要功能**: Web 用户界面，提供检测功能交互界面
 
 ### 1. 病虫害检测服务 (Pest Detection)
 - **服务目录**: `src/algorithms/pest_detection/`
@@ -56,14 +73,45 @@ RuralBrain/
 
 ## 🚀 快速开始
 
-### 环境要求
+### Docker 部署（推荐）
+
+#### 环境要求
 - Docker 20.10+
 - Docker Compose 1.29+
-- Python 3.12+ (用于本地开发)
 - 内存: 至少8GB
 - 磁盘空间: 至少10GB
 
-### 统一部署 (推荐)
+#### 一键启动所有服务
+使用新的 `docker-compose.yml` 配置文件启动所有服务（前端 + 后端 + 检测服务）：
+
+```bash
+# 启动所有服务
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+```
+
+#### 服务访问地址
+- **前端界面**: http://localhost:3000
+- **后端 API**: http://localhost:8080
+- **API 文档**: http://localhost:8080/docs
+- **病虫害检测**: http://localhost:8001
+- **大米识别**: http://localhost:8081
+- **奶牛检测**: http://localhost:8002
+
+#### 仅启动检测算法服务
+如果只需要启动检测服务（不包含前后端）：
+
+```bash
+# 使用原有的配置文件
+docker-compose -f docker-compose.all.yml up -d
+```
+
+### 统一部署脚本（Windows）
 使用统一的构建脚本部署所有服务：
 
 #### Windows系统
@@ -210,12 +258,30 @@ curl http://localhost:8002/health
 
 ## 🔧 配置选项
 
+### Docker Compose 配置文件说明
+- **[docker-compose.yml](docker-compose.yml)**: 完整服务编排
+  - 包含前端 (Next.js)
+  - 包含后端主服务 (FastAPI + Agents)
+  - 包含所有检测算法服务
+  - 适用于完整部署
+
+- **[docker-compose.all.yml](docker-compose.all.yml)**: 检测服务编排
+  - 仅包含检测算法服务
+  - 适用于单独部署检测服务
+
+### Dockerfile 说明
+- **[Dockerfile.backend](Dockerfile.backend)**: 后端服务镜像
+- **[frontend/my-app/Dockerfile](frontend/my-app/Dockerfile)**: 前端应用镜像
+- 各检测服务目录下均有独立的 Dockerfile
+
 ### 环境变量
 每个服务都支持以下环境变量：
 - `LOG_LEVEL`: 日志级别 (INFO, DEBUG, ERROR)
 - `PYTHONPATH`: Python路径
 - `MODEL_PATH`: 模型文件路径
 - `PORT`: 服务端口号
+- `ENVIRONMENT`: 运行环境 (development/production)
+- `NODE_ENV`: 前端环境 (development/production)
 
 ### CORS配置
 所有服务默认启用CORS，允许跨域请求：
