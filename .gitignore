@@ -33,6 +33,11 @@ Desktop.ini
 # Specific files
 .github/copilot-instructions.md
 
+# Claude Code
+.claude.json
+.claude/
+CLAUDE.md
+
 # algorithms input and output
 uploads/
 pest_detection_results/
