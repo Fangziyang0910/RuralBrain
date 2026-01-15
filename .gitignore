@@ -50,3 +50,9 @@ knowledge_base/
 # RAG knowledge base data files (large files, Chinese names)
 src/data/policies/
 src/data/cases/
+
+# Node.js
+node_modules/
+package-lock.json
+package.json
+
