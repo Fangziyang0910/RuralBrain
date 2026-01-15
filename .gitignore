@@ -46,3 +46,7 @@ rice_detection_results/
 src/algorithms/rice_detection/res/
 res/
 knowledge_base/
+
+# RAG knowledge base data files (large files, Chinese names)
+src/data/policies/
+src/data/cases/
