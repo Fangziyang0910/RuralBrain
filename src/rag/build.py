@@ -1,80 +1,220 @@
+"""
+知识库构建脚本
+符合 LangChain 最佳实践，支持 Docker 部署
+针对 Planning Agent 优化：更大的 chunk_size 保留上下文
+"""
 import os
-from pptx import Presentation
+import sys
+from pathlib import Path
+
+# 添加项目根目录到 Python 路径
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
 
-# ================= 配置区 =================
-# 1. 你的 PPT 原始路径 (WSL 下访问 Windows 盘符)
-# 1. 获取当前脚本目录
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+from src.rag.config import (
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
+    CHROMA_COLLECTION_NAME,
+    CHROMA_PERSIST_DIR,
+    DATA_DIR,
+    EMBEDDING_MODEL_NAME,
+    EMBEDDING_DEVICE,
+    VECTOR_DB_TYPE,
+    is_docker,
+)
+from src.rag.utils import load_knowledge_base
+from src.rag.visualize import SliceInspector
 
-# 2. 指向刚才复制进来的 PPT (注意文件名变了)
-PPT_PATH = os.path.join(CURRENT_DIR, "..", "data", "luofu_strategy.pptx")
 
-# 3. 数据库路径
-PROJECT_ROOT = os.path.dirname(os.path.dirname(CURRENT_DIR))
-PERSIST_DIRECTORY = os.path.join(PROJECT_ROOT, "knowledge_base", "luofu_db")
-# =========================================
-
-def extract_text_from_pptx(file_path):
-    """直接从 PPTX 提取文字，不转 PDF"""
-    if not os.path.exists(file_path):
-        print(f"❌ 错误：找不到文件 {file_path}")
+def load_documents():
+    """
+    加载文档（支持分类）
+    目录结构:
+    src/data/
+    ├── policies/
+    │   ├── *.md
+    │   ├── *.txt
+    │   ├── *.pptx
+    │   ├── *.pdf
+    │   └── *.docx
+    └── cases/
+        ├── *.md
+        ├── *.txt
+        ├── *.pptx
+        ├── *.pdf
+        └── *.docx
+    """
+    if not DATA_DIR.exists():
+        print(f"❌ 错误：数据目录不存在: {DATA_DIR}")
+        print(f"\n请按以下结构组织数据:")
+        print(f"  {DATA_DIR}/")
+        print(f"  ├── policies/")
+        print(f"  │   ├── 文件1.md")
+        print(f"  │   ├── 文件2.pdf")
+        print(f"  │   └── 文件3.docx")
+        print(f"  └── cases/")
+        print(f"      ├── 案例1.md")
+        print(f"      ├── 案例2.pptx")
+        print(f"      └── 案例3.txt")
         return []
 
-    print(f"📂 正在读取 PPT: {file_path} ...")
-    prs = Presentation(file_path)
-    documents = []
+    # 使用新的分类加载函数
+    try:
+        documents = load_knowledge_base(DATA_DIR)
+        return documents
+    except FileNotFoundError as e:
+        print(f"❌ {e}")
+        return []
 
-    for i, slide in enumerate(prs.slides):
-        slide_text = []
-        # 遍历每页的所有文本框
-        for shape in slide.shapes:
-            if hasattr(shape, "text") and shape.text.strip():
-                slide_text.append(shape.text.strip())
-        
-        page_content = "\n".join(slide_text)
-        
-        # 只有当这一页有字的时候才保存
-        if page_content:
-            # 加上页码元数据，方便以后知道是哪一页
-            doc = Document(
-                page_content=page_content,
-                metadata={"source": "博罗古城总体规划说明书", "page": i + 1}
-            )
-            documents.append(doc)
-    
-    print(f"✅ 提取完成，共获取 {len(documents)} 页有效内容。")
-    return documents
 
-def build_vector_db():
-    # 1. 提取文字
-    docs = extract_text_from_pptx(PPT_PATH)
-    if not docs:
+def split_documents(documents):
+    """
+    切分文档
+    针对 Planning Agent 优化：使用更大的 chunk_size
+    """
+    print("\n✂️  正在切分文档...")
+    print(f"   配置: chunk_size={CHUNK_SIZE}, chunk_overlap={CHUNK_OVERLAP}")
+
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
+        length_function=len,
+        add_start_index=True,  # 添加字符索引用于引用
+    )
+
+    splits = text_splitter.split_documents(documents)
+    print(f"✅ 切分完成，共 {len(splits)} 个切片")
+
+    return splits
+
+
+def visualize_splits(splits):
+    """
+    可视化切片结果
+    帮助发现冗余和垃圾信息
+    """
+    print("\n📊 切片可视化分析\n")
+
+    inspector = SliceInspector(splits)
+
+    # 打印统计摘要
+    inspector.print_summary()
+
+    # 打印前 3 个切片的详情
+    print("\n" + "="*60)
+    inspector.print_slice_details(start_idx=0, end_idx=3, show_content=True)
+
+    # 查找并打印潜在问题
+    print("\n" + "="*60)
+    inspector.print_issues(max_issues=10)
+
+    # 导出完整数据到 JSON（可选）
+    output_json = CHROMA_PERSIST_DIR / "slices_analysis.json"
+    inspector.export_to_json(output_json)
+
+    return inspector
+
+
+def build_vector_store(splits):
+    """
+    构建向量存储
+    支持多种向量数据库（Chroma/FAISS/Qdrant）
+    """
+    print(f"\n🧠 正在初始化 Embedding 模型: {EMBEDDING_MODEL_NAME}")
+
+    # 检测是否在 Docker 中运行
+    if is_docker():
+        print("🐳 检测到 Docker 环境，使用 CPU 推理")
+        device = "cpu"
+    else:
+        device = EMBEDDING_DEVICE
+        print(f"💻 设备: {device}")
+
+    # 初始化 Embedding 模型
+    embedding_model = HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL_NAME,
+        model_kwargs={"device": device},
+        encode_kwargs={"normalize_embeddings": True},  # 归一化向量
+    )
+
+    # 根据配置选择向量数据库
+    if VECTOR_DB_TYPE == "chroma":
+        print(f"💾 使用 Chroma 向量数据库")
+        print(f"   持久化路径: {CHROMA_PERSIST_DIR}")
+
+        # 确保目录存在
+        CHROMA_PERSIST_DIR.mkdir(parents=True, exist_ok=True)
+
+        vectorstore = Chroma.from_documents(
+            documents=splits,
+            embedding=embedding_model,
+            collection_name=CHROMA_COLLECTION_NAME,
+            persist_directory=str(CHROMA_PERSIST_DIR),
+        )
+
+        print(f"✅ Chroma 数据库构建完成！")
+        print(f"   集合名称: {CHROMA_COLLECTION_NAME}")
+
+        return vectorstore
+
+    elif VECTOR_DB_TYPE == "faiss":
+        print("💾 使用 FAISS 向量数据库（暂未实现）")
+        raise NotImplementedError("FAISS 支持即将推出")
+
+    elif VECTOR_DB_TYPE == "qdrant":
+        print("💾 使用 Qdrant 向量数据库（暂未实现）")
+        raise NotImplementedError("Qdrant 支持即将推出")
+
+    else:
+        raise ValueError(f"不支持的向量数据库类型: {VECTOR_DB_TYPE}")
+
+
+def main():
+    """主函数"""
+    print("="*60)
+    print("🚀 开始构建知识库（Planning Agent 优化版）")
+    print("="*60)
+
+    # 1. 加载文档
+    documents = load_documents()
+    if not documents:
+        print("\n❌ 没有加载到文档，退出构建")
         return
 
-    # 2. 切分文本
-    print("✂️ 正在切分文本...")
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,    # 每块的大小
-        chunk_overlap=100  # 重叠部分，防止切断句子
-    )
-    splits = text_splitter.split_documents(docs)
-    print(f"✂️ 切分完成，共 {len(splits)} 个片段。")
+    # 2. 切分文档
+    splits = split_documents(documents)
 
-    # 3. 向量化并存储
-    print("🧠 正在向量化 (首次运行需要下载模型，请稍候)...")
-    embedding_model = HuggingFaceEmbeddings(model_name="BAAI/bge-small-zh-v1.5")
+    # 3. 可视化切片（帮助发现问题和优化）
+    inspector = visualize_splits(splits)
 
-    print(f"💾 正在写入数据库: {PERSIST_DIRECTORY}")
-    vectorstore = Chroma.from_documents(
-        documents=splits,
-        embedding=embedding_model,
-        persist_directory=PERSIST_DIRECTORY
-    )
-    print("🎉 恭喜！知识库构建成功！")
+    # 询问用户是否继续
+    print("\n" + "="*60)
+    user_input = input("是否继续构建向量数据库？(y/n): ").strip().lower()
+    if user_input not in ['y', 'yes', '是']:
+        print("❌ 已取消构建")
+        return
+
+    # 4. 构建向量存储
+    print("\n🔨 开始构建向量数据库...")
+    vectorstore = build_vector_store(splits)
+
+    # 5. 完成
+    print("\n" + "="*60)
+    print("🎉 知识库构建完成！")
+    print("="*60)
+    print(f"\n📊 统计信息:")
+    print(f"   • 原始文档数: {len(documents)}")
+    print(f"   • 切片数量: {len(splits)}")
+    print(f"   • 平均切片大小: {inspector.stats['avg_chars']:.0f} 字符")
+    print(f"\n💾 数据库位置: {CHROMA_PERSIST_DIR}")
+    print(f"📊 切片分析报告: {CHROMA_PERSIST_DIR / 'slices_analysis.json'}")
+    print(f"\n✅ 可以通过以下方式使用知识库:")
+    print(f"   from src.rag.tool import planning_knowledge_tool")
+    print(f"   planning_knowledge_tool.run('你的问题')")
+
 
 if __name__ == "__main__":
-    build_vector_db()
+    main()
