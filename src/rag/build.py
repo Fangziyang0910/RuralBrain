@@ -27,6 +27,7 @@ from src.rag.config import (
 )
 from src.rag.utils import load_knowledge_base
 from src.rag.visualize import SliceInspector
+from src.rag.context_manager import DocumentContextManager
 
 
 def load_documents():
@@ -201,7 +202,13 @@ def main():
     print("\n🔨 开始构建向量数据库...")
     vectorstore = build_vector_store(splits)
 
-    # 5. 完成
+    # 5. 构建并保存文档索引（用于上下文管理）
+    print("\n📚 正在构建文档索引（支持全文上下文查询）...")
+    context_manager = DocumentContextManager()
+    context_manager.build_index(documents, splits)
+    context_manager.save()
+
+    # 6. 完成
     print("\n" + "="*60)
     print("🎉 知识库构建完成！")
     print("="*60)
@@ -211,9 +218,14 @@ def main():
     print(f"   • 平均切片大小: {inspector.stats['avg_chars']:.0f} 字符")
     print(f"\n💾 数据库位置: {CHROMA_PERSIST_DIR}")
     print(f"📊 切片分析报告: {CHROMA_PERSIST_DIR / 'slices_analysis.json'}")
+    print(f"📖 文档索引: {CHROMA_PERSIST_DIR / 'document_index.json'}")
     print(f"\n✅ 可以通过以下方式使用知识库:")
     print(f"   from src.rag.tool import planning_knowledge_tool")
     print(f"   planning_knowledge_tool.run('你的问题')")
+    print(f"\n✅ 上下文查询工具:")
+    print(f"   from src.rag.context_manager import get_context_manager")
+    print(f"   cm = get_context_manager()")
+    print(f"   cm.get_full_document('文件名')")
 
 
 if __name__ == "__main__":

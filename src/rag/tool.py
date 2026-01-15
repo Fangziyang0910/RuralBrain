@@ -22,6 +22,7 @@ from src.rag.config import (
     DEFAULT_TOP_K,
     EMBEDDING_MODEL_NAME,
 )
+from src.rag.context_manager import get_context_manager
 
 # 全局变量（懒加载）
 _embedding_model = None
@@ -62,16 +63,23 @@ def get_vectorstore():
     return _vectorstore
 
 
-def retrieve_planning_knowledge(query: str, top_k: int = DEFAULT_TOP_K) -> str:
+def retrieve_planning_knowledge(
+    query: str,
+    top_k: int = DEFAULT_TOP_K,
+    with_context: bool = True,
+    context_chars: int = 300
+) -> str:
     """
     检索乡村规划相关知识（适配 Planning Agent）
 
     Args:
         query: 查询问题
         top_k: 返回的切片数量（Planning Agent 需要更多上下文）
+        with_context: 是否包含周围上下文（阶段1新增功能）
+        context_chars: 上下文字符数（仅在 with_context=True 时生效）
 
     Returns:
-        格式化的检索结果
+        格式化的检索结果，包含上下文信息
     """
     try:
         db = get_vectorstore()
@@ -84,20 +92,50 @@ def retrieve_planning_knowledge(query: str, top_k: int = DEFAULT_TOP_K) -> str:
 
         # 格式化结果，提供更丰富的上下文信息
         context_parts = []
+
         for idx, doc in enumerate(results, 1):
             # 提取元数据
             source = doc.metadata.get("source", "未知来源")
             page = doc.metadata.get("page", doc.metadata.get("paragraph", "未知"))
             doc_type = doc.metadata.get("type", "未知类型")
+            start_index = doc.metadata.get("start_index", 0)
 
-            # 构建上下文片段
-            context_part = (
-                f"【知识片段 {idx}】\n"
-                f"来源: {source}\n"
-                f"位置: 第{page}{doc_type}\n"
-                f"内容:\n{doc.page_content}"
-            )
-            context_parts.append(context_part)
+            # 构建基础上下文片段
+            context_part = [
+                f"【知识片段 {idx}】",
+                f"来源: {source}",
+                f"位置: 第{page}{doc_type}",
+            ]
+
+            # 如果启用了上下文功能，尝试获取周围内容
+            if with_context and start_index > 0:
+                try:
+                    cm = get_context_manager()
+                    ctx = cm.get_context_around_chunk(source, start_index, context_chars)
+
+                    if "error" not in ctx:
+                        # 添加上下文信息
+                        if ctx['before']:
+                            context_part.append(f"\n前文:\n{ctx['before'][:200]}...")
+
+                        context_part.append(f"\n核心内容:\n{doc.page_content}")
+
+                        if ctx['after']:
+                            context_part.append(f"\n后文:\n{ctx['after'][:200]}...")
+
+                        context_part.append(f"\n💡 提示: 使用 get_full_document('{source}') 查看完整文档")
+                    else:
+                        # 回退到原始格式
+                        context_part.append(f"\n内容:\n{doc.page_content}")
+
+                except Exception as e:
+                    # 上下文获取失败，回退到原始格式
+                    context_part.append(f"\n内容:\n{doc.page_content}")
+            else:
+                # 不使用上下文，使用原始格式
+                context_part.append(f"\n内容:\n{doc.page_content}")
+
+            context_parts.append("\n".join(context_part))
 
         return "\n\n".join(context_parts)
 
@@ -183,3 +221,200 @@ def retrieve_knowledge_detailed(query: str) -> tuple[str, List[Document]]:
     )
 
     return serialized, retrieved_docs
+
+
+# ==================== 上下文查询工具（阶段1新增）====================
+
+def get_full_document(source: str) -> str:
+    """
+    获取完整文档内容（用于深度理解）
+
+    Args:
+        source: 文档来源（文件名）
+
+    Returns:
+        完整文档内容
+    """
+    try:
+        cm = get_context_manager()
+        result = cm.get_full_document(source)
+
+        if "error" in result:
+            return f"❌ {result['error']}"
+
+        return (
+            f"【完整文档】\n"
+            f"来源: {result['source']}\n"
+            f"类型: {result['doc_type']}\n"
+            f"总切片数: {result['total_chunks']}\n"
+            f"内容长度: {len(result['content'])} 字符\n\n"
+            f"内容:\n{result['content']}"
+        )
+
+    except Exception as e:
+        return f"❌ 获取文档时发生错误: {str(e)}"
+
+
+def get_chapter_by_header(source: str, header_pattern: str) -> str:
+    """
+    根据标题获取章节内容
+
+    Args:
+        source: 文档来源（文件名）
+        header_pattern: 标题关键词（如"第一章"、"产业发展"等）
+
+    Returns:
+        章节内容
+    """
+    try:
+        cm = get_context_manager()
+        result = cm.get_chapter_by_header(source, header_pattern)
+
+        if "error" in result:
+            return f"❌ {result['error']}"
+
+        return (
+            f"【章节内容】\n"
+            f"来源: {result['source']}\n"
+            f"章节: {result['chapter_title']}\n"
+            f"行范围: {result['line_range']}\n\n"
+            f"内容:\n{result['content']}"
+        )
+
+    except Exception as e:
+        return f"❌ 获取章节时发生错误: {str(e)}"
+
+
+def get_context_around(source: str, position: int, context_chars: int = 500) -> str:
+    """
+    获取指定位置周围的上下文
+
+    Args:
+        source: 文档来源（文件名）
+        position: 字符位置
+        context_chars: 前后上下文字符数
+
+    Returns:
+        包含前文、当前位置、后文的字符串
+    """
+    try:
+        cm = get_context_manager()
+        result = cm.get_context_around_chunk(source, position, context_chars)
+
+        if "error" in result:
+            return f"❌ {result['error']}"
+
+        output = [
+            f"【上下文片段】",
+            f"来源: {result['source']}",
+            f"范围: {result['context_range']}",
+        ]
+
+        if result['before']:
+            output.append(f"\n前文:\n{result['before']}")
+
+        output.append(f"\n当前位置:\n{result['current']}")
+
+        if result['after']:
+            output.append(f"\n后文:\n{result['after']}")
+
+        return "\n".join(output)
+
+    except Exception as e:
+        return f"❌ 获取上下文时发生错误: {str(e)}"
+
+
+def list_available_documents(query: str = "") -> str:
+    """
+    列出所有可用的文档
+
+    Returns:
+        文档列表
+    """
+    try:
+        cm = get_context_manager()
+        cm._ensure_loaded()
+
+        if not cm.doc_index:
+            return "⚠️  知识库中没有文档"
+
+        output = ["【可用文档列表】\n"]
+
+        for idx, (source, doc_idx) in enumerate(cm.doc_index.items(), 1):
+            output.append(
+                f"{idx}. {source}\n"
+                f"   类型: {doc_idx.doc_type}\n"
+                f"   切片数: {len(doc_idx.chunks_info)}\n"
+                f"   预览: {doc_idx.chunks_info[0]['content_preview'] if doc_idx.chunks_info else 'N/A'}\n"
+            )
+
+        return "\n".join(output)
+
+    except Exception as e:
+        return f"❌ 列出文档时发生错误: {str(e)}"
+
+
+# ==================== 新增的 LangChain Tools ====================
+
+full_document_tool = Tool(
+    name="get_full_document",
+    func=get_full_document,
+    description=(
+        "【获取完整文档】"
+        "当你需要阅读整个文档来理解完整的规划背景、政策细节或方案全貌时使用此工具。"
+        "这比检索片段更适合理解宏观结构和完整逻辑。\n\n"
+        "参数说明："
+        '- source: 文档来源（文件名），如 "plan.docx" 或 "strategy.pdf"'
+        "\n\n"
+        "使用场景示例："
+        '- "我要了解罗浮山发展战略的完整内容"'
+        '- "查看博罗古城规划的所有章节"'
+        "\n\n"
+        "提示：可以使用 list_available_documents 先查看所有可用文档。"
+    ),
+)
+
+chapter_context_tool = Tool(
+    name="get_chapter_by_header",
+    func=lambda params: get_chapter_by_header(**params),
+    description=(
+        "【获取章节内容】"
+        "根据标题关键词获取特定章节的完整内容。适合查看文档中的某个主题章节。\n\n"
+        "参数说明（JSON格式）："
+        '- source: 文档来源（文件名）'
+        '- header_pattern: 标题关键词（如"第一章"、"产业发展"、"环境保护"等）'
+        "\n\n"
+        "使用场景示例："
+        '- 查看第一章: {"source": "plan.docx", "header_pattern": "第一章"}'
+        '- 查看产业规划: {"source": "strategy.pdf", "header_pattern": "产业"}'
+        "\n\n"
+        "提示：支持标题的部分匹配，不必输入完整标题。"
+    ),
+)
+
+document_list_tool = Tool(
+    name="list_available_documents",
+    func=list_available_documents,
+    description=(
+        "【列出可用文档】"
+        "列出知识库中所有可用的文档及其基本信息。"
+        "在使用其他文档工具前，建议先使用此工具查看有哪些文档可用。"
+    ),
+)
+
+context_around_tool = Tool(
+    name="get_context_around",
+    func=lambda params: get_context_around(**params),
+    description=(
+        "【获取上下文】"
+        "获取文档中特定位置周围的上下文（前文+当前位置+后文）。"
+        "用于理解某个观点或段落的完整语境。\n\n"
+        "参数说明（JSON格式）："
+        '- source: 文档来源（文件名）'
+        '- position: 字符位置（从切片的 start_index 元数据获取）'
+        '- context_chars: 上下文字符数（可选，默认500）'
+        "\n\n"
+        "使用场景："
+        "需要理解某个检索结果的前后逻辑时使用。"
+    ),
+)
