@@ -51,6 +51,10 @@ RETRIEVE_SCORE_THRESHOLD = float(os.getenv("RETRIEVE_SCORE_THRESHOLD", "0.7"))
 # ==================== 日志配置 ====================
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
+# ==================== LLM 模型配置 ====================
+# 从主配置导入模型供应商配置
+DEFAULT_PROVIDER = os.getenv("MODEL_PROVIDER", "deepseek")
+
 # ==================== Docker 部署检测 ====================
 def is_docker() -> bool:
     """检测是否运行在 Docker 容器中"""
