@@ -89,6 +89,16 @@ class FileTypeDetector:
                 print(f"⚠️  检测到伪装成 .docx 的 .doc 文件: {file_path.name}")
                 return 'doc'
 
+            # 特殊处理：ole 类型统一识别为 doc
+            if doc_type == 'ole':
+                # 如果扩展名是 .doc/.docx，直接识别为 doc
+                if ext in ['.doc', '.docx']:
+                    return 'doc'
+                # 否则根据 MIME 类型判断
+                if mime_type == 'application/x-ole-storage':
+                    print(f"🔍 检测到 OLE 复合文档（老格式 Word）: {file_path.name}")
+                    return 'doc'
+
             return doc_type
 
         # 特殊处理：如果检测到 OLE 复合文档，根据扩展名判断
@@ -263,6 +273,82 @@ class DOCLoader:
         except subprocess.TimeoutExpired:
             raise Exception("文档提取超时")
 
+    def _extract_with_olefile(self) -> str:
+        """使用 olefile 提取文本（纯 Python 备用方案）"""
+        try:
+            import olefile
+            import re
+        except ImportError:
+            raise Exception("olefile 未安装，请运行: pip install olefile")
+
+        try:
+            ole = olefile.OleFileIO(self.file_path)
+
+            # Word 文档的文本存储在 WordDocument 流中
+            # 简化版：只提取可读的 Unicode 文本
+            if not ole.exists('WordDocument'):
+                raise Exception("不是有效的 Word 文档")
+
+            text_parts = []
+
+            # 尝试读取 WordDocument 流和其他可能包含文本的流
+            # Word 文档通常有 WordDocument、1Table、0Table 等流
+            streams_to_try = ['WordDocument', '1Table', '0Table', 'Data']
+
+            for stream_name in streams_to_try:
+                if ole.exists(stream_name):
+                    try:
+                        data = ole.openstream(stream_name).read()
+                        print(f"   正在解析流: {stream_name} ({len(data)} 字节)")
+
+                        # Word 文档使用多种编码，尝试不同的解码方式
+                        # 1. UTF-16 LE（Word 文档常用）
+                        # 2. GBK/GB2312（中文文档）
+                        # 3. UTF-8
+
+                        encodings = ['utf-16le', 'utf-16be', 'gbk', 'gb2312', 'gb18030', 'utf-8']
+
+                        for encoding in encodings:
+                            try:
+                                decoded = data.decode(encoding, errors='ignore')
+                                # 提取中文字符和常见标点
+                                chinese_chars = re.findall(r'[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+', decoded)
+                                if chinese_chars:
+                                    text_segment = ''.join(chinese_chars)
+                                    # 清理和控制字符
+                                    text_segment = re.sub(r'\s+', '\n', text_segment)
+                                    text_segment = re.sub(r'\n{3,}', '\n\n', text_segment)
+
+                                    if len(text_segment.strip()) > 20:  # 至少20个有效字符
+                                        print(f"   ✓ 使用 {encoding} 编码提取了 {len(text_segment)} 个字符")
+                                        text_parts.append(text_segment)
+                                        break
+                            except:
+                                continue
+
+                    except Exception as e:
+                        print(f"   ⚠️  解析流 {stream_name} 失败: {e}")
+                        continue
+
+            ole.close()
+
+            # 合并所有提取的文本
+            full_text = '\n\n'.join(text_parts)
+
+            if not full_text.strip():
+                # 如果所有方法都失败，返回一个占位符
+                print("   ⚠️  未能从文档中提取到有效文本")
+                print("   提示：这是 .doc 格式的已知限制")
+                print("   建议：")
+                print("   1. 使用 Microsoft Word 或 WPS Office 将文件另存为 .docx 格式")
+                print("   2. 或者安装 catdoc 工具：sudo apt-get install catdoc")
+                raise Exception("未能从文档中提取到有效文本，请将文件转换为 .docx 格式")
+
+            return full_text
+
+        except Exception as e:
+            raise Exception(f"olefile 提取失败: {e}")
+
     def load(self) -> List[Document]:
         """加载 DOC 文件并返回文档列表"""
         if not self.file_path.exists():
@@ -275,8 +361,12 @@ class DOCLoader:
             try:
                 text = self._extract_with_antiword()
             except Exception as e:
-                print(f"⚠️  antiword 失败，尝试 catdoc: {e}")
-                text = self._extract_with_catdoc()
+                print(f"⚠️  antiword 失败 ({e})，尝试 catdoc...")
+                try:
+                    text = self._extract_with_catdoc()
+                except Exception as e2:
+                    print(f"⚠️  catdoc 也失败 ({e2})，尝试使用 olefile 纯 Python 提取...")
+                    text = self._extract_with_olefile()
 
             # 清理文本
             cleaned_text = self.cleaner.clean_text(text)
@@ -306,7 +396,7 @@ class DOCLoader:
             return documents
 
         except Exception as e:
-            raise Exception(f"读取 Word 文档（DOC）失败: {e}\n提示: 请安装 antiword: sudo apt-get install antiword")
+            raise Exception(f"读取 Word 文档（DOC）失败: {e}\n提示: 请安装 catdoc: sudo apt-get install catdoc")
 
 
 # ==================== DOCX 加载器（已优化）====================
