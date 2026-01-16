@@ -10,8 +10,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from langchain_core.documents import Document
-from src.rag.summarization import DocumentSummarizer, summarize_document
-from src.rag.context_manager import DocumentContextManager
+from src.rag.core.summarization import DocumentSummarizer, summarize_document
+from src.rag.core.context_manager import DocumentContextManager
 from src.rag.config import DEFAULT_PROVIDER, CHROMA_PERSIST_DIR
 
 
@@ -202,7 +202,7 @@ def test_tool_functions():
     print("="*70)
 
     try:
-        from src.rag.tool import (
+        from src.rag.core.tools import (
             get_executive_summary_tool_func,
             list_chapter_summaries_tool_func,
             get_chapter_summary_tool_func,

@@ -28,8 +28,8 @@ from src.rag.config import (
 )
 from src.rag.utils import load_knowledge_base
 from src.rag.visualize import SliceInspector
-from src.rag.context_manager import DocumentContextManager
-from src.rag.summarization import DocumentSummarizer, DocumentSummary
+from src.rag.core.context_manager import DocumentContextManager
+from src.rag.core.summarization import DocumentSummarizer, DocumentSummary
 
 
 def load_documents():
@@ -288,7 +288,7 @@ def main():
     print(f"📊 切片分析报告: {CHROMA_PERSIST_DIR / 'slices_analysis.json'}")
     print(f"📖 文档索引: {CHROMA_PERSIST_DIR / 'document_index.json'}")
     print(f"\n✅ 可以通过以下方式使用知识库:")
-    print(f"   from src.rag.tool import planning_knowledge_tool")
+    print(f"   from src.rag.core.tools import planning_knowledge_tool")
     print(f"   planning_knowledge_tool.run('你的问题')")
     print(f"\n✅ 阶段1工具（全文上下文查询）:")
     print(f"   cm.get_full_document('文件名')")

@@ -8,8 +8,8 @@ from pathlib import Path
 # 添加项目根目录到路径
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.rag.context_manager import DocumentContextManager, get_context_manager
-from src.rag.tool import (
+from src.rag.core.context_manager import DocumentContextManager, get_context_manager
+from src.rag.core.tools import (
     get_full_document,
     get_chapter_by_header,
     list_available_documents,
@@ -149,7 +149,7 @@ def test_integration_with_agent():
     print("="*60)
 
     try:
-        from src.rag.tool import (
+        from src.rag.core.tools import (
             planning_knowledge_tool,
             full_document_tool,
             chapter_context_tool,

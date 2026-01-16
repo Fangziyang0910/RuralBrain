@@ -133,7 +133,7 @@ def test_basic_retrieval():
     print("="*60)
 
     try:
-        from src.rag.tool import retrieve_planning_knowledge
+        from src.rag.core.tools import retrieve_planning_knowledge
 
         # 测试查询
         test_queries = [
@@ -167,7 +167,7 @@ def test_metadata_filter_retrieval():
     print("="*60)
 
     try:
-        from src.rag.tool import retrieve_with_metadata
+        from src.rag.core.tools import retrieve_with_metadata
 
         # 测试元数据过滤
         query = "发展规划"
@@ -202,7 +202,7 @@ def test_langchain_tool():
     print("="*60)
 
     try:
-        from src.rag.tool import planning_knowledge_tool
+        from src.rag.core.tools import planning_knowledge_tool
 
         print(f"\n🔧 Tool 名称: {planning_knowledge_tool.name}")
         print(f"📝 Tool 描述: {planning_knowledge_tool.description[:200]}...")

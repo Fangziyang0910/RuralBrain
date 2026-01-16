@@ -22,7 +22,7 @@ from src.rag.config import (
     DEFAULT_TOP_K,
     EMBEDDING_MODEL_NAME,
 )
-from src.rag.context_manager import get_context_manager
+from src.rag.core.context_manager import get_context_manager
 
 # 全局变量（懒加载）
 _embedding_model = None
