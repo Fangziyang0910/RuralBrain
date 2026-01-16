@@ -418,3 +418,245 @@ context_around_tool = Tool(
         "需要理解某个检索结果的前后逻辑时使用。"
     ),
 )
+
+
+# ==================== 阶段2：摘要查询工具 ====================
+
+def get_executive_summary_tool_func(source: str) -> str:
+    """
+    获取文档的执行摘要（200字）
+
+    Args:
+        source: 文档来源（文件名）
+
+    Returns:
+        执行摘要
+    """
+    try:
+        cm = get_context_manager()
+        result = cm.get_executive_summary(source)
+
+        if "error" in result:
+            return f"❌ {result['error']}"
+
+        if not result.get("executive_summary"):
+            return f"⚠️  {result.get('message', '该文档暂无执行摘要')}"
+
+        return (
+            f"【执行摘要】\n"
+            f"来源: {result['source']}\n"
+            f"类型: {result['doc_type']}\n\n"
+            f"{result['executive_summary']}"
+        )
+
+    except Exception as e:
+        return f"❌ 获取执行摘要时发生错误: {str(e)}"
+
+
+def list_chapter_summaries_tool_func(source: str) -> str:
+    """
+    列出文档的所有章节摘要
+
+    Args:
+        source: 文档来源（文件名）
+
+    Returns:
+        章节摘要列表
+    """
+    try:
+        cm = get_context_manager()
+        result = cm.list_chapter_summaries(source)
+
+        if "error" in result:
+            return f"❌ {result['error']}"
+
+        if not result.get("chapters"):
+            return f"⚠️  {result.get('message', '该文档暂无章节摘要')}"
+
+        output = [
+            f"【章节摘要列表】",
+            f"来源: {result['source']}",
+            f"总章节数: {result['total_chapters']}\n"
+        ]
+
+        for idx, chapter in enumerate(result['chapters'], 1):
+            output.append(
+                f"\n{idx}. {chapter['title']}\n"
+                f"   摘要: {chapter['summary']}\n"
+                f"   要点: {'; '.join(chapter.get('key_points', [])[:3])}"
+            )
+
+        return "\n".join(output)
+
+    except Exception as e:
+        return f"❌ 获取章节摘要时发生错误: {str(e)}"
+
+
+def get_chapter_summary_tool_func(params: dict) -> str:
+    """
+    获取特定章节的摘要
+
+    Args:
+        params: 包含 source 和 chapter_pattern 的字典
+
+    Returns:
+        章节摘要
+    """
+    try:
+        source = params.get("source")
+        chapter_pattern = params.get("chapter_pattern")
+
+        if not source or not chapter_pattern:
+            return "❌ 缺少必要参数：source 和 chapter_pattern"
+
+        cm = get_context_manager()
+        result = cm.get_chapter_summary(source, chapter_pattern)
+
+        if "error" in result:
+            return f"❌ {result['error']}"
+
+        output = [
+            f"【章节摘要】",
+            f"来源: {result['source']}",
+            f"章节: {result['chapter_title']}",
+            f"级别: {result['level']}",
+            f"位置: {result['position']}\n",
+            f"摘要:\n{result['summary']}\n",
+            f"关键要点:"
+        ]
+
+        for point in result.get('key_points', []):
+            output.append(f"  • {point}")
+
+        return "\n".join(output)
+
+    except Exception as e:
+        return f"❌ 获取章节摘要时发生错误: {str(e)}"
+
+
+def search_key_points_tool_func(params: dict) -> str:
+    """
+    在关键要点中搜索关键词
+
+    Args:
+        params: 包含 query 和可选 sources 的字典
+
+    Returns:
+        匹配的要点列表
+    """
+    try:
+        query = params.get("query")
+        sources = params.get("sources")  # 可选
+
+        if not query:
+            return "❌ 缺少必要参数：query"
+
+        cm = get_context_manager()
+
+        # 处理 sources 参数
+        sources_list = None
+        if sources:
+            if isinstance(sources, str):
+                sources_list = [sources]
+            elif isinstance(sources, list):
+                sources_list = sources
+
+        result = cm.search_key_points(query, sources_list)
+
+        if result['total_matches'] == 0:
+            return f"⚠️  未找到包含 '{query}' 的要点"
+
+        output = [
+            f"【关键要点搜索】",
+            f"查询: {result['query']}",
+            f"匹配数量: {result['total_matches']}\n"
+        ]
+
+        for match in result['matches']:
+            output.append(
+                f"来源: {match['source']}\n"
+                f"要点: {match['point']}\n"
+            )
+
+        return "\n".join(output)
+
+    except Exception as e:
+        return f"❌ 搜索要点时发生错误: {str(e)}"
+
+
+# ==================== 新增的 LangChain Tools（阶段2）====================
+
+executive_summary_tool = Tool(
+    name="get_executive_summary",
+    func=get_executive_summary_tool_func,
+    description=(
+        "【获取执行摘要】"
+        "快速了解文档的核心内容（200字左右摘要）。"
+        "适合在时间有限或需要快速浏览文档时使用。\n\n"
+        "参数说明："
+        '- source: 文档来源（文件名）'
+        "\n\n"
+        "使用场景示例："
+        '- "这个规划文档的核心目标是什么？"'
+        '- "快速了解这个政策的主要内容"'
+        "\n\n"
+        "提示：执行摘要包含目标、定位、关键指标和重点措施。"
+    ),
+)
+
+chapter_summaries_list_tool = Tool(
+    name="list_chapter_summaries",
+    func=list_chapter_summaries_tool_func,
+    description=(
+        "【列出章节摘要】"
+        "列出文档的所有章节摘要，浏览文档结构。"
+        "每个章节包含摘要和关键要点。\n\n"
+        "参数说明："
+        '- source: 文档来源（文件名）'
+        "\n\n"
+        "使用场景示例："
+        '- "这个规划文档有哪些章节？"'
+        '- "浏览文档的结构和主要内容"'
+        "\n\n"
+        "提示：与 get_chapter_by_header 不同，此工具只返回摘要，不返回完整内容。"
+    ),
+)
+
+chapter_summary_tool = Tool(
+    name="get_chapter_summary",
+    func=get_chapter_summary_tool_func,
+    description=(
+        "【获取章节摘要】"
+        "获取特定章节的摘要和关键要点（不返回完整内容）。"
+        "比 get_chapter_by_header 更简洁，只返回摘要版本。\n\n"
+        "参数说明（JSON格式）："
+        '- source: 文档来源（文件名）'
+        '- chapter_pattern: 章节标题关键词（如"第一章"、"产业发展"等）'
+        "\n\n"
+        "使用场景示例："
+        '- 获取第一章摘要: {"source": "plan.docx", "chapter_pattern": "第一章"}'
+        '- 获取产业章节摘要: {"source": "strategy.pdf", "chapter_pattern": "产业"}'
+        "\n\n"
+        "提示：支持标题的部分匹配，返回摘要+要点，不返回完整内容。"
+    ),
+)
+
+key_points_search_tool = Tool(
+    name="search_key_points",
+    func=search_key_points_tool_func,
+    description=(
+        "【搜索关键要点】"
+        "在所有文档的关键要点中搜索关键词。"
+        "要点是从文档中提取的10-15条核心信息。\n\n"
+        "参数说明（JSON格式）："
+        '- query: 搜索关键词（必需）'
+        '- sources: 限制搜索的文档列表（可选，可以是字符串或列表）'
+        "\n\n"
+        "使用场景示例："
+        '- 搜索旅游相关: {"query": "旅游"}'
+        '- 搜索特定文档: {"query": "目标", "sources": "plan.docx"}'
+        '- 搜索多个文档: {"query": "投资", "sources": ["plan1.docx", "plan2.docx"]}'
+        "\n\n"
+        "提示：关键要点是预先提取的，比全文检索更精确、更快速。"
+    ),
+)

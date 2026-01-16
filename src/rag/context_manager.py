@@ -23,6 +23,10 @@ class DocumentIndex:
     full_content: str  # 完整内容
     metadata: dict  # 原始元数据
     chunks_info: List[dict]  # 该文档的所有切片信息
+    # 阶段2新增：摘要字段
+    executive_summary: Optional[str] = None  # 执行摘要（200字）
+    chapter_summaries: Optional[List[dict]] = None  # 章节摘要列表
+    key_points: Optional[List[str]] = None  # 全文关键要点
 
 
 class DocumentContextManager:
@@ -128,10 +132,18 @@ class DocumentContextManager:
         with open(self.index_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
-        # 重建 DocumentIndex 对象
-        self.doc_index = {
-            source: DocumentIndex(**item) for source, item in data.items()
-        }
+        # 重建 DocumentIndex 对象（兼容旧格式）
+        self.doc_index = {}
+        for source, item in data.items():
+            # 确保新字段存在（兼容旧版本）
+            if 'executive_summary' not in item:
+                item['executive_summary'] = None
+            if 'chapter_summaries' not in item:
+                item['chapter_summaries'] = None
+            if 'key_points' not in item:
+                item['key_points'] = None
+
+            self.doc_index[source] = DocumentIndex(**item)
 
         self._loaded = True
         print(f"✅ 文档索引已加载，共 {len(self.doc_index)} 个文档")
@@ -321,6 +333,156 @@ class DocumentContextManager:
                 pos += len(query)
 
         return results
+
+    # ==================== 阶段2：摘要查询方法 ====================
+
+    def get_executive_summary(self, source: str) -> dict:
+        """
+        获取文档的执行摘要
+
+        Args:
+            source: 文档来源（文件名）
+
+        Returns:
+            包含执行摘要的字典
+        """
+        self._ensure_loaded()
+
+        if source not in self.doc_index:
+            return {"error": f"未找到文档: {source}"}
+
+        doc_index = self.doc_index[source]
+
+        if not doc_index.executive_summary:
+            return {
+                "source": source,
+                "executive_summary": None,
+                "message": "该文档尚未生成摘要，请先运行知识库构建流程"
+            }
+
+        return {
+            "source": source,
+            "doc_type": doc_index.doc_type,
+            "executive_summary": doc_index.executive_summary
+        }
+
+    def list_chapter_summaries(self, source: str) -> dict:
+        """
+        列出文档的所有章节摘要
+
+        Args:
+            source: 文档来源（文件名）
+
+        Returns:
+            包含章节摘要列表的字典
+        """
+        self._ensure_loaded()
+
+        if source not in self.doc_index:
+            return {"error": f"未找到文档: {source}"}
+
+        doc_index = self.doc_index[source]
+
+        if not doc_index.chapter_summaries:
+            return {
+                "source": source,
+                "chapters": [],
+                "message": "该文档尚未生成章节摘要，请先运行知识库构建流程"
+            }
+
+        chapters = []
+        for chapter in doc_index.chapter_summaries:
+            chapters.append({
+                "title": chapter.get("title"),
+                "level": chapter.get("level"),
+                "summary": chapter.get("summary"),
+                "key_points": chapter.get("key_points", [])
+            })
+
+        return {
+            "source": source,
+            "total_chapters": len(chapters),
+            "chapters": chapters
+        }
+
+    def get_chapter_summary(self, source: str, chapter_pattern: str) -> dict:
+        """
+        获取特定章节的摘要
+
+        Args:
+            source: 文档来源（文件名）
+            chapter_pattern: 章节标题关键词（支持部分匹配）
+
+        Returns:
+            包含章节摘要的字典
+        """
+        self._ensure_loaded()
+
+        if source not in self.doc_index:
+            return {"error": f"未找到文档: {source}"}
+
+        doc_index = self.doc_index[source]
+
+        if not doc_index.chapter_summaries:
+            return {
+                "error": "该文档尚未生成章节摘要，请先运行知识库构建流程"
+            }
+
+        # 搜索匹配的章节
+        for chapter in doc_index.chapter_summaries:
+            title = chapter.get("title", "")
+            if chapter_pattern.lower() in title.lower():
+                return {
+                    "source": source,
+                    "chapter_title": title,
+                    "level": chapter.get("level"),
+                    "summary": chapter.get("summary"),
+                    "key_points": chapter.get("key_points", []),
+                    "position": f"{chapter.get('start_index')}-{chapter.get('end_index')}"
+                }
+
+        return {"error": f"未找到包含 '{chapter_pattern}' 的章节"}
+
+    def search_key_points(self, query: str, sources: Optional[List[str]] = None) -> dict:
+        """
+        在关键要点中搜索关键词
+
+        Args:
+            query: 搜索关键词
+            sources: 限制搜索的文档列表，None 表示搜索所有
+
+        Returns:
+            匹配的要点列表
+        """
+        self._ensure_loaded()
+
+        results = []
+
+        # 确定要搜索的文档
+        search_docs = sources if sources else list(self.doc_index.keys())
+
+        for source in search_docs:
+            if source not in self.doc_index:
+                continue
+
+            doc_index = self.doc_index[source]
+
+            if not doc_index.key_points:
+                continue
+
+            # 在该文档的要点中搜索
+            for point in doc_index.key_points:
+                if query.lower() in point.lower():
+                    results.append({
+                        "source": source,
+                        "point": point
+                    })
+
+        return {
+            "query": query,
+            "total_matches": len(results),
+            "matches": results
+        }
 
 
 # 全局单例（懒加载）

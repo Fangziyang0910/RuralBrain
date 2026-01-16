@@ -23,11 +23,13 @@ from src.rag.config import (
     EMBEDDING_MODEL_NAME,
     EMBEDDING_DEVICE,
     VECTOR_DB_TYPE,
+    DEFAULT_PROVIDER,
     is_docker,
 )
 from src.rag.utils import load_knowledge_base
 from src.rag.visualize import SliceInspector
 from src.rag.context_manager import DocumentContextManager
+from src.rag.summarization import DocumentSummarizer, DocumentSummary
 
 
 def load_documents():
@@ -206,7 +208,73 @@ def main():
     print("\n📚 正在构建文档索引（支持全文上下文查询）...")
     context_manager = DocumentContextManager()
     context_manager.build_index(documents, splits)
+
+    # 阶段2新增：生成文档摘要
+    print("\n" + "="*60)
+    print("📝 阶段2：生成层次化摘要（可选）")
+    print("="*60)
+    print("提示：摘要生成需要调用 LLM API，可能需要几分钟时间")
+    print("      如果不需要摘要功能，可以跳过此步骤\n")
+
+    user_input = input("是否生成文档摘要？（推荐）(y/n): ").strip().lower()
+
+    if user_input in ['y', 'yes', '是']:
+        print("\n⏳ 正在生成文档摘要...")
+        print(f"   模型: {DEFAULT_PROVIDER}")
+        print(f"   文档数: {len(documents)}\n")
+
+        try:
+            # 初始化摘要生成器
+            summarizer = DocumentSummarizer(provider=DEFAULT_PROVIDER)
+
+            # 为每个文档生成摘要
+            summary_count = 0
+            for doc in documents:
+                source = doc.metadata.get("source", "unknown")
+
+                # 检查该文档是否已在索引中
+                if source in context_manager.doc_index:
+                    try:
+                        print(f"   [{summary_count + 1}/{len(documents)}] 生成摘要: {source}")
+                        summary = summarizer.generate_summary(doc)
+
+                        # 更新索引中的摘要字段
+                        doc_index = context_manager.doc_index[source]
+                        doc_index.executive_summary = summary.executive_summary
+                        doc_index.chapter_summaries = [
+                            {
+                                "title": ch.title,
+                                "level": ch.level,
+                                "summary": ch.summary,
+                                "key_points": ch.key_points,
+                                "start_index": ch.start_index,
+                                "end_index": ch.end_index
+                            }
+                            for ch in summary.chapter_summaries
+                        ]
+                        doc_index.key_points = summary.key_points
+
+                        summary_count += 1
+
+                    except Exception as e:
+                        print(f"   ⚠️  {source} 摘要生成失败: {str(e)}")
+                        continue
+
+            print(f"\n✅ 摘要生成完成: {summary_count}/{len(documents)} 个文档")
+
+        except Exception as e:
+            print(f"\n❌ 摘要生成失败: {str(e)}")
+            print("   索引将不包含摘要信息，但仍可正常使用")
+            import traceback
+            traceback.print_exc()
+
+    else:
+        print("⏭️  已跳过摘要生成")
+        print("   提示：可以稍后运行 build.py 重新生成摘要")
+
+    # 保存索引（无论是否生成摘要）
     context_manager.save()
+    print(f"✅ 文档索引已保存")
 
     # 6. 完成
     print("\n" + "="*60)
@@ -222,10 +290,14 @@ def main():
     print(f"\n✅ 可以通过以下方式使用知识库:")
     print(f"   from src.rag.tool import planning_knowledge_tool")
     print(f"   planning_knowledge_tool.run('你的问题')")
-    print(f"\n✅ 上下文查询工具:")
-    print(f"   from src.rag.context_manager import get_context_manager")
-    print(f"   cm = get_context_manager()")
+    print(f"\n✅ 阶段1工具（全文上下文查询）:")
     print(f"   cm.get_full_document('文件名')")
+    print(f"   cm.get_chapter_by_header('文件名', '章节关键词')")
+    print(f"\n✅ 阶段2工具（层次化摘要，如果已生成）:")
+    print(f"   cm.get_executive_summary('文件名')")
+    print(f"   cm.list_chapter_summaries('文件名')")
+    print(f"   cm.get_chapter_summary('文件名', '章节关键词')")
+    print(f"   cm.search_key_points('关键词')")
 
 
 if __name__ == "__main__":
