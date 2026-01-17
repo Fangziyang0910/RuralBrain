@@ -40,6 +40,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=production
+      - PLANNING_SERVICE_URL=http://planning-service:8003
     volumes:
       - ./uploads:/app/uploads
       - ./pest_results:/app/pest_results
@@ -49,6 +50,7 @@ services:
       - pest-detector
       - rice-detector
       - cow-detector
+      - planning-service
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/docs"]
@@ -128,6 +130,34 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - ruralbrain-network
+
+  # 规划咨询服务 (Planning Service)
+  planning-service:
+    build:
+      context: .
+      dockerfile: src/rag/Dockerfile.service
+    container_name: planning-service
+    ports:
+      - "8003:8003"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=production
+      - SERVICE_PORT=8003
+      - SERVICE_HOST=0.0.0.0
+      - MODEL_PROVIDER=${MODEL_PROVIDER:-deepseek}
+    volumes:
+      - ./knowledge_base:/app/knowledge_base:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
       - ruralbrain-network
 

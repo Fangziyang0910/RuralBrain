@@ -18,6 +18,7 @@ class ChatRequest(BaseModel):
     image_path: Optional[str] = Field(None, description="单图片路径（兼容旧版本）")
     image_paths: Optional[List[str]] = Field(None, description="多图片路径列表（新版本）")
     thread_id: Optional[str] = Field(None, description="对话线程ID")
+    mode: Optional[str] = Field("auto", description="工作模式: auto/detection/planning")
 
 
 class UploadResponse(BaseModel):

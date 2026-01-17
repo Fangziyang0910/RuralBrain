@@ -1,6 +1,6 @@
 """
 RuralBrain FastAPI 服务器
-提供图像检测对话接口
+提供图像检测对话接口和规划咨询接口
 """
 import sys
 from pathlib import Path
@@ -15,11 +15,17 @@ import logging
 from typing import AsyncGenerator
 from datetime import datetime
 
+# 加载环境变量（必须在所有其他导入之前）
+from dotenv import load_dotenv
+project_root = Path(__file__).parent.parent
+load_dotenv(project_root / ".env")
+
 from fastapi import FastAPI, File, UploadFile, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import HumanMessage, AIMessageChunk
+import httpx
 
 from service.settings import (
     ALLOWED_ORIGINS,
@@ -92,6 +98,122 @@ async def startup_event():
     logger.info("RuralBrain 服务启动中...")
     get_agent()  # 预加载模型
     logger.info("RuralBrain 服务启动完成")
+
+
+# -------- Planning Service 配置 --------
+PLANNING_SERVICE_URL = os.getenv(
+    "PLANNING_SERVICE_URL",
+    "http://localhost:8003"
+)
+PLANNING_SERVICE_TIMEOUT = int(os.getenv("PLANNING_SERVICE_TIMEOUT", "120"))
+
+
+# -------- 意图识别函数 --------
+def classify_intent(message: str, has_images: bool = False) -> str:
+    """
+    分类用户意图
+
+    Args:
+        message: 用户消息
+        has_images: 是否包含图片
+
+    Returns:
+        意图类型: detection/planning
+    """
+    # 规则1: 如果有图片，优先检测
+    if has_images:
+        return "detection"
+
+    # 规则2: 规划相关关键词
+    planning_keywords = [
+        "规划", "发展", "策略", "旅游", "产业", "博罗", "罗浮山", "长宁镇",
+        "古城", "政策", "方案", "乡村", "振兴", "农业", "民宿", "文化",
+        "设计", "建设", "布局", "目标", "措施", "项目", "投资", "招商"
+    ]
+
+    # 规则3: 检测相关关键词
+    detection_keywords = [
+        "识别", "检测", "害虫", "病害", "大米", "品种", "牛", "奶牛",
+        "图片", "照片", "看", "什么", "分析", "诊断", "分类"
+    ]
+
+    message_lower = message.lower()
+
+    # 统计关键词匹配
+    planning_matches = sum(1 for kw in planning_keywords if kw in message)
+    detection_matches = sum(1 for kw in detection_keywords if kw in message)
+
+    # 根据匹配数量判断
+    if planning_matches > detection_matches:
+        return "planning"
+    elif detection_matches > planning_matches:
+        return "detection"
+    elif planning_matches > 0:
+        return "planning"
+    else:
+        # 默认为规划咨询
+        return "planning"
+
+
+async def forward_to_planning_service(
+    message: str,
+    thread_id: str = None,
+    mode: str = "auto"
+) -> AsyncGenerator[str, None]:
+    """
+    转发请求到 Planning Service
+
+    Args:
+        message: 用户消息
+        thread_id: 对话线程ID
+        mode: 工作模式
+
+    Yields:
+        SSE 事件数据
+    """
+    url = f"{PLANNING_SERVICE_URL}/api/v1/chat/planning"
+    request_data = {
+        "message": message,
+        "mode": mode,
+    }
+    if thread_id:
+        request_data["thread_id"] = thread_id
+
+    try:
+        async with httpx.AsyncClient(timeout=PLANNING_SERVICE_TIMEOUT) as client:
+            async with client.stream("POST", url, json=request_data) as response:
+                if response.status_code != 200:
+                    error_data = {
+                        "type": "error",
+                        "error": f"Planning Service 返回错误: {response.status_code}",
+                    }
+                    yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+                    return
+
+                # 流式转发响应
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        # 直接转发 SSE 事件
+                        yield f"{line}\n"
+
+    except httpx.ConnectError:
+        error_data = {
+            "type": "error",
+            "error": "无法连接到 Planning Service，请确认服务已启动",
+        }
+        yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+    except httpx.TimeoutException:
+        error_data = {
+            "type": "error",
+            "error": f"Planning Service 响应超时（{PLANNING_SERVICE_TIMEOUT}秒）",
+        }
+        yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+    except Exception as e:
+        error_data = {
+            "type": "error",
+            "error": f"Planning Service 通信错误: {str(e)}",
+        }
+        yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
 
 
 # -------- API 路由定义--------
@@ -176,6 +298,50 @@ async def upload_image(files: list[UploadFile] = File(...)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"上传失败: {str(e)}",
+        )
+
+
+@app.post("/chat/planning")
+async def chat_planning(request: ChatRequest):
+    """
+    规划咨询对话接口（代理到 Planning Service）
+
+    Args:
+        request: 聊天请求
+
+    Returns:
+        SSE 流式响应
+    """
+    try:
+        # 生成或使用线程ID
+        thread_id = request.thread_id or str(uuid.uuid4())
+        mode = request.mode or "auto"
+
+        logger.info(f"收到规划咨询请求 [thread_id={thread_id}, mode={mode}]: {request.message}")
+
+        async def event_generator() -> AsyncGenerator[str, None]:
+            """SSE 事件生成器"""
+            async for event in forward_to_planning_service(
+                message=request.message,
+                thread_id=thread_id,
+                mode=mode
+            ):
+                yield event
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"规划咨询请求失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
         )
 
 
