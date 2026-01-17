@@ -3,6 +3,13 @@ Planning Service FastAPI 应用入口
 提供乡村规划咨询、知识库查询等服务
 """
 import logging
+from pathlib import Path
+
+# 首先加载环境变量（必须在所有其他导入之前）
+from dotenv import load_dotenv
+# 从项目根目录加载 .env
+project_root = Path(__file__).parent.parent.parent.parent
+load_dotenv(project_root / ".env")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
