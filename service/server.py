@@ -348,33 +348,66 @@ async def chat_planning(request: ChatRequest):
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
     """
-    流式对话接口
-    
+    统一流式对话接口，根据 mode 参数路由到不同的服务
+
     Args:
         request: 聊天请求，包含消息和可选的图片路径
-        
+
     Returns:
         SSE 流式响应
     """
     try:
-        agent = get_agent()
-        
         # 生成或使用线程ID
         thread_id = request.thread_id or str(uuid.uuid4())
-        config = {"configurable": {"thread_id": thread_id}}
-        
-        # 构建消息内容
-        message_content = request.message
-        
+
         # 支持多图片路径（新版本）或单图片路径（兼容旧版本）
         image_paths = request.image_paths or ([request.image_path] if request.image_path else [])
-        
+
+        # 判断调用哪个服务
+        request_mode = request.mode or "auto"
+
+        # 意图识别
+        if request_mode == "auto":
+            intent = classify_intent(request.message, len(image_paths) > 0)
+            logger.info(f"意图识别结果: {intent}, 图片数量: {len(image_paths)}")
+        else:
+            intent = request_mode
+            logger.info(f"指定模式: {intent}")
+
+        # 如果是规划咨询模式且没有图片，转发到 Planning Service
+        if intent == "planning" and len(image_paths) == 0:
+            logger.info(f"转发到 Planning Service [thread_id={thread_id}, work_mode={request.work_mode}]: {request.message}")
+
+            async def event_generator() -> AsyncGenerator[str, None]:
+                async for event in forward_to_planning_service(
+                    message=request.message,
+                    thread_id=thread_id,
+                    mode=request.work_mode or "auto"
+                ):
+                    yield event
+
+            return StreamingResponse(
+                event_generator(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",
+                },
+            )
+
+        # 否则使用图像检测 Agent
+        agent = get_agent()
+        config = {"configurable": {"thread_id": thread_id}}
+
+        # 构建消息内容
+        message_content = request.message
+
         if image_paths:
             # 如果有图片，在消息中包含所有图片路径
             paths_text = "\n".join([f"[图片路径 {i+1}: {path}]" for i, path in enumerate(image_paths)])
             message_content = f"{request.message}\n\n{paths_text}"
-        
-        logger.info(f"收到对话请求 [thread_id={thread_id}]: {request.message}, 图片数量: {len(image_paths)}")
+
+        logger.info(f"调用图像检测 Agent [thread_id={thread_id}]: {request.message}, 图片数量: {len(image_paths)}")
         
         async def event_generator() -> AsyncGenerator[str, None]:
             """SSE 事件生成器"""

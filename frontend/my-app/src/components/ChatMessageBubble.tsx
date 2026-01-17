@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, FileText, BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 interface ToolCall {
@@ -13,6 +13,12 @@ interface ToolCall {
   status: "运行中" | "已完成";
   resultImage?: string;
   summary?: string[];
+}
+
+interface KnowledgeSource {
+  source: string;
+  page?: number;
+  content: string;
 }
 
 // export 表示该类型可在其他文件中导入使用
@@ -24,6 +30,7 @@ export type Message = {
   images?: string[];  // 新版本：多图片
   isStreaming?: boolean;
   toolCalls?: ToolCall[];
+  sources?: KnowledgeSource[];  // 知识库引用
 };
 
 interface ChatMessageBubbleProps {
@@ -52,6 +59,13 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
 
       {/* 消息内容 */}
       <div className={`flex flex-col gap-2 max-w-3xl ${isUser ? "items-end" : "items-start"}`}>
+        {/* 知识库引用展示 */}
+        {!isUser && message.sources && message.sources.length > 0 && (
+          <div className="w-full">
+            <KnowledgeSourceDisplay sources={message.sources} />
+          </div>
+        )}
+
         {/* 工具调用展示 */}
         {/* 条件渲染 */}
         {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
@@ -165,7 +179,7 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
 
   return (
     <div className="bg-white border border-green-200 rounded-lg p-3 mb-2">
-      <div 
+      <div
         className="flex items-center justify-between cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -197,6 +211,56 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
               />
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KnowledgeSourceDisplay({ sources }: { sources: KnowledgeSource[] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+      <div
+        className="flex items-center justify-between cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-4 h-4 text-blue-600" />
+          <span className="text-sm font-medium text-blue-800">
+            参考知识库 ({sources.length} 条来源)
+          </span>
+        </div>
+        {isExpanded ? (
+          <ChevronUp className="w-4 h-4 text-blue-600" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-blue-600" />
+        )}
+      </div>
+
+      {isExpanded && (
+        <div className="mt-3 pt-3 border-t border-blue-100 space-y-3">
+          {sources.map((source, idx) => (
+            <div key={idx} className="bg-white rounded-lg p-3 border border-blue-100">
+              <div className="flex items-start gap-2 mb-2">
+                <FileText className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-800">
+                    {source.source}
+                    {source.page !== undefined && (
+                      <span className="text-gray-500 font-normal ml-1">
+                        (第 {source.page} 页)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600 pl-6 line-clamp-3">
+                {source.content}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

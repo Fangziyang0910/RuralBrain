@@ -50,6 +50,53 @@ logger = logging.getLogger(__name__)
 # 创建路由器
 router = APIRouter()
 
+
+# ==================== 辅助函数 ====================
+
+def _extract_knowledge_sources(tool_output: str) -> list[dict]:
+    """
+    从工具输出中提取知识库来源信息
+
+    工具输出格式示例：
+    【知识片段 1】
+    来源: 罗浮-长宁山镇融合发展战略.pptx
+    位置: 第3页（或 第4pptx）
+    内容:
+    ...
+
+    Args:
+        tool_output: 工具返回的文本
+
+    Returns:
+        来源信息列表，每个元素包含 source, page, content
+    """
+    import re
+
+    sources = []
+
+    # 使用正则表达式匹配知识片段
+    # 匹配格式：【知识片段 X】来源: xxx位置: 第X[页/pptx/docx/段/节]内容:...
+    # 更宽松的匹配：非贪婪匹配，直到下一个【知识片段】或字符串末尾
+    pattern = r"【知识片段 \d+】\s*\n来源: ([^\n]+)\s*\n位置: 第(\d+)[页pptxdocx段节]?.*?\s*\n内容:\s*\n([\s\S]*?)(?=【知识片段|$)"
+
+    matches = re.findall(pattern, tool_output)
+
+    for match in matches:
+        source, page_num, content = match
+
+        # 清理内容（取前300个字符作为预览）
+        content_preview = content.strip()[:300]
+        if len(content_preview) > 300:
+            content_preview += "..."
+
+        sources.append({
+            "source": source.strip(),
+            "page": int(page_num),
+            "content": content_preview,
+        })
+
+    return sources
+
 # ==================== 延迟加载 Planning Agent ====================
 _agent = None
 
@@ -142,14 +189,16 @@ async def planning_chat(request: PlanningChatRequest):
 
         async def event_generator() -> AsyncGenerator[str, None]:
             """SSE 事件生成器"""
+            tools_used = []
+            full_content = ""
+            knowledge_sources = []  # 收集所有知识库来源
+            sources_sent = False  # 标记 sources 是否已发送
+
             try:
                 # 发送开始事件
                 yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id, 'mode': request.mode}, ensure_ascii=False)}\n\n"
 
                 # 流式处理 agent 响应
-                tools_used = []
-                full_content = ""
-
                 async for event in agent.astream_events(
                     {"messages": [HumanMessage(content=request.message)]},
                     config,
@@ -182,12 +231,35 @@ async def planning_chat(request: PlanningChatRequest):
 
                     elif kind == "on_tool_end":
                         tool_name = event["name"]
+                        tool_output = event["data"].get("output")
+
+                        # 将 ToolMessage 对象转换为字符串
+                        output_str = str(tool_output.content) if hasattr(tool_output, "content") else str(tool_output)
+
+                        # 调试：记录工具输出（只记录前200字符）
+                        logger.info(f"工具 {tool_name} 输出预览: {output_str[:200]}...")
+
+                        # 从工具输出中提取知识库来源
+                        extracted_sources = _extract_knowledge_sources(output_str)
+                        if extracted_sources:
+                            logger.info(f"提取到 {len(extracted_sources)} 个知识库来源")
+                            knowledge_sources.extend(extracted_sources)
+
                         event_data = {
                             "type": "tool",
                             "tool_name": tool_name,
                             "status": "completed",
                         }
                         yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+
+                # 发送知识库来源（在正常流程结束时）
+                if knowledge_sources and not sources_sent:
+                    sources_data = {
+                        "type": "sources",
+                        "sources": knowledge_sources,
+                    }
+                    yield f"data: {json.dumps(sources_data, ensure_ascii=False)}\n\n"
+                    sources_sent = True
 
                 # 发送结束事件
                 end_data = {
@@ -199,6 +271,18 @@ async def planning_chat(request: PlanningChatRequest):
 
             except Exception as e:
                 logger.error(f"流式响应生成错误: {e}")
+
+                # 在错误发生前尝试发送已收集的知识库来源
+                if knowledge_sources and not sources_sent:
+                    sources_data = {
+                        "type": "sources",
+                        "sources": knowledge_sources,
+                    }
+                    try:
+                        yield f"data: {json.dumps(sources_data, ensure_ascii=False)}\n\n"
+                    except:
+                        pass  # 如果发送失败，忽略
+
                 error_data = {
                     "type": "error",
                     "error": str(e),

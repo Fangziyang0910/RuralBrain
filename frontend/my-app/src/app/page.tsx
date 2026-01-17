@@ -4,9 +4,12 @@
 import React, { useState, useCallback, useRef, useEffect, FormEvent } from "react";
 import { ChatMessageBubble, type Message } from "@/components/ChatMessageBubble";
 import { Button } from "@/components/ui/button";
-import { Upload, Send, X, Loader2 } from "lucide-react";
+import { Upload, Send, X, Loader2, Image as ImageIcon, FileText, Zap, Search, Sparkles } from "lucide-react";
 
 const API_BASE = "/api";
+
+type ChatMode = "detection" | "planning";
+type WorkMode = "auto" | "fast" | "deep";
 
 // export default 导出这个函数，让其他文件可以使用
 export default function Home() {
@@ -16,6 +19,8 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [chatMode, setChatMode] = useState<ChatMode>("detection");
+  const [workMode, setWorkMode] = useState<WorkMode>("auto");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -180,6 +185,8 @@ export default function Home() {
             message,
             image_paths: imagePaths,
             thread_id: threadId,
+            mode: chatMode,
+            work_mode: chatMode === "planning" ? workMode : undefined,
           }),
         });
 
@@ -242,8 +249,11 @@ export default function Home() {
                         : msg
                     )
                   );
+                } else if (data.type === "tool") {
+                  // Planning Service 的工具调用事件
+                  console.log("工具调用:", data.tool_name, data.status);
                 } else if (data.type === "tool_call") {
-                  // 处理工具调用事件
+                  // 图像检测的工具调用事件（兼容旧版本）
                   const toolCall = {
                     name: data.tool_name,
                     status: data.status as "运行中" | "已完成",
@@ -260,6 +270,19 @@ export default function Home() {
                     )
                   );
                   console.log("工具调用:", data.tool_name, "结果图片:", data.result_image);
+                } else if (data.type === "sources") {
+                  // 处理知识库来源事件
+                  setMessages((prev) =>
+                    prev.map((msg) =>
+                      msg.id === assistantMessageId
+                        ? {
+                            ...msg,
+                            sources: data.sources,
+                          }
+                        : msg
+                    )
+                  );
+                  console.log("收到知识库来源:", data.sources?.length || 0, "条");
                 } else if (data.type === "end") {
                   streamCompleted = true;
                   setMessages((prev) =>
@@ -326,14 +349,81 @@ export default function Home() {
       {/* 顶部标题栏 */}
       <header className="border-b border-green-100 bg-white/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
+          {/* 模式选择器 */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setChatMode("detection")}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
+                chatMode === "detection"
+                  ? "border-green-500 bg-green-50 text-green-700"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-green-300"
+              }`}
+            >
+              <ImageIcon className="w-5 h-5" />
+              <span className="font-medium">🖼️ 图像检测</span>
+            </button>
+            <button
+              onClick={() => setChatMode("planning")}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
+                chatMode === "planning"
+                  ? "border-green-500 bg-green-50 text-green-700"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-green-300"
+              }`}
+            >
+              <FileText className="w-5 h-5" />
+              <span className="font-medium">🏘️ 规划咨询</span>
+            </button>
+          </div>
+
+          {/* 工作模式选择器（仅规划咨询模式显示） */}
+          {chatMode === "planning" && (
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setWorkMode("auto")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  workMode === "auto"
+                    ? "bg-green-600 text-white shadow-sm"
+                    : "bg-white text-gray-600 border border-gray-200 hover:border-green-300"
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                自动模式
+              </button>
+              <button
+                onClick={() => setWorkMode("fast")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  workMode === "fast"
+                    ? "bg-green-600 text-white shadow-sm"
+                    : "bg-white text-gray-600 border border-gray-200 hover:border-green-300"
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                快速浏览
+              </button>
+              <button
+                onClick={() => setWorkMode("deep")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  workMode === "deep"
+                    ? "bg-green-600 text-white shadow-sm"
+                    : "bg-white text-gray-600 border border-gray-200 hover:border-green-300"
+                }`}
+              >
+                <Search className="w-4 h-4" />
+                深度分析
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <span className="text-2xl">🌾</span>
             <div>
               <h1 className="text-xl font-semibold text-green-800">
-                AI农业智能检测助手
+                {chatMode === "detection" ? "AI农业智能检测助手" : "AI乡村规划咨询助手"}
               </h1>
               <p className="text-sm text-green-600 mt-0.5">
-                基于大模型的病虫害、大米、牛只智能检测
+                {chatMode === "detection"
+                  ? "基于大模型的病虫害、大米、牛只智能检测"
+                  : "基于知识库的乡村规划智能咨询"}
               </p>
             </div>
           </div>
@@ -346,9 +436,13 @@ export default function Home() {
           {/* 条件渲染，显示欢迎信息或聊天消息 */}
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-green-400 pt-20">
-              <div className="text-6xl mb-4">🌾</div>
-              <p className="text-lg mb-2 text-green-600">欢迎使用 AI农业智能检测助手</p>
-              <p className="text-sm text-green-500">上传图片并提问，开始智能对话</p>
+              <div className="text-6xl mb-4">{chatMode === "detection" ? "🌾" : "🏘️"}</div>
+              <p className="text-lg mb-2 text-green-600">
+                {chatMode === "detection" ? "欢迎使用 AI农业智能检测助手" : "欢迎使用 AI乡村规划咨询助手"}
+              </p>
+              <p className="text-sm text-green-500">
+                {chatMode === "detection" ? "上传图片并提问，开始智能对话" : "提问关于乡村规划的问题，基于知识库获取专业回答"}
+              </p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -399,25 +493,29 @@ export default function Home() {
 
             {/* 输入框和按钮 */}
             <div className="flex items-end gap-2">
-              {/* 上传按钮 */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageSelect}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-                className="flex-none border-green-300 text-green-700 hover:bg-green-50"
-              >
-                <Upload className="w-5 h-5" />
-              </Button>
+              {/* 上传按钮（仅图像检测模式显示） */}
+              {chatMode === "detection" && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                    className="flex-none border-green-300 text-green-700 hover:bg-green-50"
+                  >
+                    <Upload className="w-5 h-5" />
+                  </Button>
+                </>
+              )}
 
               {/* 文本输入框 */}
               <textarea
@@ -425,7 +523,11 @@ export default function Home() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="输入消息... (Shift+Enter 换行)"
+                placeholder={
+                  chatMode === "detection"
+                    ? "输入消息... (Shift+Enter 换行)"
+                    : "输入关于乡村规划的问题... (Shift+Enter 换行)"
+                }
                 disabled={loading}
                 className="flex-1 resize-none rounded-lg border border-green-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 rows={1}
