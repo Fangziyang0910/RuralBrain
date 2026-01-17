@@ -1,0 +1,68 @@
+# Planning Service Dockerfile
+# 独立的乡村规划咨询服务微服务
+ARG PYTHON_VERSION=3.13
+FROM python:${PYTHON_VERSION}-slim
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置环境变量
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    SERVICE_PORT=8003 \
+    SERVICE_HOST=0.0.0.0
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制项目依赖文件
+COPY pyproject.toml .
+
+# 安装 Python 依赖（只安装 RAG 和 API 相关依赖）
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    fastapi>=0.104.1 \
+    uvicorn>=0.24.0 \
+    pydantic>=2.4.2 \
+    pydantic-settings>=2.0.3 \
+    python-multipart>=0.0.6 \
+    python-dotenv>=1.0.0 \
+    langchain>=1.1.0 \
+    langchain-deepseek>=1.0.0 \
+    langchain-zhipuai>=0.0.1 \
+    langgraph>=1.0.4 \
+    langsmith>=0.4.38 \
+    langchain-chroma>=0.1.0 \
+    langchain-huggingface>=0.1.0 \
+    langchain-text-splitters>=0.3.0 \
+    chromadb>=0.5.0 \
+    sentence-transformers>=3.0.0 \
+    python-pptx>=1.0.0 \
+    pypdf>=5.0.0 \
+    python-docx>=1.1.0 \
+    filetype>=1.2.0 \
+    requests>=2.31.0 \
+    rich>=13.0.0 \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple/
+
+# 复制应用代码
+COPY src/ ./src/
+COPY knowledge_base/ ./knowledge_base/
+
+# 创建非 root 用户
+RUN useradd --create-home --shell /bin/bash appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# 暴露端口
+EXPOSE 8003
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8003/health || exit 1
+
+# 启动命令
+CMD ["python", "-m", "uvicorn", "src.rag.service.main:app", "--host", "0.0.0.0", "--port", "8003"]
