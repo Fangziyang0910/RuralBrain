@@ -47,9 +47,7 @@ services:
       - ./cow_results:/app/cow_results
       - ./rice_results:/app/rice_results
     depends_on:
-      - pest-detector
-      - rice-detector
-      - cow-detector
+      - triple-detector
       - planning-service
     restart: unless-stopped
     healthcheck:
@@ -61,77 +59,37 @@ services:
     networks:
       - ruralbrain-network
 
-  # 病虫害检测服务
-  pest-detector:
+  # 三合一检测服务（替代原来的三个独立服务）
+  triple-detector:
     build:
-      context: ./src/algorithms/pest_detection/detector
-      dockerfile: Dockerfile
-    container_name: pest-detector
+      context: .
+      dockerfile: src/algorithms/triple_detector/Dockerfile
+    container_name: triple-detector
     ports:
-      - "8001:8001"
+      - "8001:8001"  # 病虫害检测
+      - "8081:8081"  # 大米检测
+      - "8002:8002"  # 牛只检测
     environment:
-      - PORT=8001
       - ENVIRONMENT=production
     volumes:
-      - ./src/algorithms/pest_detection/detector/models:/app/models
-      - ./src/algorithms/pest_detection/detector/uploads:/app/uploads
+      - ./src/algorithms/pest_detection/detector/models:/app/pest/detector/models:ro
+      - ./src/algorithms/rice_detection/detector/models:/app/rice/detector/models:ro
+      - ./src/algorithms/cow_detection/detector/models:/app/cow/detector/models:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health && curl -f http://localhost:8081/health && curl -f http://localhost:8002/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 15s
       retries: 3
-      start_period: 40s
+      start_period: 90s
     networks:
       - ruralbrain-network
-
-  # 大米识别服务
-  rice-detector:
-    build:
-      context: ./src/algorithms/rice_detection/detector
-      dockerfile: Dockerfile
-    container_name: rice-detector
-    ports:
-      - "8081:8081"
-    environment:
-      - PORT=8081
-      - ENVIRONMENT=production
-    volumes:
-      - ./src/algorithms/rice_detection/detector/models:/app/models
-      - ./src/algorithms/rice_detection/detector/uploads:/app/uploads
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - ruralbrain-network
-
-  # 奶牛检测服务
-  cow-detector:
-    build:
-      context: ./src/algorithms/cow_detection/detector
-      dockerfile: Dockerfile
-    container_name: cow-detector
-    ports:
-      - "8002:8002"
-    environment:
-      - PORT=8002
-      - ENVIRONMENT=production
-    volumes:
-      - ./src/algorithms/cow_detection/detector/models:/app/models
-      - ./src/algorithms/cow_detection/detector/uploads:/app/uploads
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - ruralbrain-network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
 
   # 规划咨询服务 (Planning Service)
   planning-service:
