@@ -13,13 +13,47 @@ type WorkMode = "auto" | "fast" | "deep";
 
 // export default 导出这个函数，让其他文件可以使用
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  // 为每个模式维护独立的消息历史
+  const [modeMessages, setModeMessages] = useState<{
+    detection: Message[];
+    planning: Message[];
+  }>({ detection: [], planning: [] });
+
+  // 为每个模式维护独立的会话ID
+  const [modeThreadIds, setModeThreadIds] = useState<{
+    detection: string;
+    planning: string;
+  }>(() => ({
+    detection: `thread_detection_${Date.now()}`,
+    planning: `thread_planning_${Date.now()}`,
+  }));
+
+  // 从localStorage读取上次的模式选择（仅在客户端）
+  const [chatMode, setChatMode] = useState<ChatMode>("detection");
+
+  // 客户端挂载后从localStorage读取模式
+  useEffect(() => {
+    const saved = localStorage.getItem("chatMode") as ChatMode;
+    if (saved) {
+      setChatMode(saved);
+    }
+  }, []);
+
+  // 保存模式选择到localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("chatMode", chatMode);
+    }
+  }, [chatMode]);
+
+  // 计算当前模式的消息历史和会话ID
+  const messages = modeMessages[chatMode];
+  const threadId = modeThreadIds[chatMode];
+
   const [loading, setLoading] = useState(false);
-  const [threadId] = useState(() => `thread_${Date.now()}`);
   const [input, setInput] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [chatMode, setChatMode] = useState<ChatMode>("detection");
   const [workMode, setWorkMode] = useState<WorkMode>("auto");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -150,7 +184,10 @@ export default function Home() {
         content: message,
         images: images ? images.map(img => URL.createObjectURL(img)) : undefined,
       };
-      setMessages((prev) => [...prev, userMessage]);
+      setModeMessages((prev) => ({
+        ...prev,
+        [chatMode]: [...prev[chatMode], userMessage],
+      }));
       setLoading(true);
 
       try {
@@ -205,15 +242,18 @@ export default function Home() {
         // 创建助手消息
         assistantMessageId = `assistant_${Date.now()}`;
 
-        setMessages((prev) => [
+        setModeMessages((prev) => ({
           ...prev,
-          {
-            id: assistantMessageId as string,
-            role: "assistant",
-            content: "",
-            isStreaming: true,
-          },
-        ]);
+          [chatMode]: [
+            ...prev[chatMode],
+            {
+              id: assistantMessageId as string,
+              role: "assistant",
+              content: "",
+              isStreaming: true,
+            },
+          ],
+        }));
 
         let buffer = "";
         let streamCompleted = false;
@@ -242,13 +282,14 @@ export default function Home() {
                   console.log("流式输出开始, thread_id:", data.thread_id);
                 } else if (data.type === "content") {
                   // 直接使用函数式更新，避免闭包问题
-                  setMessages((prev) =>
-                    prev.map((msg) =>
+                  setModeMessages((prev) => ({
+                    ...prev,
+                    [chatMode]: prev[chatMode].map((msg) =>
                       msg.id === assistantMessageId
                         ? { ...msg, content: msg.content + data.content, isStreaming: true }
                         : msg
-                    )
-                  );
+                    ),
+                  }));
                 } else if (data.type === "tool") {
                   // Planning Service 的工具调用事件
                   console.log("工具调用:", data.tool_name, data.status);
@@ -259,39 +300,42 @@ export default function Home() {
                     status: data.status as "运行中" | "已完成",
                     resultImage: data.result_image,
                   };
-                  setMessages((prev) =>
-                    prev.map((msg) =>
+                  setModeMessages((prev) => ({
+                    ...prev,
+                    [chatMode]: prev[chatMode].map((msg) =>
                       msg.id === assistantMessageId
                         ? {
                             ...msg,
                             toolCalls: [...(msg.toolCalls || []), toolCall],
                           }
                         : msg
-                    )
-                  );
+                    ),
+                  }));
                   console.log("工具调用:", data.tool_name, "结果图片:", data.result_image);
                 } else if (data.type === "sources") {
                   // 处理知识库来源事件
-                  setMessages((prev) =>
-                    prev.map((msg) =>
+                  setModeMessages((prev) => ({
+                    ...prev,
+                    [chatMode]: prev[chatMode].map((msg) =>
                       msg.id === assistantMessageId
                         ? {
                             ...msg,
                             sources: data.sources,
                           }
                         : msg
-                    )
-                  );
+                    ),
+                  }));
                   console.log("收到知识库来源:", data.sources?.length || 0, "条");
                 } else if (data.type === "end") {
                   streamCompleted = true;
-                  setMessages((prev) =>
-                    prev.map((msg) =>
+                  setModeMessages((prev) => ({
+                    ...prev,
+                    [chatMode]: prev[chatMode].map((msg) =>
                       msg.id === assistantMessageId
                         ? { ...msg, isStreaming: false }
                         : msg
-                    )
-                  );
+                    ),
+                  }));
                   console.log("流式输出完成, 总内容长度:", data.full_content?.length || 0);
                 } else if (data.type === "error") {
                   throw new Error(data.error);
@@ -305,43 +349,48 @@ export default function Home() {
 
         // 确保流结束时标记为非流式状态
         if (!streamCompleted) {
-          setMessages((prev) =>
-            prev.map((msg) =>
+          setModeMessages((prev) => ({
+            ...prev,
+            [chatMode]: prev[chatMode].map((msg) =>
               msg.id === assistantMessageId
                 ? { ...msg, isStreaming: false }
                 : msg
-            )
-          );
+            ),
+          }));
         }
       } catch (error) {
         console.error("发送消息失败:", error);
         
         // 移除未完成的流式消息
         if (assistantMessageId) {
-          setMessages((prev) => 
-            prev.filter(msg => msg.id !== assistantMessageId)
-          );
+          setModeMessages((prev) => ({
+            ...prev,
+            [chatMode]: prev[chatMode].filter(msg => msg.id !== assistantMessageId),
+          }));
         }
         
         // 显示错误信息
         const errorMessage = error instanceof Error ? error.message : "未知错误";
         const isNetworkError = errorMessage.includes("fetch") || errorMessage.includes("network");
-        
-        setMessages((prev) => [
+
+        setModeMessages((prev) => ({
           ...prev,
-          {
-            id: `error_${Date.now()}`,
-            role: "assistant",
-            content: `抱歉，发生了错误:\n\n${errorMessage}\n\n${
-              isNetworkError ? "💡 提示：请检查网络连接或后端服务是否正常运行。" : ""
-            }`,
-          },
-        ]);
+          [chatMode]: [
+            ...prev[chatMode],
+            {
+              id: `error_${Date.now()}`,
+              role: "assistant",
+              content: `抱歉，发生了错误:\n\n${errorMessage}\n\n${
+                isNetworkError ? "💡 提示：请检查网络连接或后端服务是否正常运行。" : ""
+              }`,
+            },
+          ],
+        }));
       } finally {
         setLoading(false);
       }
     },
-    [threadId]
+    [threadId, chatMode]
   );
 
   return (

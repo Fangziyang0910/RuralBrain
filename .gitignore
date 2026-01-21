@@ -47,6 +47,14 @@ src/algorithms/rice_detection/res/
 res/
 knowledge_base/
 
+# Log files
+*.log
+*_service_restart.log
+
+# Work summary documents
+src/rag/远程工作总结.md
+**/*工作总结.md
+
 # RAG knowledge base data files (large files, Chinese names)
 src/data/policies/
 src/data/cases/
