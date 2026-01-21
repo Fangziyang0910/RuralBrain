@@ -1,0 +1,50 @@
+# RuralBrain Triple Detector Development Dockerfile
+# 开发环境镜像 - 支持三个检测服务热重载
+# 使用国内镜像源
+FROM docker.1ms.run/library/python:3.12-slim
+
+WORKDIR /app
+
+# 配置国内镜像源（阿里云）
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get clean
+
+# 安装系统依赖（YOLOv8 需要的依赖）
+# 禁用代理以避免连接问题
+RUN export http_proxy= && \
+    export https_proxy= && \
+    export HTTP_PROXY= && \
+    export HTTPS_PROXY= && \
+    apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout=60 && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    pkg-config \
+    libopencv-dev \
+    python3-opencv \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 uv 包管理器（使用官方安装脚本）
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    UV_HTTP_TIMEOUT=600
+
+# 复制项目依赖配置文件
+COPY pyproject.toml uv.lock ./
+
+# 安装依赖（包含 YOLOv8 相关依赖）
+# 使用清华 PyPI 镜像源加速，PyTorch 使用官方源
+RUN uv sync --frozen --index-url https://pypi.tuna.tsinghua.edu.cn/simple/ && \
+    uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+# 暴露三个端口
+EXPOSE 8001 8081 8002
+
+# 启动命令（使用 start_all_dev.sh 启动三个带热重载的服务）
+CMD ["bash", "/app/start_all_dev.sh"]

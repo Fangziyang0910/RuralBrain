@@ -1,0 +1,120 @@
+# RuralBrain 开发环境 Docker Compose 配置
+# 支持所有服务的热重载功能
+version: '3.8'
+
+services:
+  # 前端开发服务
+  frontend:
+    build:
+      context: ../../frontend/my-app
+      dockerfile: Dockerfile.dev
+    container_name: ruralbrain-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    volumes:
+      - ../../frontend/my-app/src:/app/src
+      - ../../frontend/my-app/app:/app/app
+      - ../../frontend/my-app/public:/app/public
+      - ../../frontend/my-app/package.json:/app/package.json
+      - ../../frontend/my-app/next.config.mjs:/app/next.config.mjs
+      - /app/node_modules      # 容器内依赖，不挂载
+      - /app/.next             # 构建缓存，不挂载
+    command: ["npm", "run", "dev"]
+    restart: unless-stopped
+    networks:
+      - ruralbrain-dev-network
+
+  # 后端主服务
+  backend:
+    build:
+      context: ../../
+      dockerfile: deploy/dev/Dockerfile.backend
+    container_name: ruralbrain-backend-dev
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../../.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=development
+      - PLANNING_SERVICE_URL=http://planning-service:8003
+      - PYTHONPATH=/app
+    volumes:
+      - ../../service:/app/service
+      - ../../src:/app/src
+      - ../../run_server.py:/app/run_server.py
+      - ../../pyproject.toml:/app/pyproject.toml
+      - ../../uv.lock:/app/uv.lock
+      - ../../uploads:/app/uploads
+      - ../../pest_results:/app/pest_results
+      - ../../cow_results:/app/cow_results
+      - ../../rice_results:/app/rice_results
+    command: ["uv", "run", "python", "run_server.py"]
+    depends_on:
+      - triple-detector
+      - planning-service
+    restart: unless-stopped
+    networks:
+      - ruralbrain-dev-network
+
+  # 三合一检测服务（开发模式）
+  triple-detector:
+    build:
+      context: ../../
+      dockerfile: deploy/dev/Dockerfile.detector
+    container_name: triple-detector-dev
+    ports:
+      - "8001:8001"
+      - "8081:8081"
+      - "8002:8002"
+    environment:
+      - ENVIRONMENT=development
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../../src/algorithms/pest_detection/detector:/app/pest
+      - ../../src/algorithms/rice_detection/detector:/app/rice
+      - ../../src/algorithms/cow_detection/detector:/app/cow
+      - ../../src/algorithms/pest_detection/detector/models:/app/pest/models:ro
+      - ../../src/algorithms/rice_detection/detector/models:/app/rice/models:ro
+      - ../../src/algorithms/cow_detection/detector/models:/app/cow/models:ro
+      - ../../src/algorithms/triple_detector/start_all_dev.sh:/app/start_all_dev.sh
+    command: ["bash", "/app/start_all_dev.sh"]
+    restart: unless-stopped
+    networks:
+      - ruralbrain-dev-network
+
+  # 规划咨询服务（开发模式）
+  planning-service:
+    build:
+      context: ../../
+      dockerfile: deploy/dev/Dockerfile.planning
+    container_name: planning-service-dev
+    ports:
+      - "8003:8003"
+    env_file:
+      - ../../.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=development
+      - SERVICE_PORT=8003
+      - SERVICE_HOST=0.0.0.0
+      - MODEL_PROVIDER=${MODEL_PROVIDER:-deepseek}
+      - PYTHONPATH=/app
+    volumes:
+      - ../../src/rag:/app/src/rag
+      - ../../knowledge_base:/app/knowledge_base:ro
+      - ../../pyproject.toml:/app/pyproject.toml
+      - ../../uv.lock:/app/uv.lock
+    command: ["uv", "run", "uvicorn", "src.rag.service.main:app", "--host", "0.0.0.0", "--port", "8003", "--reload"]
+    restart: unless-stopped
+    networks:
+      - ruralbrain-dev-network
+
+networks:
+  ruralbrain-dev-network:
+    driver: bridge
+    name: ruralbrain-dev-network
