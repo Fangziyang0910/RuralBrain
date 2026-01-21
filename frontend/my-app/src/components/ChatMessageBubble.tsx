@@ -7,6 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ChevronUp, ChevronDown, FileText, BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { LoadingDots } from "./ui/LoadingDots";
 
 interface ToolCall {
   name: string;
@@ -76,47 +77,53 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           </div>
         )}
 
-        {/* 文字消息 */}
+        {/* 文字消息 - 应用新的设计系统 */}
         <div
           className={cn(
-            "px-4 py-2.5 rounded-2xl",
+            "message-bubble shadow-sm",
             isUser
-              ? "bg-green-600 text-white"
-              : "bg-green-50 text-gray-800 border border-green-100"
+              ? "message-user"
+              : "message-ai hover:shadow-md"
           )}
         >
           {isUser ? (
-            <p className="text-xl leading-relaxed whitespace-pre-wrap">
+            <p className="text-lg leading-relaxed whitespace-pre-wrap">
               {message.content}
             </p>
           ) : (
-            <div className="text-xl leading-relaxed">
+            <div className="text-base leading-relaxed">
               {!message.content && message.isStreaming ? (
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></div>
-                  <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
-                  <div className="w-2 h-2 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
-                </div>
+                <LoadingDots size="md" color="#10b981" />
               ) : message.isStreaming ? (
                 // 流式输出时显示纯文本，性能更好
                 <div className="whitespace-pre-wrap">
                   {message.content}
-                  <span className="inline-block w-1 h-4 ml-1 bg-green-400 animate-pulse" />
+                  <span className="inline-block w-0.5 h-4 ml-1 bg-primary-500 animate-pulse rounded-full" />
                 </div>
               ) : (
                 // 流式结束后渲染 Markdown
-                <div className="prose prose-green max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1">
+                <div className="prose prose-primary max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-headings:my-3">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      p: ({ children }) => <p className="my-2 text-xl">{children}</p>,
-                      strong: ({ children }) => <strong className="font-semibold text-green-800">{children}</strong>,
-                      ul: ({ children }) => <ul className="list-none space-y-1 my-2 text-xl">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-xl">{children}</ol>,
+                      p: ({ children }) => <p className="my-2 text-base">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold text-primary-800">{children}</strong>,
+                      ul: ({ children }) => <ul className="list-none space-y-1 my-2 text-base">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-base">{children}</ol>,
                       li: ({ children }) => <li className="my-1">{children}</li>,
-                      h1: ({ children }) => <h1 className="text-2xl font-bold my-2">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-xl font-bold my-2">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-lg font-bold my-2">{children}</h3>,
+                      h1: ({ children }) => <h1 className="text-xl font-bold my-3 text-primary-900">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-lg font-bold my-2 text-primary-900">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-base font-bold my-2 text-primary-900">{children}</h3>,
+                      a: ({ children, href }) => (
+                        <a
+                          href={href}
+                          className="text-primary-600 hover:text-primary-700 underline transition-colors"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {children}
+                        </a>
+                      ),
                     }}
                   >
                     {message.content}

@@ -2,36 +2,299 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==================== 字体导入 ==================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
 @layer base {
   :root {
+    /* Primary - 农业/生长主题 */
+    --color-primary-50: #ecfdf5;
+    --color-primary-100: #d1fae5;
+    --color-primary-200: #a7f3d0;
+    --color-primary-300: #6ee7b7;
+    --color-primary-400: #34d399;
+    --color-primary-500: #10b981;
+    --color-primary-600: #059669;
+    --color-primary-700: #047857;
+    --color-primary-800: #065f46;
+    --color-primary-900: #064e3b;
+
+    /* Secondary - 科技/AI主题 */
+    --color-secondary-500: #3b82f6;
+    --color-secondary-600: #2563eb;
+
+    /* 语义色 */
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+    --color-error: #ef4444;
+    --color-info: #3b82f6;
+
+    /* 主题变量 */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 158 64% 42%; /* #10b981 */
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217 91% 60%; /* #3b82f6 */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 158 64% 42%;
     --radius: 0.5rem;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
+    font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     @apply bg-background text-foreground;
+  }
+
+  /* 改善焦点可见性 */
+  *:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+
+  /* 改善滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #f3f4f6;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+}
+
+/* ==================== 组件样式 ==================== */
+@layer components {
+  /* 按钮基础样式 */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2;
+    @apply font-medium rounded-lg;
+    @apply transition-all duration-200 ease-out;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700;
+    @apply shadow-sm hover:shadow focus:ring-primary-400;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-gray-700 border border-gray-300;
+    @apply hover:bg-gray-50 active:bg-gray-100 focus:ring-gray-400;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-gray-600;
+    @apply hover:bg-gray-100 active:bg-gray-200 focus:ring-gray-400;
+  }
+
+  /* 卡片基础样式 */
+  .card {
+    @apply bg-white rounded-xl border border-gray-200;
+    @apply shadow-sm hover:shadow-md;
+    @apply transition-shadow duration-200 ease-out;
+  }
+
+  /* 输入框基础样式 */
+  .input {
+    @apply w-full px-4 py-2;
+    @apply rounded-lg border border-gray-300;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent;
+    @apply transition-all duration-200 ease-out;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input:focus {
+    @apply shadow-sm;
+  }
+
+  /* 消息气泡 */
+  .message-bubble {
+    @apply max-w-[85%] px-4 py-3 rounded-2xl;
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .message-user {
+    @apply bg-primary-500 text-white rounded-br-sm;
+  }
+
+  .message-ai {
+    @apply bg-white border border-gray-200 text-gray-800 rounded-bl-sm;
+  }
+
+  /* 加载动画 */
+  .loading-dots {
+    @apply flex items-center gap-1;
+  }
+
+  .loading-dot {
+    @apply w-2 h-2 bg-primary-500 rounded-full;
+    animation: bounce 1.4s infinite ease-in-out both;
+  }
+
+  .loading-dot:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+
+  .loading-dot:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+
+  @keyframes bounce {
+    0%, 80%, 100% {
+      transform: scale(0.8);
+      opacity: 0.5;
+    }
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Skeleton Screen */
+  .skeleton {
+    @apply bg-gray-200 animate-pulse rounded;
+  }
+
+  /* 图片预览卡片 */
+  .image-preview-card {
+    @apply relative inline-block rounded-lg overflow-hidden;
+    @apply border border-gray-200 shadow-sm;
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .image-preview-card:hover {
+    @apply shadow-md transform scale-105;
+  }
+
+  /* 模式切换按钮 */
+  .mode-toggle {
+    @apply flex items-center gap-2 px-4 py-2;
+    @apply rounded-lg border border-gray-200;
+    @apply transition-all duration-200 ease-out;
+    @apply cursor-pointer;
+  }
+
+  .mode-toggle-active {
+    @apply bg-primary-50 border-primary-500 text-primary-700;
+  }
+
+  .mode-toggle-inactive {
+    @apply bg-white text-gray-600 hover:bg-gray-50;
+  }
+
+  /* Toast 通知 */
+  .toast {
+    @apply fixed top-4 right-4 z-50;
+    @apply bg-white rounded-lg shadow-lg border border-gray-200;
+    @apply px-4 py-3 animate-slide-in;
+  }
+
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* 徽章 */
+  .badge {
+    @apply inline-flex items-center px-2 py-1;
+    @apply rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply bg-primary-100 text-primary-700;
+  }
+
+  .badge-secondary {
+    @apply bg-secondary-100 text-secondary-700;
+  }
+}
+
+/* ==================== 工具类 ==================== */
+@layer utilities {
+  /* Text Gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(to right, #10b981, #3b82f6);
+  }
+
+  /* Glass Effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+  }
+
+  /* Hide Scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Truncate Text */
+  .truncate-2-lines {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .truncate-3-lines {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* ==================== 响应式优化 ==================== */
+@media (max-width: 768px) {
+  .message-bubble {
+    @apply max-w-[95%];
+  }
+
+  .btn {
+    @apply text-sm px-3 py-2;
+  }
+}
+
+/* ==================== 减少动画（可访问性） ==================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

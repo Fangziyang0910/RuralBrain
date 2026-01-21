@@ -345,18 +345,16 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-green-50/30 to-white">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-primary-50/30 to-white">
       {/* 顶部标题栏 */}
-      <header className="border-b border-green-100 bg-white/80 backdrop-blur-sm">
+      <header className="border-b border-primary-100 bg-white/90 backdrop-blur-sm shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
           {/* 模式选择器 */}
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => setChatMode("detection")}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
-                chatMode === "detection"
-                  ? "border-green-500 bg-green-50 text-green-700"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-green-300"
+              className={`mode-toggle flex-1 ${
+                chatMode === "detection" ? "mode-toggle-active" : "mode-toggle-inactive"
               }`}
             >
               <ImageIcon className="w-5 h-5" />
@@ -364,10 +362,8 @@ export default function Home() {
             </button>
             <button
               onClick={() => setChatMode("planning")}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${
-                chatMode === "planning"
-                  ? "border-green-500 bg-green-50 text-green-700"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-green-300"
+              className={`mode-toggle flex-1 ${
+                chatMode === "planning" ? "mode-toggle-active" : "mode-toggle-inactive"
               }`}
             >
               <FileText className="w-5 h-5" />
@@ -380,47 +376,43 @@ export default function Home() {
             <div className="flex gap-2 mb-3">
               <button
                 onClick={() => setWorkMode("auto")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  workMode === "auto"
-                    ? "bg-green-600 text-white shadow-sm"
-                    : "bg-white text-gray-600 border border-gray-200 hover:border-green-300"
+                className={`mode-toggle flex-1 ${
+                  workMode === "auto" ? "mode-toggle-active" : "mode-toggle-inactive"
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                自动模式
+                <span className="text-sm">自动模式</span>
               </button>
               <button
                 onClick={() => setWorkMode("fast")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  workMode === "fast"
-                    ? "bg-green-600 text-white shadow-sm"
-                    : "bg-white text-gray-600 border border-gray-200 hover:border-green-300"
+                className={`mode-toggle flex-1 ${
+                  workMode === "fast" ? "mode-toggle-active" : "mode-toggle-inactive"
                 }`}
               >
                 <Zap className="w-4 h-4" />
-                快速浏览
+                <span className="text-sm">快速浏览</span>
               </button>
               <button
                 onClick={() => setWorkMode("deep")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  workMode === "deep"
-                    ? "bg-green-600 text-white shadow-sm"
-                    : "bg-white text-gray-600 border border-gray-200 hover:border-green-300"
+                className={`mode-toggle flex-1 ${
+                  workMode === "deep" ? "mode-toggle-active" : "mode-toggle-inactive"
                 }`}
               >
                 <Search className="w-4 h-4" />
-                深度分析
+                <span className="text-sm">深度分析</span>
               </button>
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🌾</span>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white shadow-sm">
+              🌾
+            </div>
             <div>
-              <h1 className="text-xl font-semibold text-green-800">
+              <h1 className="text-xl font-semibold text-primary-900">
                 {chatMode === "detection" ? "AI农业智能检测助手" : "AI乡村规划咨询助手"}
               </h1>
-              <p className="text-sm text-green-600 mt-0.5">
+              <p className="text-sm text-primary-700 mt-0.5">
                 {chatMode === "detection"
                   ? "基于大模型的病虫害、大米、牛只智能检测"
                   : "基于知识库的乡村规划智能咨询"}
@@ -435,12 +427,14 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* 条件渲染，显示欢迎信息或聊天消息 */}
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-green-400 pt-20">
-              <div className="text-6xl mb-4">{chatMode === "detection" ? "🌾" : "🏘️"}</div>
-              <p className="text-lg mb-2 text-green-600">
+            <div className="flex flex-col items-center justify-center h-full text-primary-300 pt-20">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center text-5xl mb-6 shadow-sm">
+                {chatMode === "detection" ? "🌾" : "🏘️"}
+              </div>
+              <p className="text-lg mb-2 text-primary-700 font-medium">
                 {chatMode === "detection" ? "欢迎使用 AI农业智能检测助手" : "欢迎使用 AI乡村规划咨询助手"}
               </p>
-              <p className="text-sm text-green-500">
+              <p className="text-sm text-primary-600">
                 {chatMode === "detection" ? "上传图片并提问，开始智能对话" : "提问关于乡村规划的问题，基于知识库获取专业回答"}
               </p>
             </div>
@@ -457,25 +451,25 @@ export default function Home() {
       </main>
 
       {/* 输入区域 */}
-      <footer className="border-t border-green-100 bg-white/80 backdrop-blur-sm">
+      <footer className="border-t border-primary-100 bg-white/90 backdrop-blur-sm shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             {/* 图片预览 */}
             {imagePreviews.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative inline-block">
+                  <div key={index} className="image-preview-card">
                     <img
                       src={preview}
                       alt={`预览 ${index + 1}`}
-                      className="h-20 w-20 object-cover rounded-lg border border-gray-200"
+                      className="h-20 w-20 object-cover rounded-lg"
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-lg"
+                      className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1.5 hover:bg-error/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
@@ -483,7 +477,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleRemoveAllImages}
-                    className="px-3 py-1 bg-red-100 text-red-600 text-xs rounded-lg hover:bg-red-200"
+                    className="px-3 py-1.5 bg-error/10 text-error text-sm rounded-lg hover:bg-error/20 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error"
                   >
                     清除全部
                   </button>
@@ -510,7 +504,7 @@ export default function Home() {
                     size="icon"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={loading}
-                    className="flex-none border-green-300 text-green-700 hover:bg-green-50"
+                    className="btn btn-secondary flex-none"
                   >
                     <Upload className="w-5 h-5" />
                   </Button>
@@ -529,7 +523,7 @@ export default function Home() {
                     : "输入关于乡村规划的问题... (Shift+Enter 换行)"
                 }
                 disabled={loading}
-                className="flex-1 resize-none rounded-lg border border-green-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="input flex-1 resize-none"
                 rows={1}
               />
 
@@ -537,7 +531,7 @@ export default function Home() {
               <Button
                 type="submit"
                 disabled={(!input.trim() && selectedImages.length === 0) || loading}
-                className="flex-none bg-green-600 hover:bg-green-700"
+                className="btn btn-primary flex-none"
                 size="icon"
               >
                 {loading ? (
@@ -549,7 +543,7 @@ export default function Home() {
             </div>
 
             {/* 提示文字 */}
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Enter 发送，Shift+Enter 换行
             </p>
           </form>

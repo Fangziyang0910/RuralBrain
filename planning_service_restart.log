@@ -1,0 +1,10 @@
+INFO:     Started server process [16108]
+INFO:     Waiting for application startup.
+2026-01-17 21:54:16,968 - src.rag.service.main - INFO - planning-service v1.0.0 启动中...
+2026-01-17 21:54:16,968 - src.rag.service.main - INFO - 服务地址: http://0.0.0.0:8003
+2026-01-17 21:54:16,968 - src.rag.service.main - INFO - API 前缀: /api/v1
+2026-01-17 21:54:16,968 - src.rag.service.main - INFO - 文档地址: http://0.0.0.0:8003/docs
+2026-01-17 21:54:16,968 - src.rag.service.main - INFO - 知识库已加载: /home/szh/projects/RuralBrain/knowledge_base/chroma_db
+2026-01-17 21:54:16,968 - src.rag.service.main - INFO - planning-service 启动完成
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8003 (Press CTRL+C to quit)

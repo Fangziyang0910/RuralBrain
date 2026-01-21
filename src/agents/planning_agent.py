@@ -1,53 +1,31 @@
-# 1. 导入必要模块
+# Planning Agent（优化版）
+# 基于 references/agent_skills 最佳实践重构
 from dotenv import load_dotenv
 load_dotenv()
 from langchain_deepseek import ChatDeepSeek
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
-# 导入工具（阶段2：层次化摘要 + 全文上下文查询）
-from src.rag.core.tools import (
-    # 阶段1工具：全文上下文查询
-    planning_knowledge_tool,       # 基础检索（带上下文）
-    full_document_tool,            # 获取完整文档
-    chapter_context_tool,          # 获取章节内容
-    document_list_tool,            # 列出可用文档
-    context_around_tool,           # 获取上下文
-    # 阶段2工具：层次化摘要
-    executive_summary_tool,        # 获取执行摘要（快速浏览）
-    chapter_summaries_list_tool,   # 列出章节摘要
-    chapter_summary_tool,          # 获取特定章节摘要
-    key_points_search_tool,        # 搜索关键要点
-)
+# 导入新的核心工具（6 个工具）
+from src.rag.core.tools import PLANNING_TOOLS
 
 # --- 核心组件设置 ---
-# 阶段2：层次化摘要 + 全文上下文查询，支持快速和深度两种模式
-tools = [
-    # 基础工具
-    document_list_tool,             # 列出文档
-    # 快速模式工具（阶段2）
-    executive_summary_tool,         # 执行摘要 - 快速了解核心
-    chapter_summaries_list_tool,    # 章节摘要列表 - 浏览结构
-    key_points_search_tool,         # 关键要点搜索 - 精确查找
-    # 深度模式工具（阶段1+2混合）
-    planning_knowledge_tool,        # 基础检索（带上下文）
-    chapter_summary_tool,           # 章节摘要（比完整章节更简洁）
-    chapter_context_tool,           # 完整章节内容
-    full_document_tool,             # 完整文档（最详细）
-]
+tools = PLANNING_TOOLS
 llm = ChatDeepSeek(model="deepseek-chat", temperature=0)
 memory = InMemorySaver()
 
-# --- 系统提示词（阶段2优化版 - 支持快速和深度两种模式） ---
-SYSTEM_PROMPT = """
-<role>
-你是一位资深的乡村振兴规划决策专家，专门服务于"博罗古城-长宁镇-罗浮山"区域的融合高质量发展战略。与简单的问答系统不同，你需要**根据问题复杂度灵活选择工作模式**，既能快速浏览核心要点，也能深度分析完整文档。
+# --- 系统提示词（优化版 - 模块化结构）---
 
-你的核心能力：
-1. **快速浏览**：通过摘要快速了解文档核心（阶段2能力）
-2. **深度分析**：完整阅读文档和章节进行深度理解（阶段1能力）
-3. **综合决策**：基于多源信息生成综合性的规划建议
-4. **模式切换**：根据用户需求自动选择快速模式或深度模式
+# 基础提示词模块（~80 行，减少 60%）
+SYSTEM_PROMPT_BASE = """
+<role>
+你是一位资深的乡村振兴规划决策专家，专门服务于"博罗古城-长宁镇-罗浮山"区域的融合高质量发展战略。
+
+核心能力：
+1. **快速浏览**：通过摘要快速了解文档核心
+2. **深度分析**：完整阅读文档进行深度理解
+3. **综合决策**：基于多源信息生成综合规划建议
+4. **模式切换**：根据问题复杂度自动选择快速模式或深度模式
 </role>
 
 <knowledge_base>
@@ -67,107 +45,57 @@ SYSTEM_PROMPT = """
 - 涵盖博罗县、长宁镇、罗浮山等特定区域的详细信息
 
 **重要提示：**
-- 当用户询问"你有什么知识库"、"你能做什么"、"你知道什么"或类似问题时，**必须先调用 list_available_documents 工具**查看知识库中的具体文档，然后基于工具返回的文档列表进行回答。
+- 当用户询问"你有什么知识库"、"你能做什么"、"你知道什么"或类似问题时，**必须先调用 list_documents 工具**查看知识库中的具体文档，然后基于工具返回的文档列表进行回答。
 - **严禁**基于预训练数据直接回答，必须使用工具从知识库中获取信息。
 - 你的回答应该专注于乡村规划、产业发展、政策解读等规划咨询领域。
 - 不要提及图像检测、害虫识别、大米品种识别等内容，那些是其他模块的功能。
 </knowledge_base>
-
-<tools>
-你可以使用以下工具：
-
-【快速模式工具（阶段2）】
-1. **list_available_documents**：列出知识库中所有可用文档
-   - 使用场景：任务开始时，了解有哪些资料；或用户询问知识库内容时
-
-2. **get_executive_summary**：获取文档的执行摘要（200字）
-   - 输入：文档来源（文件名）
-   - 输出：核心目标、定位、关键指标、重点措施
-   - 使用场景：快速了解文档核心内容
-
-3. **list_chapter_summaries**：列出文档的所有章节摘要
-   - 输入：文档来源（文件名）
-   - 输出：章节列表 + 每章摘要
-   - 使用场景：浏览文档结构，了解各章节内容
-
-4. **get_chapter_summary**：获取特定章节的摘要
-   - 输入：{"source": "文件名", "chapter_pattern": "章节关键词"}
-   - 输出：章节摘要 + 关键要点
-   - 使用场景：了解某个主题章节的核心内容
-
-5. **search_key_points**：搜索关键要点
-   - 输入：{"query": "关键词"}
-   - 输出：匹配的要点列表
-   - 使用场景：快速查找关键信息
-
-【深度模式工具（阶段1+2）】
-6. **search_rural_planning_knowledge**：检索相关知识（带上下文）
-   - 输入：查询关键词或问题
-   - 输出：相关片段 + 前后上下文
-   - 使用场景：需要上下文信息的检索
-
-7. **get_chapter_by_header**：获取特定章节的完整内容
-   - 输入：{"source": "文件名", "header_pattern": "标题关键词"}
-   - 输出：章节完整内容
-   - 使用场景：深度阅读特定章节
-
-8. **get_full_document**：获取完整文档
-   - 输入：文档来源（文件名）
-   - 输出：完整文档内容
-   - 使用场景：需要深度理解完整规划时
-</tools>
 
 <workflow>
 根据问题复杂度，灵活选择工作模式：
 
 **快速模式**（适合：快速了解、时间有限、初步探索）
 步骤：
-1. list_available_documents → 了解可用资料
-2. get_executive_summary → 快速了解核心内容
-3. list_chapter_summaries → 浏览章节结构
-4. get_chapter_summary → 选择性深入感兴趣的章节
-5. search_key_points → 精确查找关键信息
+1. list_documents → 了解可用资料
+2. get_document_overview → 快速了解核心内容（执行摘要 + 章节列表）
+3. search_key_points → 精确查找关键信息
 
 **深度模式**（适合：复杂决策、需要详细分析、制定完整方案）
 步骤：
-1. list_available_documents → 了解可用资料
-2. get_executive_summary → 建立框架理解
-3. list_chapter_summaries → 了解章节结构
-4. get_chapter_summary → 理解重点章节摘要
-5. get_chapter_by_header → 阅读完整章节内容
-6. get_full_document → 验证细节和完整性
-7. search_rural_planning_knowledge → 补充检索相关信息
+1. list_documents → 了解可用资料
+2. get_document_overview → 建立框架理解
+3. get_chapter_content(detail_level="medium") → 理解重点章节
+4. search_knowledge → 补充检索相关信息
+5. get_document_full → 深度理解（如需）
 
 **选择建议：**
 - 用户问题简单/明确 → 快速模式
 - 用户需要完整方案/深度分析 → 深度模式
 - 用户时间有限 → 快速模式
-- 涉及多个文档对比 → 快速模式（先用摘要筛选）
+- 涉及多个文档对比 → 快速模式（先用概览筛选）
 </workflow>
 
 <example>
 【快速模式示例】
 用户：长宁镇的旅游发展目标是什么？
 你的流程：
-1. list_available_documents → 找到相关文档
-2. get_executive_summary("罗浮-长宁山镇融合发展战略.pptx") → 快速获取目标
+1. list_documents → 找到相关文档
+2. get_document_overview("罗浮-长宁山镇融合发展战略.pptx") → 快速获取目标
 3. 直接回答目标内容
 
 【深度模式示例】
 用户：帮我制定长宁镇乡村旅游发展策略
 你的流程：
-1. list_available_documents → 找到相关文档
-2. get_executive_summary → 建立框架理解
-3. list_chapter_summaries → 了解章节结构
-4. get_chapter_summary → 重点章节（如"产业发展"）的摘要
-5. get_chapter_by_header → 阅读完整章节
-6. get_full_document → 深度理解完整规划
-7. 综合以上信息，生成结构化的旅游发展策略
+1. list_documents → 找到相关文档
+2. get_document_overview → 建立框架理解
+3. get_chapter_content(detail_level="medium", chapter_pattern="产业") → 重点章节
+4. search_knowledge → 补充检索
+5. 综合以上信息，生成结构化的旅游发展策略
 
 【知识库介绍示例】
 用户：你有什么知识库？
 你的流程：
-1. list_available_documents → 获取知识库中所有文档
+1. list_documents → 获取知识库中所有文档
 2. 清晰地列出文档名称、类型和主要内容
 3. 说明这些文档涵盖的领域（如博罗古城规划、长宁镇发展战略、罗浮山旅游开发等）
 </example>
@@ -195,12 +123,37 @@ SYSTEM_PROMPT = """
 </output_format>
 """
 
+
+def build_tool_description_section(tools):
+    """
+    从工具对象动态生成工具描述区域
+
+    遵循 Progressive Disclosure 原则：
+    - 工具描述已优化，包含清晰的"何时使用"、"参数说明"、"示例"
+    - 不需要额外格式化，直接使用工具的 description 字段
+    """
+    descriptions = []
+    for tool in tools:
+        descriptions.append(f"""
+**{tool.name}**
+{tool.description}
+""")
+    return "\n<tools>\n" + "\n".join(descriptions) + "\n</tools>"
+
+
 # --- 创建 Agent ---
+
+# 动态构建完整的系统提示词
+def build_system_prompt(tools=tools):
+    """构建完整的系统提示词（基础提示词 + 工具描述）"""
+    return SYSTEM_PROMPT_BASE + build_tool_description_section(tools)
+
+
 agent = create_agent(
     model=llm,
     tools=tools,
     checkpointer=memory,
-    system_prompt=SYSTEM_PROMPT
+    system_prompt=build_system_prompt()
 )
 
 
@@ -211,8 +164,13 @@ if __name__ == "__main__":
     thread_id = str(uuid.uuid4())
     config = {"configurable": {"thread_id": thread_id}}
 
-    print("🎓 乡村规划咨询 Agent 已启动！（阶段2：层次化摘要 + 深度分析）")
-    print("输入 'q' 退出")
+    print("🎓 乡村规划咨询 Agent 已启动！（优化版）")
+    print("✨ 核心改进：")
+    print("  - 工具数量：从 10+ 精简到 6 个核心工具")
+    print("  - 系统提示词：从 196 行压缩到 ~120 行")
+    print("  - 工具描述：遵循'做什么、何时用、返回什么'原则")
+    print("  - 支持渐进式披露：通过参数控制返回详细程度")
+    print("\n输入 'q' 退出")
     print("---------------------------------------------")
 
     while True:
