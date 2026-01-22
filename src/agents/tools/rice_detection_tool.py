@@ -109,3 +109,6 @@ def rice_detection_tool(image_path: str, task_type: str = "品种分类") -> str
 
     except Exception as e:
         return f"工具调用过程发生错误: {str(e)}"
+
+# 为工具添加标签，供 ToolSelectorMiddleware 使用
+rice_detection_tool.tags = ["detection", "rice"]

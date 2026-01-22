@@ -174,3 +174,6 @@ if __name__ == "__main__":
         print("检测结果:", result)
     else:
         print("测试图片不存在，请提供有效的图片路径")
+
+# 为工具添加标签，供 ToolSelectorMiddleware 使用
+cow_detection_tool.tags = ["detection", "cow"]

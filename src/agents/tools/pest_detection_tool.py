@@ -185,3 +185,6 @@ def pest_detection_tool(image_path: str) -> str:
 
 # 导出工具供 agent 使用
 __all__ = ["pest_detection_tool"]
+
+# 为工具添加标签，供 ToolSelectorMiddleware 使用
+pest_detection_tool.tags = ["detection", "pest"]
