@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 from ultralytics import YOLO
-from langchain.tools import tool
+from langchain_core.tools import tool
 
 def detect_cows(image_path: str, model) -> dict:
     """检测图片中的牛只"""
