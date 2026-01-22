@@ -61,7 +61,7 @@ class ToolSelectorMiddleware(AgentMiddleware):
 
         for tool in self.available_tools:
             # 获取工具的标签（假设工具有 tags 属性）
-            tool_tags = getattr(tool, "tags", [])
+            tool_tags = getattr(tool, "tags", None) or []
 
             if self.match_all:
                 # 需要匹配所有标签

@@ -32,6 +32,8 @@ from service.settings import (
     UPLOAD_DIR,
     MAX_UPLOAD_SIZE,
     ALLOWED_EXTENSIONS,
+    AGENT_VERSION,
+    AGENT_AUTO_FALLBACK,
 )
 from service.schemas import ChatRequest, UploadResponse, ErrorResponse
 
@@ -79,24 +81,79 @@ app.mount("/rice_results", StaticFiles(directory=str(rice_results_dir)), name="r
 # --------延迟加载机制--------
 # 延迟导入 agent，避免启动时加载模型，缩短启动时间
 _agent = None
+_agent_version = None
 
 
 def get_agent():
-    """延迟加载 image_detection_agent"""
-    global _agent
+    """
+    延迟加载 image_detection_agent
+    支持版本切换：通过 AGENT_VERSION 环境变量选择 v1 或 v2
+    """
+    global _agent, _agent_version
+
     if _agent is None:
-        logger.info("正在加载 AI 模型...")
-        from src.agents.image_detection_agent import agent as image_detection_agent
-        _agent = image_detection_agent
-        logger.info("AI 模型加载完成")
+        logger.info(f"正在加载 AI 模型 [配置版本: {AGENT_VERSION}]...")
+
+        try:
+            # 尝试加载配置的版本
+            if AGENT_VERSION == "v2":
+                logger.info("→ 尝试加载 V2 Agent (Skills 架构)...")
+                from src.agents.image_detection_agent_v2 import agent as agent_v2
+                _agent = agent_v2
+                _agent_version = "v2"
+                logger.info("✓ V2 Agent (Skills 架构) 加载完成")
+            else:  # v1 或其他
+                logger.info("→ 加载 V1 Agent (传统架构)...")
+                from src.agents.image_detection_agent import agent as agent_v1
+                _agent = agent_v1
+                _agent_version = "v1"
+                logger.info("✓ V1 Agent (传统架构) 加载完成")
+
+        except Exception as e:
+            # V2 加载失败时的降级处理
+            if AGENT_VERSION == "v2" and AGENT_AUTO_FALLBACK:
+                logger.warning(f"⚠ V2 Agent 加载失败: {e}")
+                logger.info("→ 自动回退到 V1 Agent...")
+                try:
+                    from src.agents.image_detection_agent import agent as agent_v1
+                    _agent = agent_v1
+                    _agent_version = "v1"
+                    logger.info("✓ V1 Agent (回退) 加载完成")
+                except Exception as fallback_error:
+                    logger.error(f"✗ V1 Agent 回退也失败: {fallback_error}")
+                    raise
+            else:
+                logger.error(f"✗ Agent 加载失败: {e}")
+                raise
+
     return _agent
+
+
+def get_agent_version() -> str:
+    """
+    获取当前使用的 Agent 版本
+
+    Returns:
+        "v1" 或 "v2"
+    """
+    global _agent_version
+    if _agent_version is None:
+        # 如果 Agent 还未加载，返回配置的版本
+        return AGENT_VERSION
+    return _agent_version
 
 
 @app.on_event("startup")
 async def startup_event():
     """启动时预加载模型"""
     logger.info("RuralBrain 服务启动中...")
+    logger.info(f"Agent 配置版本: {AGENT_VERSION.upper()}")
+
     get_agent()  # 预加载模型
+
+    # 显示实际使用的版本
+    actual_version = get_agent_version()
+    logger.info(f"Agent 实际版本: {actual_version.upper()}")
     logger.info("RuralBrain 服务启动完成")
 
 
@@ -407,7 +464,8 @@ async def chat_stream(request: ChatRequest):
             paths_text = "\n".join([f"[图片路径 {i+1}: {path}]" for i, path in enumerate(image_paths)])
             message_content = f"{request.message}\n\n{paths_text}"
 
-        logger.info(f"调用图像检测 Agent [thread_id={thread_id}]: {request.message}, 图片数量: {len(image_paths)}")
+        agent_version = get_agent_version()
+        logger.info(f"调用图像检测 Agent [版本: {agent_version.upper()}, thread_id={thread_id}]: {request.message}, 图片数量: {len(image_paths)}")
         
         async def event_generator() -> AsyncGenerator[str, None]:
             """SSE 事件生成器"""

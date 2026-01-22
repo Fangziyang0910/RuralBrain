@@ -26,3 +26,11 @@ PORT = int(os.getenv("PORT", "8080"))
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 # 支持的图片格式
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+
+# ============================================
+# Agent 配置
+# ============================================
+# Agent 版本选择
+AGENT_VERSION = os.getenv("AGENT_VERSION", "v1").lower()
+# V2 Agent 失败时是否自动回退到 V1
+AGENT_AUTO_FALLBACK = os.getenv("AGENT_AUTO_FALLBACK", "true").lower() == "true"

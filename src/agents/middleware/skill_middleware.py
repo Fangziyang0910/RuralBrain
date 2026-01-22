@@ -11,7 +11,7 @@ from typing import Callable, List, Dict, Optional
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
 from langchain_core.tools import tool
 from langchain.messages import SystemMessage
-from skills.base import Skill
+from ..skills.base import Skill
 
 # 全局技能存储（用于 load_skill 工具查询）
 _AVAILABLE_SKILLS: Dict[str, "Skill"] = {}
