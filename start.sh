@@ -43,8 +43,8 @@ echo "2. 检查知识库..."
 if [ ! -d "knowledge_base/chroma_db" ]; then
     echo -e "${YELLOW}⚠️  知识库不存在，准备构建...${NC}"
     echo ""
-    if [ -f "build_kb_auto.py" ]; then
-        python3 build_kb_auto.py
+    if [ -f "src/rag/scripts/build_kb_auto.py" ]; then
+        python3 src/rag/scripts/build_kb_auto.py
     elif [ -f "src/rag/build.py" ]; then
         python3 src/rag/build.py
     else

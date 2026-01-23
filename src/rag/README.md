@@ -59,7 +59,7 @@ src/data/
 
 ```bash
 # 方式1：自动构建（推荐）
-python build_kb_auto.py
+python src/rag/scripts/build_kb_auto.py
 
 # 方式2：交互式构建
 python src/rag/build.py
@@ -86,10 +86,10 @@ summary = executive_summary_tool.run("文件名.docx")
 
 ```bash
 # 集成测试
-python test_rag_integration.py
+python src/rag/tests/test_rag_integration.py
 
 # 用户场景测试
-python test_user_scenario.py
+python src/rag/tests/test_user_scenario.py
 ```
 
 ## 配置

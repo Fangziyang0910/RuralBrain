@@ -6,7 +6,8 @@ import sys
 from pathlib import Path
 
 # 添加项目根目录到路径
-sys.path.append(str(Path(__file__).parent))
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.append(str(project_root))
 
 from src.rag.build import load_documents, split_documents, build_vector_store
 from src.rag.core.context_manager import DocumentContextManager

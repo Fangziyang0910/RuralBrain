@@ -85,7 +85,7 @@ PLANNING_SERVICE_TIMEOUT=120
 
 ```bash
 # 方式1：自动构建（推荐）
-python build_kb_auto.py
+python src/rag/scripts/build_kb_auto.py
 
 # 方式2：交互式构建
 python src/rag/build.py
@@ -293,7 +293,7 @@ python3 -c "from dotenv import load_dotenv; load_dotenv(); import os; print(os.g
 
 ```bash
 # 重新构建知识库
-python build_kb_auto.py
+python src/rag/scripts/build_kb_auto.py
 ```
 
 ### 问题3: Backend 无法连接 Planning Service

@@ -6,7 +6,9 @@
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent))
+# 添加项目根目录到 Python 路径
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.append(str(project_root))
 
 from src.rag.core.tools import (
     planning_knowledge_tool,

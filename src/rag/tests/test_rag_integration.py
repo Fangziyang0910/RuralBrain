@@ -7,7 +7,8 @@ import sys
 from pathlib import Path
 
 # 添加项目根目录到 Python 路径
-sys.path.append(str(Path(__file__).parent))
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.append(str(project_root))
 
 from src.rag.config import CHROMA_PERSIST_DIR
 from src.rag.core.tools import planning_knowledge_tool
