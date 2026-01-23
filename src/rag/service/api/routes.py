@@ -60,7 +60,7 @@ def _extract_knowledge_sources(tool_output: str) -> list[dict]:
     工具输出格式示例：
     【知识片段 1】
     来源: 罗浮-长宁山镇融合发展战略.pptx
-    位置: 第3页（或 第4pptx）
+    位置: 第3 pptx（或 第3页、第4docx）
     内容:
     ...
 
@@ -75,23 +75,24 @@ def _extract_knowledge_sources(tool_output: str) -> list[dict]:
     sources = []
 
     # 使用正则表达式匹配知识片段
-    # 匹配格式：【知识片段 X】来源: xxx位置: 第X[页/pptx/docx/段/节]内容:...
-    # 更宽松的匹配：非贪婪匹配，直到下一个【知识片段】或字符串末尾
-    pattern = r"【知识片段 \d+】\s*\n来源: ([^\n]+)\s*\n位置: 第(\d+)[页pptxdocx段节]?.*?\s*\n内容:\s*\n([\s\S]*?)(?=【知识片段|$)"
+    # 匹配格式：【知识片段 X】来源: xxx位置: 第X [类型]内容:...
+    # 优化：支持 "第X 类型"（有空格）和 "第X类型"（无空格）两种格式
+    pattern = r"【知识片段 \d+】\s*\n来源: ([^\n]+)\s*\n位置: 第(\d+)\s*[页pptxdocx段节]?\s*(\w+)?\s*\n内容:\s*\n([\s\S]*?)(?=【知识片段|$)"
 
     matches = re.findall(pattern, tool_output)
 
     for match in matches:
-        source, page_num, content = match
+        source, page_num, doc_type, content = match
 
         # 清理内容（取前300个字符作为预览）
         content_preview = content.strip()[:300]
-        if len(content_preview) > 300:
+        if len(content_preview) == 300:
             content_preview += "..."
 
         sources.append({
             "source": source.strip(),
             "page": int(page_num),
+            "doc_type": doc_type.strip() if doc_type else "",
             "content": content_preview,
         })
 
@@ -181,7 +182,12 @@ async def planning_chat(request: PlanningChatRequest):
 
         # 生成或使用线程ID
         thread_id = request.thread_id or str(uuid.uuid4())
-        config = {"configurable": {"thread_id": thread_id}}
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+                "mode": request.mode,  # 传递模式到 Agent 配置
+            }
+        }
 
         logger.info(
             f"收到规划咨询请求 [thread_id={thread_id}, mode={request.mode}]: {request.message}"
@@ -194,13 +200,24 @@ async def planning_chat(request: PlanningChatRequest):
             knowledge_sources = []  # 收集所有知识库来源
             sources_sent = False  # 标记 sources 是否已发送
 
+            # 添加性能统计
+            import time
+            start_time = time.time()
+            tool_call_count = 0
+
             try:
                 # 发送开始事件
                 yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id, 'mode': request.mode}, ensure_ascii=False)}\n\n"
 
+                # 准备输入数据（包含模式）
+                input_data = {
+                    "messages": [HumanMessage(content=request.message)],
+                    "mode": request.mode,  # 传递模式到输入状态
+                }
+
                 # 流式处理 agent 响应
                 async for event in agent.astream_events(
-                    {"messages": [HumanMessage(content=request.message)]},
+                    input_data,
                     config,
                     version="v2",
                 ):
@@ -222,10 +239,12 @@ async def planning_chat(request: PlanningChatRequest):
                         tool_name = event["name"]
                         if tool_name not in tools_used:
                             tools_used.append(tool_name)
+                        tool_call_count += 1  # 统计工具调用次数
                         event_data = {
                             "type": "tool",
                             "tool_name": tool_name,
                             "status": "started",
+                            "tool_call_count": tool_call_count,  # 添加调用计数
                         }
                         yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
 
@@ -261,12 +280,22 @@ async def planning_chat(request: PlanningChatRequest):
                     yield f"data: {json.dumps(sources_data, ensure_ascii=False)}\n\n"
                     sources_sent = True
 
-                # 发送结束事件
+                # 计算总耗时
+                total_time = time.time() - start_time
+
+                # 发送结束事件（包含性能统计）
                 end_data = {
                     "type": "end",
                     "thread_id": thread_id,
                     "tools_used": tools_used,
+                    "tool_call_count": tool_call_count,  # 工具调用总次数
+                    "total_time": round(total_time, 2),  # 总耗时（秒）
+                    "mode": request.mode,
                 }
+                logger.info(
+                    f"请求完成 [thread_id={thread_id}, mode={request.mode}, "
+                    f"tools={len(tools_used)}, calls={tool_call_count}, time={total_time:.2f}s]"
+                )
                 yield f"data: {json.dumps(end_data, ensure_ascii=False)}\n\n"
 
             except Exception as e:

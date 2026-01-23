@@ -193,10 +193,10 @@ def get_chapter_content(source: str, chapter_pattern: str, detail_level: str = "
                 return f"❌ {result['error']}"
 
             output = [
-                f"【章节摘要】\n",
+                f"【知识片段 1】\n",
                 f"来源: {result['source']}\n",
-                f"章节: {result['chapter_title']}\n\n",
-                f"{result['summary']}"
+                f"位置: 第1 页\n",
+                f"内容:\n{result['summary']}"
             ]
             return "\n".join(output)
 
@@ -207,10 +207,10 @@ def get_chapter_content(source: str, chapter_pattern: str, detail_level: str = "
                 return f"❌ {result['error']}"
 
             output = [
-                f"【章节内容（中等详细）】\n",
+                f"【知识片段 1】\n",
                 f"来源: {result['source']}\n",
-                f"章节: {result['chapter_title']}\n\n",
-                f"**摘要**\n{result['summary']}\n\n",
+                f"位置: 第1 页\n",
+                f"内容:\n**摘要**\n{result['summary']}\n\n",
                 f"**关键要点**\n"
             ]
 
@@ -226,11 +226,10 @@ def get_chapter_content(source: str, chapter_pattern: str, detail_level: str = "
                 return f"❌ {result['error']}"
 
             output = [
-                f"【章节完整内容】\n",
+                f"【知识片段 1】\n",
                 f"来源: {result['source']}\n",
-                f"章节: {result['chapter_title']}\n",
-                f"行范围: {result['line_range']}\n\n",
-                f"{result['content']}"
+                f"位置: 第1 页\n",
+                f"内容:\n{result['content']}"
             ]
             return "\n".join(output)
 
@@ -313,17 +312,17 @@ def search_knowledge(
             if context_mode == "minimal":
                 # minimal 模式：仅返回核心内容
                 context_part = [
-                    f"【片段 {idx}】",
+                    f"【知识片段 {idx}】",
                     f"来源: {source}",
-                    f"位置: 第{page}{doc_type}",
+                    f"位置: 第{page} {doc_type}",
                     f"内容: {doc.page_content}"
                 ]
             else:
                 # standard 和 expanded 模式：包含上下文
                 context_part = [
-                    f"【片段 {idx}】",
+                    f"【知识片段 {idx}】",
                     f"来源: {source}",
-                    f"位置: 第{page}{doc_type}",
+                    f"位置: 第{page} {doc_type}",
                 ]
 
                 # 尝试获取上下文
