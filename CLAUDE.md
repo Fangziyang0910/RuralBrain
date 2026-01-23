@@ -159,6 +159,9 @@ uv run python scripts/dev/build_kb_auto.py
 - 遵守 Python 代码设计哲学（The Zen of Python）
 - 使用 `uv run python` 运行所有 Python 脚本
 
+### 5. 文件移动后的路径引用修复
+当移动文件到新位置时，必须同时检查并修复文件内部的路径引用。
+
 ## 模型配置
 
 项目支持多个大语言模型供应商，通过 `.env` 文件中的 `MODEL_PROVIDER` 切换：

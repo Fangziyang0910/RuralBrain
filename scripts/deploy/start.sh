@@ -74,8 +74,8 @@ case $choice in
         ;;
     2)
         echo "启动 Backend..."
-        chmod +x start_backend.sh
-        ./start_backend.sh
+        chmod +x scripts/deploy/start_backend.sh
+        scripts/deploy/start_backend.sh
         ;;
     3)
         echo "启动 Planning Service..."
@@ -86,8 +86,8 @@ case $choice in
         sleep 3
 
         echo "启动 Backend..."
-        chmod +x start_backend.sh
-        ./start_backend.sh &
+        chmod +x scripts/deploy/start_backend.sh
+        scripts/deploy/start_backend.sh &
         BACKEND_PID=$!
 
         echo ""

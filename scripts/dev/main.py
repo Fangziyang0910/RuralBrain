@@ -1,8 +1,13 @@
 from dotenv import load_dotenv
 import sys
+from pathlib import Path
+
+# 添加项目根目录到 Python 路径
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 print("正在启动系统...")
-load_dotenv()  # 加载 .env
+load_dotenv(project_root / ".env")  # 加载 .env
 
 print("正在加载 AI 模型和工具...")
 sys.stdout.flush()

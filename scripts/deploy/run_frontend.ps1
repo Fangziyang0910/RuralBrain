@@ -7,6 +7,8 @@ Write-Host "=" -NoNewline
 Write-Host ("=" * 60)
 Write-Host ""
 
+# 切换到项目根目录
+Set-Location (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 Set-Location frontend/my-app
 
 # 检查是否已安装依赖
