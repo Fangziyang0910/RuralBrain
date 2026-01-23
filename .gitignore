@@ -36,7 +36,6 @@ Desktop.ini
 # Claude Code
 .claude.json
 .claude/
-CLAUDE.md
 
 # algorithms input and output
 uploads/
