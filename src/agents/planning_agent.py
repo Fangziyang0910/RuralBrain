@@ -9,16 +9,10 @@ from langgraph.checkpoint.memory import InMemorySaver
 # 导入新的核心工具（6 个工具）
 from src.rag.core.tools import PLANNING_TOOLS
 
-# 导入模式感知中间件
-from src.agents.middleware.mode_aware_middleware import ModeAwareMiddleware
-
 # --- 核心组件设置 ---
 tools = PLANNING_TOOLS
 llm = ChatDeepSeek(model="deepseek-chat", temperature=0)
 memory = InMemorySaver()
-
-# --- 创建模式感知中间件 ---
-mode_middleware = ModeAwareMiddleware(default_mode="auto")
 
 # --- 系统提示词（优化版 - 模块化结构）---
 
@@ -122,7 +116,6 @@ agent = create_agent(
     tools=tools,
     checkpointer=memory,
     system_prompt=build_system_prompt(),
-    middleware=[mode_middleware],  # 添加模式感知中间件
 )
 
 

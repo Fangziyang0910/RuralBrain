@@ -77,12 +77,16 @@ def _extract_knowledge_sources(tool_output: str) -> list[dict]:
     # 使用正则表达式匹配知识片段
     # 匹配格式：【知识片段 X】来源: xxx位置: 第X [类型]内容:...
     # 优化：支持 "第X 类型"（有空格）和 "第X类型"（无空格）两种格式
-    pattern = r"【知识片段 \d+】\s*\n来源: ([^\n]+)\s*\n位置: 第(\d+)\s*[页pptxdocx段节]?\s*(\w+)?\s*\n内容:\s*\n([\s\S]*?)(?=【知识片段|$)"
+    # 修复：改进 doc_type 提取，避免只提取部分字符（如 ptx 而不是 pptx）
+    pattern = r"【知识片段 \d+】\s*\n来源: ([^\n]+)\s*\n位置: 第(\d+)\s*(.*?)\s*\n内容:\s*\n([\s\S]*?)(?=【知识片段|$)"
 
     matches = re.findall(pattern, tool_output)
 
     for match in matches:
         source, page_num, doc_type, content = match
+
+        # 清理 doc_type（去除前导空白）
+        doc_type_clean = doc_type.strip() if doc_type else ""
 
         # 清理内容（取前300个字符作为预览）
         content_preview = content.strip()[:300]
@@ -92,7 +96,7 @@ def _extract_knowledge_sources(tool_output: str) -> list[dict]:
         sources.append({
             "source": source.strip(),
             "page": int(page_num),
-            "doc_type": doc_type.strip() if doc_type else "",
+            "doc_type": doc_type_clean,
             "content": content_preview,
         })
 

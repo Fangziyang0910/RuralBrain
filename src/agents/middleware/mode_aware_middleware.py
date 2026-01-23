@@ -1,29 +1,26 @@
 """
-模式感知中间件
+模式感知中间件（简化版）
 
-根据用户选择的模式动态限制工具调用次数和注入模式信息到系统提示词。
+提供模式配置和工具调用次数限制信息，供 Agent 和路由使用。
+注意：由于 LangChain ModelRequest API 的限制，模式信息现在通过
+build_system_prompt_with_mode 函数动态注入到系统提示词中。
 """
-from typing import Callable, Optional, Dict, Any
-from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
-from langchain.messages import SystemMessage
+from typing import Optional, Dict, Any
 
 
-class ModeAwareMiddleware(AgentMiddleware):
+class ModeAwareMiddleware:
     """
-    模式感知中间件
+    模式感知中间件（简化版）
 
     功能：
-    1. 根据运行时配置的模式注入信息到系统提示词
-    2. 提供模式配置供其他中间件使用
+    1. 提供模式配置信息
+    2. 生成模式相关的系统提示词片段
+    3. 不再尝试注入到 ModelRequest（避免 API 兼容性问题）
 
     模式映射：
     - fast: 快速浏览模式（最多 2 次工具调用）
     - deep: 深度分析模式（最多 5 次工具调用）
     - auto: 自动模式（无限制）
-
-    Attributes:
-        default_mode: 默认模式
-        current_mode: 当前模式
     """
 
     # 模式配置映射
@@ -73,67 +70,31 @@ class ModeAwareMiddleware(AgentMiddleware):
         """
         return self.MODE_CONFIGS.get(mode, self.MODE_CONFIGS["auto"])
 
-    def wrap_model_call(
-        self,
-        request: ModelRequest,
-        handler: Callable[[ModelRequest], ModelResponse],
-    ) -> ModelResponse:
+    def get_mode_prompt_addendum(self, mode: str) -> str:
         """
-        在模型调用前注入模式信息到系统提示词
+        生成模式相关的系统提示词片段
 
         Args:
-            request: 模型请求
-            handler: 下一个处理器
+            mode: 模式名称
 
         Returns:
-            模型响应
+            模式提示词片段
         """
-        # 从 state 中获取模式（从 config 传入）
-        mode = request.state.get("mode", self.default_mode)
+        config = self.get_mode_config(mode)
 
-        # 更新当前模式
-        if mode in self.MODE_CONFIGS:
-            self.current_mode = mode
-        else:
-            self.current_mode = self.default_mode
-            mode = self.default_mode
-
-        # 获取模式配置
-        mode_config = self.get_mode_config(mode)
-
-        # 构建模式信息
-        mode_instruction = f"\n\n<current_mode>\n"
-        mode_instruction += f"当前工作模式: {mode_config['description']}\n"
+        mode_instruction = "\n\n<current_mode>\n"
+        mode_instruction += f"当前工作模式: {config['description']}\n"
 
         # 添加工具调用限制指导
-        if mode_config["max_tool_calls"] is not None:
-            mode_instruction += f"工具调用限制: 最多 {mode_config['max_tool_calls']} 次\n"
-            mode_instruction += f"工作指导: {mode_config['guidance']}\n"
+        if config["max_tool_calls"] is not None:
+            mode_instruction += f"工具调用限制: 最多 {config['max_tool_calls']} 次\n"
+            mode_instruction += f"工作指导: {config['guidance']}\n"
         else:
-            mode_instruction += f"工作指导: {mode_config['guidance']}\n"
+            mode_instruction += f"工作指导: {config['guidance']}\n"
 
         mode_instruction += "</current_mode>\n"
 
-        # 附加到系统消息
-        try:
-            # 尝试处理 content_blocks 格式
-            if hasattr(request.system_message, 'content_blocks'):
-                new_content = list(request.system_message.content_blocks) + [
-                    {"type": "text", "text": mode_instruction}
-                ]
-            else:
-                # 处理普通字符串格式
-                current_content = request.system_message.content
-                new_content = [{"type": "text", "text": current_content + mode_instruction}]
-        except Exception:
-            # 如果都失败了，直接追加到字符串
-            current_content = str(request.system_message.content)
-            new_content = [{"type": "text", "text": current_content + mode_instruction}]
-
-        new_system_message = SystemMessage(content=new_content)
-        modified_request = request.override(system_message=new_system_message)
-
-        return handler(modified_request)
+        return mode_instruction
 
     def get_max_tool_calls(self, mode: Optional[str] = None) -> Optional[int]:
         """
@@ -150,61 +111,3 @@ class ModeAwareMiddleware(AgentMiddleware):
 
         config = self.get_mode_config(mode)
         return config["max_tool_calls"]
-
-
-class ToolCallLimitMiddleware(AgentMiddleware):
-    """
-    工具调用限制中间件
-
-    监控并限制工具调用次数。当达到限制时，阻止进一步的工具调用。
-
-    注意：这是一个简化的实现，用于演示概念。
-    在生产环境中，应该在 Agent 层面实现更精确的调用控制。
-
-    Attributes:
-        max_tool_calls: 最大工具调用次数，None 表示无限制
-        call_count: 当前调用次数计数器
-    """
-
-    def __init__(self, max_tool_calls: Optional[int] = None):
-        """
-        初始化工具调用限制中间件
-
-        Args:
-            max_tool_calls: 最大工具调用次数，None 表示无限制
-        """
-        self.max_tool_calls = max_tool_calls
-        self.call_count = 0
-
-    def reset(self):
-        """重置调用计数器"""
-        self.call_count = 0
-
-    def wrap_model_call(
-        self,
-        request: ModelRequest,
-        handler: Callable[[ModelRequest], ModelResponse],
-    ) -> ModelResponse:
-        """
-        在每次模型调用前检查工具调用次数
-
-        注意：这里的实现是简化的。真正的工具调用限制需要在
-        Agent 运行时层面实现，而不是在模型调用层面。
-        """
-        # 重置计数器（每次新的模型调用）
-        self.reset()
-
-        return handler(request)
-
-    def should_allow_tool_call(self) -> bool:
-        """
-        检查是否应该允许工具调用
-
-        Returns:
-            True 如果允许，False 如果已达到限制
-        """
-        if self.max_tool_calls is None:
-            return True
-
-        self.call_count += 1
-        return self.call_count <= self.max_tool_calls
