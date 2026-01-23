@@ -111,6 +111,41 @@ def build_system_prompt(tools=tools):
     return SYSTEM_PROMPT_BASE + build_tool_description_section(tools)
 
 
+def build_system_prompt_with_mode(mode: str = "auto", tools=tools):
+    """
+    根据模式动态构建系统提示词
+
+    Args:
+        mode: 工作模式（fast/deep/auto）
+        tools: 可用工具列表
+
+    Returns:
+        完整的系统提示词
+    """
+    mode_instruction = ""
+
+    if mode == "fast":
+        mode_instruction = """
+<current_mode>
+⚡ 当前工作模式: 快速浏览模式
+工具调用限制: 最多 2 次
+推荐工具: list_documents → get_document_overview → search_key_points
+重要: 请严格限制工具调用次数，避免使用 get_chapter_content 和 get_document_full
+</current_mode>
+"""
+    elif mode == "deep":
+        mode_instruction = """
+<current_mode>
+🔍 当前工作模式: 深度分析模式
+工具调用限制: 最多 5 次
+可以使用完整工具链进行深度分析，包括 get_chapter_content 和 get_document_full
+</current_mode>
+"""
+    # auto 模式不添加额外指令
+
+    return SYSTEM_PROMPT_BASE + mode_instruction + build_tool_description_section(tools)
+
+
 agent = create_agent(
     model=llm,
     tools=tools,

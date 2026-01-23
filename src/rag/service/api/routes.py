@@ -78,7 +78,8 @@ def _extract_knowledge_sources(tool_output: str) -> list[dict]:
     # 匹配格式：【知识片段 X】来源: xxx位置: 第X [类型]内容:...
     # 优化：支持 "第X 类型"（有空格）和 "第X类型"（无空格）两种格式
     # 修复：改进 doc_type 提取，避免只提取部分字符（如 ptx 而不是 pptx）
-    pattern = r"【知识片段 \d+】\s*\n来源: ([^\n]+)\s*\n位置: 第(\d+)\s*(.*?)\s*\n内容:\s*\n([\s\S]*?)(?=【知识片段|$)"
+    # 修复：移除内容后的 \n 要求，支持 "内容: xxx" 和 "内容:\nxxx" 两种格式
+    pattern = r"【知识片段 \d+】\s*\n来源: ([^\n]+)\s*\n位置: 第(\d+)\s*(.*?)\s*\n内容:\s*([\s\S]*?)(?=【知识片段|$)"
 
     matches = re.findall(pattern, tool_output)
 
@@ -213,9 +214,20 @@ async def planning_chat(request: PlanningChatRequest):
                 # 发送开始事件
                 yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id, 'mode': request.mode}, ensure_ascii=False)}\n\n"
 
+                # 模式指令前缀（让 Agent 在运行时感知当前模式）
+                mode_instructions = {
+                    "fast": "⚡ 当前为快速模式：最多调用 2 次工具，优先使用 get_document_overview 和 search_key_points，避免使用 get_chapter_content 和 get_document_full。",
+                    "deep": "🔍 当前为深度模式：最多调用 5 次工具，可以使用所有工具包括 get_chapter_content 和 get_document_full 进行深度分析。",
+                    "auto": "🤖 当前为自动模式：根据问题复杂度自主选择工作模式和工具。"
+                }
+
+                # 构建带有模式指令的消息
+                mode_prefix = mode_instructions.get(request.mode, mode_instructions["auto"])
+                enhanced_message = f"{mode_prefix}\n\n用户问题：{request.message}"
+
                 # 准备输入数据（包含模式）
                 input_data = {
-                    "messages": [HumanMessage(content=request.message)],
+                    "messages": [HumanMessage(content=enhanced_message)],
                     "mode": request.mode,  # 传递模式到输入状态
                 }
 
@@ -264,6 +276,14 @@ async def planning_chat(request: PlanningChatRequest):
 
                         # 从工具输出中提取知识库来源
                         extracted_sources = _extract_knowledge_sources(output_str)
+
+                        # 调试：记录提取结果
+                        if tool_name == "search_knowledge":
+                            logger.info(f"[DEBUG] search_knowledge 输出长度: {len(output_str)}")
+                            logger.info(f"[DEBUG] 提取到 {len(extracted_sources)} 个来源")
+                            if extracted_sources:
+                                logger.info(f"[DEBUG] 来源示例: {extracted_sources[0]}")
+
                         if extracted_sources:
                             logger.info(f"提取到 {len(extracted_sources)} 个知识库来源")
                             knowledge_sources.extend(extracted_sources)
