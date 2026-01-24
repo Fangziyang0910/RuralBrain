@@ -65,3 +65,8 @@ package-lock.json
 package.json
 
 references/
+
+# Test output files and directories
+**/tests/results/
+**/results/*.json
+**/results/*.html
