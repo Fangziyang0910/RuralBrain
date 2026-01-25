@@ -9,7 +9,7 @@ from typing import List
 BASE_DIR = Path(__file__).parent.parent
 
 # 上传文件存储目录
-UPLOAD_DIR = BASE_DIR / "uploads"
+UPLOAD_DIR = Path("/tmp/ruralbrain_uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # CORS 配置

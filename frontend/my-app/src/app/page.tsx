@@ -4,57 +4,22 @@
 import React, { useState, useCallback, useRef, useEffect, FormEvent } from "react";
 import { ChatMessageBubble, type Message } from "@/components/ChatMessageBubble";
 import { Button } from "@/components/ui/button";
-import { Upload, Send, X, Loader2, Image as ImageIcon, FileText, Zap, Search, Sparkles } from "lucide-react";
+import { Upload, Send, X, Loader2 } from "lucide-react";
 
 const API_BASE = "/api";
 
-type ChatMode = "detection" | "planning";
 type WorkMode = "auto" | "fast" | "deep";
 
 // export default 导出这个函数，让其他文件可以使用
 export default function Home() {
-  // 为每个模式维护独立的消息历史
-  const [modeMessages, setModeMessages] = useState<{
-    detection: Message[];
-    planning: Message[];
-  }>({ detection: [], planning: [] });
-
-  // 为每个模式维护独立的会话ID
-  const [modeThreadIds, setModeThreadIds] = useState<{
-    detection: string;
-    planning: string;
-  }>(() => ({
-    detection: `thread_detection_${Date.now()}`,
-    planning: `thread_planning_${Date.now()}`,
-  }));
-
-  // 从localStorage读取上次的模式选择（仅在客户端）
-  const [chatMode, setChatMode] = useState<ChatMode>("detection");
-
-  // 客户端挂载后从localStorage读取模式
-  useEffect(() => {
-    const saved = localStorage.getItem("chatMode") as ChatMode;
-    if (saved) {
-      setChatMode(saved);
-    }
-  }, []);
-
-  // 保存模式选择到localStorage
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("chatMode", chatMode);
-    }
-  }, [chatMode]);
-
-  // 计算当前模式的消息历史和会话ID
-  const messages = modeMessages[chatMode];
-  const threadId = modeThreadIds[chatMode];
+  // 统一的消息历史和会话ID
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [threadId, setThreadId] = useState<string>(() => `thread_${Date.now()}`);
 
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [workMode, setWorkMode] = useState<WorkMode>("auto");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -68,10 +33,10 @@ export default function Home() {
 
   // 流式输出时持续滚动，非流式时只在消息数量变化时滚动
   const prevMessageCountRef = useRef(messages.length);
-  
+
   useEffect(() => {
     const hasStreamingMessage = messages.some(msg => msg.isStreaming);
-    
+
     if (hasStreamingMessage) {
       // 流式输出中，持续滚动
       scrollToBottom();
@@ -97,27 +62,27 @@ export default function Home() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     // 用户选择图片
     const files = Array.from(e.target.files || []);
-    
+
     // 限制最多10张图片
     const MAX_IMAGES = 10;
     const totalImages = selectedImages.length + files.length;
-    
+
     if (totalImages > MAX_IMAGES) {
       alert(`最多只能上传 ${MAX_IMAGES} 张图片，当前已选 ${selectedImages.length} 张`);
       return;
     }
-    
+
     // 读取所有图片的预览
     const newPreviews: string[] = [];
     let loadedCount = 0;
-    
+
     //使用 FileReader 读取图片数据
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         newPreviews.push(reader.result as string);
         loadedCount++;
-        
+
         if (loadedCount === files.length) {
           setSelectedImages(prev => [...prev, ...files]);
           setImagePreviews(prev => [...prev, ...newPreviews]);
@@ -152,9 +117,9 @@ export default function Home() {
     // 如果没有输入内容且没有选择图片，或者正在加载中，则不处理
     if ((!input.trim() && selectedImages.length === 0) || loading) return;
 
-    const messageText = input.trim() || 
+    const messageText = input.trim() ||
       (selectedImages.length === 1 ? "请帮我识别这张图片" : `请帮我识别这 ${selectedImages.length} 张图片`);
-    
+
     // 调用发送消息函数
     handleSendMessage(messageText, selectedImages.length > 0 ? selectedImages : undefined);
     //清空输入框和已选图片
@@ -184,10 +149,7 @@ export default function Home() {
         content: message,
         images: images ? images.map(img => URL.createObjectURL(img)) : undefined,
       };
-      setModeMessages((prev) => ({
-        ...prev,
-        [chatMode]: [...prev[chatMode], userMessage],
-      }));
+      setMessages((prev) => [...prev, userMessage]);
       setLoading(true);
 
       try {
@@ -212,7 +174,7 @@ export default function Home() {
           imagePreviewUrls = userMessage.images;
         }
 
-        // 2. 发送聊天请求（SSE流式）
+        // 2. 发送聊天请求（SSE流式）- 由 Orchestrator Agent 智能路由
         const chatResponse = await fetch(`${API_BASE}/chat/stream`, {
           method: "POST",
           headers: {
@@ -222,8 +184,6 @@ export default function Home() {
             message,
             image_paths: imagePaths,
             thread_id: threadId,
-            mode: chatMode,
-            work_mode: chatMode === "planning" ? workMode : undefined,
           }),
         });
 
@@ -242,54 +202,50 @@ export default function Home() {
         // 创建助手消息
         assistantMessageId = `assistant_${Date.now()}`;
 
-        setModeMessages((prev) => ({
+        setMessages((prev) => [
           ...prev,
-          [chatMode]: [
-            ...prev[chatMode],
-            {
-              id: assistantMessageId as string,
-              role: "assistant",
-              content: "",
-              isStreaming: true,
-            },
-          ],
-        }));
+          {
+            id: assistantMessageId as string,
+            role: "assistant",
+            content: "",
+            isStreaming: true,
+          },
+        ]);
 
         let buffer = "";
         let streamCompleted = false;
-        
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split("\n");
-          
+
           // 保留最后一行（可能不完整）
           buffer = lines.pop() || "";
 
           for (const line of lines) {
             if (line.trim() === "") continue;
-            
+
             if (line.startsWith("data: ")) {
               try {
                 const jsonStr = line.slice(6).trim();
                 if (!jsonStr) continue;
-                
+
                 const data = JSON.parse(jsonStr);
 
                 if (data.type === "start") {
                   console.log("流式输出开始, thread_id:", data.thread_id);
                 } else if (data.type === "content") {
                   // 直接使用函数式更新，避免闭包问题
-                  setModeMessages((prev) => ({
-                    ...prev,
-                    [chatMode]: prev[chatMode].map((msg) =>
+                  setMessages((prev) =>
+                    prev.map((msg) =>
                       msg.id === assistantMessageId
                         ? { ...msg, content: msg.content + data.content, isStreaming: true }
                         : msg
-                    ),
-                  }));
+                    )
+                  );
                 } else if (data.type === "tool") {
                   // Planning Service 的工具调用事件
                   console.log("工具调用:", data.tool_name, data.status);
@@ -300,42 +256,39 @@ export default function Home() {
                     status: data.status as "运行中" | "已完成",
                     resultImage: data.result_image,
                   };
-                  setModeMessages((prev) => ({
-                    ...prev,
-                    [chatMode]: prev[chatMode].map((msg) =>
+                  setMessages((prev) =>
+                    prev.map((msg) =>
                       msg.id === assistantMessageId
                         ? {
                             ...msg,
                             toolCalls: [...(msg.toolCalls || []), toolCall],
                           }
                         : msg
-                    ),
-                  }));
+                    )
+                  );
                   console.log("工具调用:", data.tool_name, "结果图片:", data.result_image);
                 } else if (data.type === "sources") {
                   // 处理知识库来源事件
-                  setModeMessages((prev) => ({
-                    ...prev,
-                    [chatMode]: prev[chatMode].map((msg) =>
+                  setMessages((prev) =>
+                    prev.map((msg) =>
                       msg.id === assistantMessageId
                         ? {
                             ...msg,
                             sources: data.sources,
                           }
                         : msg
-                    ),
-                  }));
+                    )
+                  );
                   console.log("收到知识库来源:", data.sources?.length || 0, "条");
                 } else if (data.type === "end") {
                   streamCompleted = true;
-                  setModeMessages((prev) => ({
-                    ...prev,
-                    [chatMode]: prev[chatMode].map((msg) =>
+                  setMessages((prev) =>
+                    prev.map((msg) =>
                       msg.id === assistantMessageId
                         ? { ...msg, isStreaming: false }
                         : msg
-                    ),
-                  }));
+                    )
+                  );
                   console.log("流式输出完成, 总内容长度:", data.full_content?.length || 0);
                 } else if (data.type === "error") {
                   throw new Error(data.error);
@@ -349,48 +302,41 @@ export default function Home() {
 
         // 确保流结束时标记为非流式状态
         if (!streamCompleted) {
-          setModeMessages((prev) => ({
-            ...prev,
-            [chatMode]: prev[chatMode].map((msg) =>
+          setMessages((prev) =>
+            prev.map((msg) =>
               msg.id === assistantMessageId
                 ? { ...msg, isStreaming: false }
                 : msg
-            ),
-          }));
+            )
+          );
         }
       } catch (error) {
         console.error("发送消息失败:", error);
-        
+
         // 移除未完成的流式消息
         if (assistantMessageId) {
-          setModeMessages((prev) => ({
-            ...prev,
-            [chatMode]: prev[chatMode].filter(msg => msg.id !== assistantMessageId),
-          }));
+          setMessages((prev) => prev.filter(msg => msg.id !== assistantMessageId));
         }
-        
+
         // 显示错误信息
         const errorMessage = error instanceof Error ? error.message : "未知错误";
         const isNetworkError = errorMessage.includes("fetch") || errorMessage.includes("network");
 
-        setModeMessages((prev) => ({
+        setMessages((prev) => [
           ...prev,
-          [chatMode]: [
-            ...prev[chatMode],
-            {
-              id: `error_${Date.now()}`,
-              role: "assistant",
-              content: `抱歉，发生了错误:\n\n${errorMessage}\n\n${
-                isNetworkError ? "💡 提示：请检查网络连接或后端服务是否正常运行。" : ""
-              }`,
-            },
-          ],
-        }));
+          {
+            id: `error_${Date.now()}`,
+            role: "assistant",
+            content: `抱歉，发生了错误:\n\n${errorMessage}\n\n${
+              isNetworkError ? "💡 提示：请检查网络连接或后端服务是否正常运行。" : ""
+            }`,
+          },
+        ]);
       } finally {
         setLoading(false);
       }
     },
-    [threadId, chatMode]
+    [threadId]
   );
 
   return (
@@ -398,73 +344,16 @@ export default function Home() {
       {/* 顶部标题栏 */}
       <header className="border-b border-primary-100 bg-white/90 backdrop-blur-sm shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          {/* 模式选择器 */}
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setChatMode("detection")}
-              className={`mode-toggle flex-1 ${
-                chatMode === "detection" ? "mode-toggle-active" : "mode-toggle-inactive"
-              }`}
-            >
-              <ImageIcon className="w-5 h-5" />
-              <span className="font-medium">🖼️ 图像检测</span>
-            </button>
-            <button
-              onClick={() => setChatMode("planning")}
-              className={`mode-toggle flex-1 ${
-                chatMode === "planning" ? "mode-toggle-active" : "mode-toggle-inactive"
-              }`}
-            >
-              <FileText className="w-5 h-5" />
-              <span className="font-medium">🏘️ 规划咨询</span>
-            </button>
-          </div>
-
-          {/* 工作模式选择器（仅规划咨询模式显示） */}
-          {chatMode === "planning" && (
-            <div className="flex gap-2 mb-3">
-              <button
-                onClick={() => setWorkMode("auto")}
-                className={`mode-toggle flex-1 ${
-                  workMode === "auto" ? "mode-toggle-active" : "mode-toggle-inactive"
-                }`}
-              >
-                <Sparkles className="w-4 h-4" />
-                <span className="text-sm">自动模式</span>
-              </button>
-              <button
-                onClick={() => setWorkMode("fast")}
-                className={`mode-toggle flex-1 ${
-                  workMode === "fast" ? "mode-toggle-active" : "mode-toggle-inactive"
-                }`}
-              >
-                <Zap className="w-4 h-4" />
-                <span className="text-sm">快速浏览</span>
-              </button>
-              <button
-                onClick={() => setWorkMode("deep")}
-                className={`mode-toggle flex-1 ${
-                  workMode === "deep" ? "mode-toggle-active" : "mode-toggle-inactive"
-                }`}
-              >
-                <Search className="w-4 h-4" />
-                <span className="text-sm">深度分析</span>
-              </button>
-            </div>
-          )}
-
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white shadow-sm">
               🌾
             </div>
             <div>
               <h1 className="text-xl font-semibold text-primary-900">
-                {chatMode === "detection" ? "AI农业智能检测助手" : "AI乡村规划咨询助手"}
+                RuralBrain 乡村智慧大脑
               </h1>
               <p className="text-sm text-primary-700 mt-0.5">
-                {chatMode === "detection"
-                  ? "基于大模型的病虫害、大米、牛只智能检测"
-                  : "基于知识库的乡村规划智能咨询"}
+                统一智能助手 - 图像检测与规划咨询
               </p>
             </div>
           </div>
@@ -478,13 +367,21 @@ export default function Home() {
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-primary-300 pt-20">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center text-5xl mb-6 shadow-sm">
-                {chatMode === "detection" ? "🌾" : "🏘️"}
+                🌾
               </div>
               <p className="text-lg mb-2 text-primary-700 font-medium">
-                {chatMode === "detection" ? "欢迎使用 AI农业智能检测助手" : "欢迎使用 AI乡村规划咨询助手"}
+                你好！我是 RuralBrain 乡村智慧大脑
               </p>
-              <p className="text-sm text-primary-600">
-                {chatMode === "detection" ? "上传图片并提问，开始智能对话" : "提问关于乡村规划的问题，基于知识库获取专业回答"}
+              <p className="text-sm text-primary-600 mb-4">
+                我可以帮助你：
+              </p>
+              <div className="text-sm text-primary-600 space-y-2">
+                <p>• 🖼️ 识别病虫害、农作物品种、牛只等</p>
+                <p>• 🏘️ 乡村发展规划咨询（旅游、产业、政策）</p>
+                <p>• 📊 提供科学的防治方案和发展建议</p>
+              </div>
+              <p className="text-sm text-primary-600 mt-4">
+                你可以直接上传图片或描述问题，我会自动判断如何帮助你！
               </p>
             </div>
           ) : (
@@ -536,29 +433,25 @@ export default function Home() {
 
             {/* 输入框和按钮 */}
             <div className="flex items-end gap-2">
-              {/* 上传按钮（仅图像检测模式显示） */}
-              {chatMode === "detection" && (
-                <>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={loading}
-                    className="btn btn-secondary flex-none"
-                  >
-                    <Upload className="w-5 h-5" />
-                  </Button>
-                </>
-              )}
+              {/* 上传按钮 - 始终可用 */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                className="btn btn-secondary flex-none"
+              >
+                <Upload className="w-5 h-5" />
+              </Button>
 
               {/* 文本输入框 */}
               <textarea
@@ -566,11 +459,7 @@ export default function Home() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={
-                  chatMode === "detection"
-                    ? "输入消息... (Shift+Enter 换行)"
-                    : "输入关于乡村规划的问题... (Shift+Enter 换行)"
-                }
+                placeholder="输入消息... (Shift+Enter 换行)"
                 disabled={loading}
                 className="input flex-1 resize-none"
                 rows={1}
@@ -593,7 +482,7 @@ export default function Home() {
 
             {/* 提示文字 */}
             <p className="text-xs text-muted-foreground">
-              Enter 发送，Shift+Enter 换行
+              Enter 发送，Shift+Enter 换行 · 支持上传图片进行检测
             </p>
           </form>
         </div>

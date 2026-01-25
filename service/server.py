@@ -86,45 +86,27 @@ _agent_version = None
 
 def get_agent():
     """
-    延迟加载 image_detection_agent
-    支持版本切换：通过 AGENT_VERSION 环境变量选择 v1 或 v2
+    延迟加载统一编排 Agent (Orchestrator Agent)
+
+    Orchestrator Agent 作为智能路由中心：
+    - 自动判断用户意图（规划咨询 vs 图像检测）
+    - 动态调用子 Agent（Planning Agent 或 Detection Agent）
+    - 支持多步推理和场景切换
     """
     global _agent, _agent_version
 
     if _agent is None:
-        logger.info(f"正在加载 AI 模型 [配置版本: {AGENT_VERSION}]...")
+        logger.info("正在加载统一编排 Agent (Orchestrator Agent)...")
 
         try:
-            # 尝试加载配置的版本
-            if AGENT_VERSION == "v2":
-                logger.info("→ 尝试加载 V2 Agent (Skills 架构)...")
-                from src.agents.image_detection_agent_v2 import agent as agent_v2
-                _agent = agent_v2
-                _agent_version = "v2"
-                logger.info("✓ V2 Agent (Skills 架构) 加载完成")
-            else:  # v1 或其他
-                logger.info("→ 加载 V1 Agent (传统架构)...")
-                from src.agents.image_detection_agent import agent as agent_v1
-                _agent = agent_v1
-                _agent_version = "v1"
-                logger.info("✓ V1 Agent (传统架构) 加载完成")
+            from src.agents.orchestrator_agent import agent as orchestrator_agent
+            _agent = orchestrator_agent
+            _agent_version = "orchestrator"
+            logger.info("✓ 统一编排 Agent (Orchestrator) 加载完成")
 
         except Exception as e:
-            # V2 加载失败时的降级处理
-            if AGENT_VERSION == "v2" and AGENT_AUTO_FALLBACK:
-                logger.warning(f"⚠ V2 Agent 加载失败: {e}")
-                logger.info("→ 自动回退到 V1 Agent...")
-                try:
-                    from src.agents.image_detection_agent import agent as agent_v1
-                    _agent = agent_v1
-                    _agent_version = "v1"
-                    logger.info("✓ V1 Agent (回退) 加载完成")
-                except Exception as fallback_error:
-                    logger.error(f"✗ V1 Agent 回退也失败: {fallback_error}")
-                    raise
-            else:
-                logger.error(f"✗ Agent 加载失败: {e}")
-                raise
+            logger.error(f"✗ Orchestrator Agent 加载失败: {e}")
+            raise
 
     return _agent
 
@@ -134,12 +116,12 @@ def get_agent_version() -> str:
     获取当前使用的 Agent 版本
 
     Returns:
-        "v1" 或 "v2"
+        "orchestrator" 或其他版本标识
     """
     global _agent_version
     if _agent_version is None:
-        # 如果 Agent 还未加载，返回配置的版本
-        return AGENT_VERSION
+        # 如果 Agent 还未加载，返回默认版本
+        return "orchestrator"
     return _agent_version
 
 
@@ -147,13 +129,10 @@ def get_agent_version() -> str:
 async def startup_event():
     """启动时预加载模型"""
     logger.info("RuralBrain 服务启动中...")
-    logger.info(f"Agent 配置版本: {AGENT_VERSION.upper()}")
+    logger.info("Agent 配置: Orchestrator Agent (统一编排)")
 
-    get_agent()  # 预加载模型
+    get_agent()  # 预加载 Orchestrator Agent
 
-    # 显示实际使用的版本
-    actual_version = get_agent_version()
-    logger.info(f"Agent 实际版本: {actual_version.upper()}")
     logger.info("RuralBrain 服务启动完成")
 
 
@@ -405,7 +384,12 @@ async def chat_planning(request: ChatRequest):
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
     """
-    统一流式对话接口，根据 mode 参数路由到不同的服务
+    统一流式对话接口，使用 Orchestrator Agent 智能路由
+
+    Orchestrator Agent 会自动判断用户意图：
+    - 有图片 → 调用图像检测
+    - 规划相关问题 → 调用规划知识库
+    - 支持多步推理和场景切换
 
     Args:
         request: 聊天请求，包含消息和可选的图片路径
@@ -420,39 +404,7 @@ async def chat_stream(request: ChatRequest):
         # 支持多图片路径（新版本）或单图片路径（兼容旧版本）
         image_paths = request.image_paths or ([request.image_path] if request.image_path else [])
 
-        # 判断调用哪个服务
-        request_mode = request.mode or "auto"
-
-        # 意图识别
-        if request_mode == "auto":
-            intent = classify_intent(request.message, len(image_paths) > 0)
-            logger.info(f"意图识别结果: {intent}, 图片数量: {len(image_paths)}")
-        else:
-            intent = request_mode
-            logger.info(f"指定模式: {intent}")
-
-        # 如果是规划咨询模式且没有图片，转发到 Planning Service
-        if intent == "planning" and len(image_paths) == 0:
-            logger.info(f"转发到 Planning Service [thread_id={thread_id}, work_mode={request.work_mode}]: {request.message}")
-
-            async def event_generator() -> AsyncGenerator[str, None]:
-                async for event in forward_to_planning_service(
-                    message=request.message,
-                    thread_id=thread_id,
-                    mode=request.work_mode or "auto"
-                ):
-                    yield event
-
-            return StreamingResponse(
-                event_generator(),
-                media_type="text/event-stream",
-                headers={
-                    "Cache-Control": "no-cache",
-                    "X-Accel-Buffering": "no",
-                },
-            )
-
-        # 否则使用图像检测 Agent
+        # 获取 Orchestrator Agent
         agent = get_agent()
         config = {"configurable": {"thread_id": thread_id}}
 
@@ -464,15 +416,14 @@ async def chat_stream(request: ChatRequest):
             paths_text = "\n".join([f"[图片路径 {i+1}: {path}]" for i, path in enumerate(image_paths)])
             message_content = f"{request.message}\n\n{paths_text}"
 
-        agent_version = get_agent_version()
-        logger.info(f"调用图像检测 Agent [版本: {agent_version.upper()}, thread_id={thread_id}]: {request.message}, 图片数量: {len(image_paths)}")
-        
+        logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}")
+
         async def event_generator() -> AsyncGenerator[str, None]:
             """SSE 事件生成器"""
             try:
                 # 发送开始事件
                 yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id}, ensure_ascii=False)}\n\n"
-                
+
                 # 流式处理 agent 响应
                 full_content = ""
                 async for event in agent.astream_events(
@@ -481,7 +432,7 @@ async def chat_stream(request: ChatRequest):
                     version="v2",
                 ):
                     kind = event["event"]
-                    
+
                     # 处理流式消息内容（AI 的回答）
                     if kind == "on_chat_model_stream":
                         content = event["data"]["chunk"].content
@@ -492,40 +443,40 @@ async def chat_stream(request: ChatRequest):
                                 "content": content,
                             }
                             yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
-                    
+
                     # 处理工具调用结束事件
                     elif kind == "on_tool_end":
                         tool_name = event["name"]
-                        
-                        # 查找对应的结果图片路径
+
+                        # 查找对应的结果图片路径（仅检测工具）
                         result_image = None
                         if tool_name == "pest_detection_tool":
                             # 查找最新的害虫检测结果图片
                             result_dir = Path("pest_detection_results")
                             if result_dir.exists():
-                                images = sorted(result_dir.glob("pest_detection_*.jpg"), 
+                                images = sorted(result_dir.glob("pest_detection_*.jpg"),
                                               key=lambda p: p.stat().st_mtime, reverse=True)
                                 if images:
                                     result_image = f"/pest_results/{images[0].name}"
-                        
+
                         elif tool_name == "rice_detection_tool":
                             # 查找最新的大米检测结果图片
                             result_dir = Path("rice_detection_results")
                             if result_dir.exists():
-                                images = sorted(result_dir.glob("rice_detection_*.jpg"), 
+                                images = sorted(result_dir.glob("rice_detection_*.jpg"),
                                               key=lambda p: p.stat().st_mtime, reverse=True)
                                 if images:
                                     result_image = f"/rice_results/{images[0].name}"
-                        
+
                         elif tool_name == "cow_detection_tool":
                             # 查找最新的牛只检测结果图片
                             result_dir = Path("cow_detection_results")
                             if result_dir.exists():
-                                images = sorted(result_dir.glob("cow_result_*.jpg"), 
+                                images = sorted(result_dir.glob("cow_result_*.jpg"),
                                               key=lambda p: p.stat().st_mtime, reverse=True)
                                 if images:
                                     result_image = f"/cow_results/{images[0].name}"
-                        
+
                         # 发送工具调用完成事件
                         tool_event = {
                             "type": "tool_call",
@@ -534,12 +485,12 @@ async def chat_stream(request: ChatRequest):
                             "result_image": result_image,
                         }
                         yield f"data: {json.dumps(tool_event, ensure_ascii=False)}\n\n"
-                
+
                 # 发送完成事件
                 yield f"data: {json.dumps({'type': 'end', 'full_content': full_content}, ensure_ascii=False)}\n\n"
-                
+
                 logger.info(f"对话完成 [thread_id={thread_id}]")
-                
+
             except Exception as e:
                 logger.error(f"对话处理错误: {str(e)}")
                 error_data = {
@@ -547,7 +498,7 @@ async def chat_stream(request: ChatRequest):
                     "error": str(e),
                 }
                 yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
-        
+
         # 使用 StreamingResponse 包装生成器
         return StreamingResponse(
             event_generator(),
@@ -559,7 +510,7 @@ async def chat_stream(request: ChatRequest):
                 "X-Accel-Buffering": "no",
             },
         )
-        
+
     except Exception as e:
         logger.error(f"对话请求失败: {str(e)}")
         raise HTTPException(
