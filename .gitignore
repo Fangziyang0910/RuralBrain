@@ -70,3 +70,6 @@ references/
 **/tests/results/
 **/results/*.json
 **/results/*.html
+
+# Temporary test images folder
+temp_test_images/
