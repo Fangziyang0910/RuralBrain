@@ -47,7 +47,10 @@ docker-compose down
 # 启动后端服务
 uv run python run_server.py
 
-# 启动前端（需进入 frontend/my-app 目录）
+# 启动前端（推荐方式，跨平台兼容）
+uv run python run_frontend.py
+
+# 或者手动启动前端
 cd frontend/my-app
 npm install
 npm run dev
