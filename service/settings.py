@@ -2,14 +2,15 @@
 服务配置
 """
 import os
+import tempfile
 from pathlib import Path
 from typing import List
 
 # 项目根目录路径
 BASE_DIR = Path(__file__).parent.parent
 
-# 上传文件存储目录
-UPLOAD_DIR = Path("/tmp/ruralbrain_uploads")
+# 上传文件存储目录（使用系统临时目录，跨平台兼容）
+UPLOAD_DIR = Path(tempfile.gettempdir()) / "ruralbrain_uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 # CORS 配置
