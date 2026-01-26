@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     
     # 服务器配置
     HOST: str = "0.0.0.0"
-    PORT: int = 8081
+    PORT: int = 8001  # 大米识别服务
     
     # CORS配置
     BACKEND_CORS_ORIGINS: List[str] = ["*"]

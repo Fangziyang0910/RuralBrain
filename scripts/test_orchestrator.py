@@ -16,7 +16,7 @@ from pathlib import Path
 
 
 class OrchestratorTester:
-    def __init__(self, base_url="http://localhost:8080"):
+    def __init__(self, base_url="http://localhost:8081"):
         self.base_url = base_url
         self.thread_id = "test_orchestrator"
 

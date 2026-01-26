@@ -69,7 +69,7 @@ def create_pest_detection_skill(pest_tool: BaseTool) -> Skill:
             "当检测服务失败时，要礼貌地说明问题并建议用户重试",
         ],
         metadata={
-            "service_url": "http://localhost:8001",
+            "service_url": "http://localhost:8000",  # 病虫害检测服务
             "supported_formats": ["jpg", "jpeg", "png", "bmp", "webp"],
             "max_results": 50,
         },
@@ -127,7 +127,7 @@ def create_rice_detection_skill(rice_tool: BaseTool) -> Skill:
             "储存建议要考虑防潮、防虫等因素",
         ],
         metadata={
-            "service_url": "http://localhost:8081",
+            "service_url": "http://localhost:8001",  # 大米识别服务
             "supported_formats": ["jpg", "jpeg", "png"],
         },
     )

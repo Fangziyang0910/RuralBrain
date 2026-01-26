@@ -6,8 +6,16 @@ import asyncio
 import aiohttp
 import json
 import time
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from datetime import datetime
+from pathlib import Path
+
+# 导入测试工具模块
+from test_utils import (
+    save_results,
+    get_latest_results,
+    generate_html_report,
+)
 
 
 # 测试问题列表（与之前测试报告一致）
@@ -252,8 +260,14 @@ async def run_all_tests():
     generate_report(results)
 
 
-def generate_report(results: List[Dict[str, Any]]):
-    """生成测试报告"""
+def generate_report(results: List[Dict[str, Any]], compare_with_baseline: bool = True):
+    """
+    生成测试报告
+
+    Args:
+        results: 测试结果列表
+        compare_with_baseline: 是否与基线结果对比
+    """
     print("\n\n" + "="*80)
     print("📊 测试报告")
     print("="*80)
@@ -356,6 +370,32 @@ def generate_report(results: List[Dict[str, Any]]):
     print(f"\n{'='*80}")
     print("测试完成")
     print(f"{'='*80}\n")
+
+    # ==================== 结果持久化 ====================
+    print("\n" + "="*80)
+    print("💾 保存测试结果")
+    print("="*80)
+
+    # 保存 JSON 结果
+    json_path = save_results(results)
+
+    # 生成 HTML 报告
+    baseline_results = None
+    if compare_with_baseline:
+        # 尝试获取最新的历史结果作为基线
+        latest = get_latest_results()
+        if latest and "results" in latest:
+            baseline_results = latest["results"]
+            print(f"✅ 加载基线数据: {len(baseline_results)} 条历史记录")
+
+    html_path = generate_html_report(results, baseline=baseline_results)
+
+    print("\n" + "="*80)
+    print("✅ 所有任务完成")
+    print("="*80)
+    print(f"📄 JSON 结果: {json_path}")
+    print(f"📊 HTML 报告: {html_path}")
+    print("="*80 + "\n")
 
 
 if __name__ == "__main__":
