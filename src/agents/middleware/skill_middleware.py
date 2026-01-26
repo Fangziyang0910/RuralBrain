@@ -84,7 +84,7 @@ class SkillMiddleware(AgentMiddleware):
         handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelResponse:
         """
-        将技能描述注入到系统提示词中
+        将技能描述注入到系统提示词中（同步版本）
 
         这是 Progressive Disclosure 的核心：
         - 只在系统提示词中包含技能的简短描述
@@ -104,6 +104,39 @@ class SkillMiddleware(AgentMiddleware):
         modified_request = request.override(system_message=new_system_message)
 
         return handler(modified_request)
+
+    async def awrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse],
+    ) -> ModelResponse:
+        """
+        将技能描述注入到系统提示词中（异步版本）
+
+        异步版本，用于 astream() 和 ainvoke() 等异步调用场景。
+        """
+        # 构建技能附加内容
+        skills_addendum = (
+            f"\n\n## 可用技能\n\n{self.skills_prompt}\n\n"
+            "使用 load_skill 工具获取技能的详细信息、指导原则和示例。"
+        )
+
+        # 附加到系统消息
+        new_content = list(request.system_message.content_blocks) + [
+            {"type": "text", "text": skills_addendum}
+        ]
+        new_system_message = SystemMessage(content=new_content)
+        modified_request = request.override(system_message=new_system_message)
+
+        # 直接调用 handler（会自动处理同步/异步）
+        result = handler(modified_request)
+
+        # 如果结果是协程，则等待
+        import inspect
+        if inspect.iscoroutine(result):
+            result = await result
+
+        return result
 
 
 def register_skills(skills: List["Skill"]) -> None:

@@ -86,27 +86,46 @@ _agent_version = None
 
 def get_agent():
     """
-    延迟加载统一编排 Agent (Orchestrator Agent)
+    延迟加载统一编排 Agent（支持 V1/V2 切换）
 
-    Orchestrator Agent 作为智能路由中心：
-    - 自动判断用户意图（规划咨询 vs 图像检测）
-    - 动态调用子 Agent（Planning Agent 或 Detection Agent）
-    - 支持多步推理和场景切换
+    根据环境变量 AGENT_VERSION 动态加载：
+    - v1: 传统固定提示词架构
+    - v2: Skills 架构（Progressive Disclosure）
     """
     global _agent, _agent_version
 
     if _agent is None:
-        logger.info("正在加载统一编排 Agent (Orchestrator Agent)...")
+        version = AGENT_VERSION
+        logger.info(f"正在加载统一编排 Agent (版本: {version.upper()})...")
 
         try:
-            from src.agents.orchestrator_agent import agent as orchestrator_agent
-            _agent = orchestrator_agent
-            _agent_version = "orchestrator"
-            logger.info("✓ 统一编排 Agent (Orchestrator) 加载完成")
+            if version == "v2":
+                from src.agents.orchestrator_agent_v2 import agent as orchestrator_agent_v2
+                _agent = orchestrator_agent_v2
+                _agent_version = "orchestrator_v2"
+                logger.info("✓ 统一编排 Agent V2 加载完成 - 采用 Skills 架构")
+            else:
+                from src.agents.orchestrator_agent import agent as orchestrator_agent_v1
+                _agent = orchestrator_agent_v1
+                _agent_version = "orchestrator_v1"
+                logger.info("✓ 统一编排 Agent V1 加载完成 - 传统架构")
 
         except Exception as e:
-            logger.error(f"✗ Orchestrator Agent 加载失败: {e}")
-            raise
+            logger.error(f"✗ Agent V{version} 加载失败: {e}")
+
+            # 如果 V2 加载失败且启用了自动回退
+            if version == "v2" and AGENT_AUTO_FALLBACK:
+                logger.info("尝试回退到 V1 Agent...")
+                try:
+                    from src.agents.orchestrator_agent import agent as orchestrator_agent_v1
+                    _agent = orchestrator_agent_v1
+                    _agent_version = "orchestrator_v1 (回退)"
+                    logger.info("✓ 回退到 V1 Agent 成功")
+                except Exception as fallback_error:
+                    logger.error(f"✗ V1 回退也失败: {fallback_error}")
+                    raise
+            else:
+                raise
 
     return _agent
 

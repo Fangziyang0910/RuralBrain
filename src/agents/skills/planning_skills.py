@@ -34,11 +34,47 @@ def create_consult_planning_skill(planning_tool: BaseTool) -> Skill:
 - **治理模式**：合作社模式、村企联建、党群共建等参考案例
 - **技术指导**：病虫害防治方案、种植养殖技术、农业技术支持
 
+## 可用工具（6 个 RAG 工具）
+你有 6 个工具可以查询知识库，根据场景选择：
+
+1. **list_documents**：列出所有可用文档
+   - 何时使用：任务开始时，了解有哪些资料
+   - 返回：文档名称、类型、切片数量、内容预览
+
+2. **get_document_overview**：获取文档概览（执行摘要 + 可选章节列表）
+   - 何时使用：快速了解文档核心内容，决定是否深入阅读
+   - 返回：200 字执行摘要 + 章节标题列表
+
+3. **search_key_points**：搜索关键要点（预先提取的核心信息）
+   - 何时使用：快速查找关键信息（比全文检索更精确）
+   - 返回：匹配的要点列表，包含来源文档
+
+4. **search_knowledge**：检索知识库（支持多种上下文模式）
+   - 何时使用：需要查找特定信息时（最常用）
+   - 参数：query（必需）、top_k（3-10）、context_mode（minimal/standard/expanded）
+   - 返回：匹配的文档片段列表
+
+5. **get_chapter_content**：获取章节内容（支持三级详情）
+   - 何时使用：了解特定章节内容时
+   - 参数：source（文档名）、chapter_pattern（章节关键词）、detail_level（summary/medium/full）
+   - 返回：根据 detail_level 返回不同详细程度的章节内容
+
+6. **get_document_full**：获取完整文档内容
+   - 何时使用：需要深度理解完整规划时
+   - 注意：文档可能很长（数万字），会消耗大量 Token，谨慎使用
+
+## 工具选择策略
+- **快速查询** → search_key_points 或 search_knowledge (minimal mode)
+- **了解文档** → get_document_overview → 决定是否需要深入阅读
+- **深入分析** → get_document_overview → get_chapter_content (medium/full) → search_knowledge
+- **完整理解** → get_document_full（谨慎使用，Token 消耗大）
+
 ## 工作流程
 1. **理解用户需求**：分析用户的问题类型（规划/政策/技术/治理）
-2. **检索相关知识**：使用 consult_planning_knowledge 工具查询知识库
-3. **综合分析**：整合多个来源的信息，形成全面分析
-4. **提供建议**：基于知识库内容，提供针对性的、可操作的建议
+2. **选择合适的工具**：根据问题复杂度选择最合适的工具
+3. **检索相关知识**：调用工具查询知识库
+4. **综合分析**：整合多个来源的信息，形成全面分析
+5. **提供建议**：基于知识库内容，提供针对性的、可操作的建议
 
 ## 输出格式
 - **核心建议**：2-3 条关键建议，简洁明确
@@ -88,7 +124,8 @@ def create_consult_planning_skill(planning_tool: BaseTool) -> Skill:
             "用户问'合作社如何成立？' → 调用 consult_planning_knowledge(query='合作社成立流程') → 提供成立条件、注册流程、治理结构等指导",
         ],
         constraints=[
-            "必须通过 consult_planning_knowledge 工具查询知识库，不能使用预训练知识",
+            "必须通过 RAG 工具（list_documents/get_document_overview/search_key_points/search_knowledge/get_chapter_content/get_document_full）查询知识库，不能使用预训练知识",
+            "根据问题复杂度选择最合适的工具，避免过度使用 get_document_full（Token 消耗大）",
             "提供的信息必须标注来源（文档名称、章节）",
             "知识库未涉及的内容必须明确说明'资料中未涉及'",
             "建议要具体可操作，避免空泛的描述",
