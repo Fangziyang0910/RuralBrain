@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 发送到后端
-    const response = await fetch('http://localhost:8081/upload', {
+    const response = await fetch('http://localhost:8080/upload', {
       method: 'POST',
       body: backendFormData,
     });

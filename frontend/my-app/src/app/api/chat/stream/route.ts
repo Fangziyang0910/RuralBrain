@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // 创建到后端的流式请求
-    const response = await fetch('http://localhost:8081/chat/stream', {
+    const response = await fetch('http://localhost:8080/chat/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
