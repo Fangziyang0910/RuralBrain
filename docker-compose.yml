@@ -31,7 +31,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile.backend
+      dockerfile: deploy/dev/Dockerfile.backend
     container_name: ruralbrain-backend
     ports:
       - "8080:8080"
