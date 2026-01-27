@@ -1,8 +1,6 @@
 # RuralBrain Docker Compose 配置
 # 包含前端、后端主服务以及所有检测算法服务
 
-version: '3.8'
-
 services:
   # 前端服务 (Next.js)
   frontend:
