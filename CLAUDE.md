@@ -171,6 +171,10 @@ uv run python scripts/dev/build_kb_auto.py
 - **当需要库/API 文档、代码生成、设置或配置步骤时，始终使用 context7 mcp**
 - 优先通过 context7 获取最新的官方文档和最佳实践
 
+### 7. 前端开发
+- **当涉及前端开发的时候，充分利用 playwright mcp 工具来进行错误排查和效果获取**
+- 使用 playwright 进行页面截图、控制台日志检查、元素交互验证等
+
 ## 模型配置
 
 项目支持多个大语言模型供应商，通过 `.env` 文件中的 `MODEL_PROVIDER` 切换：
