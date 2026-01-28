@@ -3,29 +3,25 @@ RuralBrain FastAPI 服务器
 提供图像检测对话接口和规划咨询接口
 """
 import sys
-from pathlib import Path
-
-# 添加项目根目录到 Python 路径，确保可以直接运行此文件
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-import os
 import json
+import os
 import uuid
 import logging
+from pathlib import Path
 from typing import AsyncGenerator
-from datetime import datetime
 
-# 加载环境变量（必须在所有其他导入之前）
+import httpx
 from dotenv import load_dotenv
-project_root = Path(__file__).parent.parent
-load_dotenv(project_root / ".env")
-
 from fastapi import FastAPI, File, UploadFile, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from langchain_core.messages import HumanMessage, AIMessageChunk
-import httpx
+from langchain_core.messages import HumanMessage
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+project_root = Path(__file__).parent.parent
+load_dotenv(project_root / ".env")
 
 from service.settings import (
     ALLOWED_ORIGINS,
@@ -35,21 +31,30 @@ from service.settings import (
     AGENT_VERSION,
     AGENT_AUTO_FALLBACK,
 )
-from service.schemas import ChatRequest, UploadResponse, ErrorResponse
+from service.schemas import ChatRequest, UploadResponse
 
-# --------应用初始化--------
-# 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 创建 FastAPI 应用实例
+# SSE 响应头常量
+SSE_HEADERS = {
+    "Cache-Control": "no-cache",
+    "X-Accel-Buffering": "no",
+}
+
+# 检测结果目录配置
+DETECTION_RESULT_DIRS = {
+    "pest": ("pest_detection_results", "pest_detection_*.jpg", "/pest_results"),
+    "cow": ("cow_detection_results", "cow_result_*.jpg", "/cow_results"),
+    "rice": ("rice_detection_results", "rice_detection_*.jpg", "/rice_results"),
+}
+
 app = FastAPI(
     title="RuralBrain API",
     description="乡村智慧大脑 - 图像检测对话服务",
     version="0.1.0",
 )
 
-# 配置 CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -58,25 +63,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --------挂载静态文件目录--------
-# 将服务器本地的文件目录映射为可通过 HTTP 访问的静态资源路径
-# 挂载上传文件目录
-app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
-# 挂载害虫检测结果目录
-pest_results_dir = Path("pest_detection_results")
-pest_results_dir.mkdir(exist_ok=True)
-app.mount("/pest_results", StaticFiles(directory=str(pest_results_dir)), name="pest_results")
+def mount_static_dirs():
+    """挂载所有静态文件目录"""
+    app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+    for name, (dir_path, _, mount_name) in DETECTION_RESULT_DIRS.items():
+        Path(dir_path).mkdir(parents=True, exist_ok=True)
+        app.mount(f"/{mount_name.strip('/')}", StaticFiles(directory=dir_path), name=name)
 
-# 挂载牛只检测结果目录
-cow_results_dir = Path("cow_detection_results")
-cow_results_dir.mkdir(exist_ok=True)
-app.mount("/cow_results", StaticFiles(directory=str(cow_results_dir)), name="cow_results")
 
-# 挂载大米检测结果目录
-rice_results_dir = Path("rice_detection_results")
-rice_results_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/rice_results", StaticFiles(directory=str(rice_results_dir)), name="rice_results")
+mount_static_dirs()
 
 # --------延迟加载机制--------
 # 延迟导入 agent，避免启动时加载模型，缩短启动时间
