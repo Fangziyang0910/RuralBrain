@@ -39,6 +39,9 @@ ENV PYTHONUNBUFFERED=1 \
 # 复制项目依赖配置文件
 COPY pyproject.toml uv.lock ./
 
+# 复制源代码
+COPY . .
+
 # 安装依赖（包含开发依赖，支持热重载）
 # 使用清华 PyPI 镜像源加速
 RUN uv sync --frozen --index-url https://pypi.tuna.tsinghua.edu.cn/simple/

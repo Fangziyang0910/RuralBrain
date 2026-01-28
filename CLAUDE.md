@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 核心能力
 - **智能规划咨询**：基于 RAG 知识库的乡村规划智能咨询服务
 - **AI 检测服务**：病虫害检测、大米品种识别、奶牛目标检测
+- **智能定价分析**：农产品定价因素分析和建议
 - **Agent 系统**：使用 LangGraph 编排的智能体工作流
 
 ## 常用命令
@@ -92,7 +93,8 @@ uv run python scripts/dev/build_kb_auto.py
 ### 目录结构
 
 - **[src/agents/](src/agents/)**：Agent 系统
-  - `planning_agent.py`：规划咨询智能体（基于 LangGraph）
+  - `orchestrator_agent_v2.py`：统一编排 Agent（基于 LangGraph Skills 架构）
+  - `tools/`：Agent 工具集（检测、定价等）
   - `skills/`：Skills 架构模块
   - `middleware/`：中间件
 
@@ -165,6 +167,14 @@ uv run python scripts/dev/build_kb_auto.py
 ### 5. 文件移动后的路径引用修复
 当移动文件到新位置时，必须同时检查并修复文件内部的路径引用。
 
+### 6. 库/API 文档查询
+- **当需要库/API 文档、代码生成、设置或配置步骤时，始终使用 context7 mcp**
+- 优先通过 context7 获取最新的官方文档和最佳实践
+
+### 7. 前端开发
+- **当涉及前端开发的时候，充分利用 playwright mcp 工具来进行错误排查和效果获取**
+- 使用 playwright 进行页面截图、控制台日志检查、元素交互验证等
+
 ## 模型配置
 
 项目支持多个大语言模型供应商，通过 `.env` 文件中的 `MODEL_PROVIDER` 切换：
@@ -175,6 +185,25 @@ uv run python scripts/dev/build_kb_auto.py
 模型配置定义在 [src/config.py](src/config.py)
 
 ## Agent 系统设计
+
+### 智能定价工具
+
+**定价工具**（[src/agents/tools/pricing_tool.py](src/agents/tools/pricing_tool.py)）为农产品定价提供结构化分析：
+
+**功能**：
+- 成本分析（基础成本、品质溢价空间）
+- 市场分析（供需状况、季节性、价格趋势）
+- 竞争分析（竞争对手价格区间）
+- 定价策略建议（溢价、成本导向、市场导向、竞争导向）
+
+**参数**：
+- `product_name`：产品名称
+- `product_category`：产品分类（粮食/蔬菜/水果/畜牧/水产）
+- `cost_price`：成本价格
+- `quality_grade`：品质等级（优等/一等/中等/三等）
+- `market_data`：可选的市场数据 JSON（供需、竞争、季节等）
+
+**返回**：结构化的定价因素分析报告
 
 ### Planning Agent 架构
 

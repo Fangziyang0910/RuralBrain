@@ -96,12 +96,9 @@ class SkillMiddleware(AgentMiddleware):
             "使用 load_skill 工具获取技能的详细信息、指导原则和示例。"
         )
 
-        # 附加到系统消息
-        new_content = list(request.system_message.content_blocks) + [
-            {"type": "text", "text": skills_addendum}
-        ]
-        new_system_message = SystemMessage(content=new_content)
-        modified_request = request.override(system_message=new_system_message)
+        # 附加到系统提示词
+        current_prompt = request.system_prompt or ""
+        modified_request = request.override(system_prompt=current_prompt + skills_addendum)
 
         return handler(modified_request)
 
@@ -121,12 +118,9 @@ class SkillMiddleware(AgentMiddleware):
             "使用 load_skill 工具获取技能的详细信息、指导原则和示例。"
         )
 
-        # 附加到系统消息
-        new_content = list(request.system_message.content_blocks) + [
-            {"type": "text", "text": skills_addendum}
-        ]
-        new_system_message = SystemMessage(content=new_content)
-        modified_request = request.override(system_message=new_system_message)
+        # 附加到系统提示词
+        current_prompt = request.system_prompt or ""
+        modified_request = request.override(system_prompt=current_prompt + skills_addendum)
 
         # 直接调用 handler（会自动处理同步/异步）
         result = handler(modified_request)
