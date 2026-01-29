@@ -72,18 +72,46 @@ def extract_knowledge_sources(tool_output: str) -> list[dict]:
 
 # ==================== 延迟加载 Agent ====================
 
-_agent = None
+# Agent 缓存字典（按 mode 缓存）
+_agent_cache = {}
 
 
-def get_agent():
-    """延迟加载 Planning Agent"""
-    global _agent
-    if _agent is None:
-        logger.info("正在加载 Planning Agent...")
-        from src.agents.planning_agent import agent as planning_agent
-        _agent = planning_agent
-        logger.info("Planning Agent 加载完成")
-    return _agent
+def get_agent(mode: str = "auto"):
+    """
+    获取 Planning Agent（支持模式配置，带缓存）
+
+    根据模式动态创建 Agent，使用缓存避免重复创建。
+
+    Args:
+        mode: 工作模式（fast/deep/auto）
+
+    Returns:
+        配置好的 Agent 实例
+    """
+    # 使用缓存避免重复创建
+    if mode not in _agent_cache:
+        logger.info(f"正在创建 {mode} 模式的 Planning Agent...")
+        from src.agents.planning_agent import (
+            tools,
+            llm,
+            memory,
+            build_system_prompt_with_mode
+        )
+        from langchain.agents import create_agent
+
+        # 根据模式动态创建 Agent
+        system_prompt = build_system_prompt_with_mode(mode)
+
+        _agent_cache[mode] = create_agent(
+            model=llm,
+            tools=tools,
+            checkpointer=memory,
+            system_prompt=system_prompt,
+        )
+
+        logger.info(f"{mode} 模式 Planning Agent 创建完成")
+
+    return _agent_cache[mode]
 
 
 # ==================== 核心端点 ====================
@@ -115,9 +143,10 @@ async def health_check():
 async def planning_chat(request: PlanningChatRequest):
     """规划咨询对话接口（流式）"""
     try:
-        agent = get_agent()
+        # 传入 mode 参数动态创建对应的 Agent
+        agent = get_agent(request.mode)
         thread_id = request.thread_id or str(uuid.uuid4())
-        config = {"configurable": {"thread_id": thread_id, "mode": request.mode}}
+        config = {"configurable": {"thread_id": thread_id}}
 
         logger.info(f"收到规划咨询请求 [thread_id={thread_id}, mode={request.mode}]: {request.message}")
 
@@ -148,6 +177,10 @@ async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, 
     start_time = time.time()
     tool_call_count = 0
 
+    # 流式输出缓冲
+    content_buffer = []
+    BUFFER_SIZE = 100  # 缓冲 100 字符后发送
+
     try:
         # 发送开始事件
         yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id, 'mode': request.mode}, ensure_ascii=False)}\n\n"
@@ -168,8 +201,13 @@ async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, 
             if kind == "on_chat_model_stream":
                 content = event["data"]["chunk"].content
                 if content:
-                    full_content += content
-                    yield f"data: {json.dumps({'type': 'content', 'content': content}, ensure_ascii=False)}\n\n"
+                    content_buffer.append(content)
+                    # 当缓冲达到大小时发送
+                    if len("".join(content_buffer)) >= BUFFER_SIZE:
+                        buffered_content = "".join(content_buffer)
+                        full_content += buffered_content
+                        yield f"data: {json.dumps({'type': 'content', 'content': buffered_content}, ensure_ascii=False)}\n\n"
+                        content_buffer = []
 
             elif kind == "on_tool_start":
                 tool_name = event["name"]
@@ -204,6 +242,12 @@ async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, 
         if knowledge_sources and not sources_sent:
             yield f"data: {json.dumps({'type': 'sources', 'sources': knowledge_sources}, ensure_ascii=False)}\n\n"
             sources_sent = True
+
+        # 发送剩余的缓冲内容
+        if content_buffer:
+            buffered_content = "".join(content_buffer)
+            full_content += buffered_content
+            yield f"data: {json.dumps({'type': 'content', 'content': buffered_content}, ensure_ascii=False)}\n\n"
 
         # 发送结束事件
         total_time = time.time() - start_time

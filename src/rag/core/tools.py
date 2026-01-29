@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from langchain_core.documents import Document
-from langchain_core.tools import Tool
+from langchain_core.tools import Tool, tool
 
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -97,7 +97,7 @@ def get_document_overview(source: str, include_chapters: bool = True) -> str:
         lines = [
             f"【文档概览】\n",
             f"来源: {result['source']}\n",
-            f"类型: {result['doc_type']}\n\n",
+            f"类型: {result.get('doc_type', '未知')}\n\n",
         ]
 
         if result.get("executive_summary"):
@@ -342,58 +342,62 @@ document_list_tool = Tool(
     description="列出知识库中所有可用的文档及其基本信息。在使用其他文档工具前，建议先使用此工具查看有哪些文档可用。",
 )
 
-document_overview_tool = Tool(
-    name="get_document_overview",
-    func=lambda p: get_document_overview(**p) if isinstance(p, dict) else get_document_overview(p),
-    description=(
-        "获取文档概览（执行摘要 + 可选章节列表）。"
-        "快速了解文档核心内容，包含 200 字执行摘要和可选的章节列表。\n\n"
-        "**参数（JSON 格式）：**\n"
-        '- source: 文档名称（文件名，必需）\n'
-        '- include_chapters: 是否包含章节列表（可选，默认 true）\n\n'
-        "**示例：**\n"
-        '- {"source": "罗浮-长宁山镇融合发展战略.pptx"}\n'
-        '- {"source": "plan.docx", "include_chapters": false}'
-    ),
-)
+# 使用 @tool 装饰器重新定义工具（修复参数传递问题）
+@tool
+def document_overview_tool(source: str, include_chapters: bool = True) -> str:
+    """
+    获取文档概览（执行摘要 + 可选章节列表）。
 
-chapter_content_tool = Tool(
-    name="get_chapter_content",
-    func=lambda p: get_chapter_content(**p) if isinstance(p, dict) else get_chapter_content(p, ""),
-    description=(
-        "获取章节内容（支持三级详情）。根据需求获取不同详细程度的章节内容，从摘要到完整内容。\n\n"
-        "**参数（JSON 格式）：**\n"
-        '- source: 文档名称（文件名，必需）\n'
-        '- chapter_pattern: 章节标题关键词（必需，支持部分匹配）\n'
-        '- detail_level: 详细程度（可选，默认 "medium"）\n'
-        '  * "summary": 仅摘要（100-200 字）\n'
-        '  * "medium": 摘要 + 关键要点（默认）\n'
-        '  * "full": 完整章节内容\n\n'
-        "**示例：**\n"
-        '- {"source": "plan.docx", "chapter_pattern": "第一章", "detail_level": "summary"}\n'
-        '- {"source": "plan.docx", "chapter_pattern": "产业", "detail_level": "medium"}\n'
-        '- {"source": "plan.docx", "chapter_pattern": "投资", "detail_level": "full"}'
-    ),
-)
+    快速了解文档核心内容，包含 200 字执行摘要和可选的章节列表。
 
-knowledge_search_tool = Tool(
-    name="search_knowledge",
-    func=lambda p: search_knowledge(**p) if isinstance(p, dict) else search_knowledge(p),
-    description=(
-        "检索知识库（支持多种上下文模式）。基于查询检索相关文档片段，支持不同详细程度的上下文。\n\n"
-        "**参数（JSON 格式）：**\n"
-        '- query: 查询问题或关键词（必需）\n'
-        '- top_k: 返回片段数（可选，默认 5，范围 3-10）\n'
-        '- context_mode: 上下文模式（可选，默认 "standard"）\n'
-        '  * "minimal": 仅匹配片段（最少 Token）\n'
-        '  * "standard": 片段 + 短上下文（300 字，默认）\n'
-        '  * "expanded": 片段 + 长上下文（500 字）\n\n'
-        "**示例：**\n"
-        '- {"query": "旅游发展目标"}\n'
-        '- {"query": "投资政策", "top_k": 3, "context_mode": "minimal"}\n'
-        '- {"query": "产业布局", "context_mode": "expanded"}'
-    ),
-)
+    Args:
+        source: 文档名称（文件名，必需）
+        include_chapters: 是否包含章节列表（可选，默认 true）
+
+    Returns:
+        执行摘要和可选的章节列表
+    """
+    return get_document_overview(source, include_chapters)
+
+@tool
+def chapter_content_tool(source: str, chapter_pattern: str, detail_level: str = "medium") -> str:
+    """
+    获取章节内容（支持三级详情）。
+
+    根据需求获取不同详细程度的章节内容，从摘要到完整内容。
+
+    Args:
+        source: 文档名称（文件名，必需）
+        chapter_pattern: 章节标题关键词（必需，支持部分匹配）
+        detail_level: 详细程度（可选，默认 "medium"）
+            - "summary": 仅摘要（100-200 字）
+            - "medium": 摘要 + 关键要点（默认）
+            - "full": 完整章节内容
+
+    Returns:
+        根据 detail_level 返回不同详细程度的章节内容
+    """
+    return get_chapter_content(source, chapter_pattern, detail_level)
+
+@tool
+def knowledge_search_tool(query: str, top_k: int = 5, context_mode: str = "standard") -> str:
+    """
+    检索知识库（支持多种上下文模式）。
+
+    基于查询检索相关文档片段，支持不同详细程度的上下文。
+
+    Args:
+        query: 查询问题或关键词（必需）
+        top_k: 返回片段数（可选，默认 5，范围 3-10）
+        context_mode: 上下文模式（可选，默认 "standard"）
+            - "minimal": 仅匹配片段（最少 Token）
+            - "standard": 片段 + 短上下文（300 字，默认）
+            - "expanded": 片段 + 长上下文（500 字）
+
+    Returns:
+        匹配的文档片段列表，包含来源、位置、内容
+    """
+    return search_knowledge(query, top_k, context_mode)
 
 key_points_search_tool = Tool(
     name="search_key_points",

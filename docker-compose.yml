@@ -107,6 +107,7 @@ services:
       - MODEL_PROVIDER=${MODEL_PROVIDER:-deepseek}
     volumes:
       - ./knowledge_base:/app/knowledge_base:ro
+      - ./src:/app/src:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
