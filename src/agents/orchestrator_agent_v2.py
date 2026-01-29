@@ -23,11 +23,12 @@ from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
 from ..utils import ModelManager
-from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool, pricing_tool
+from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool, pricing_tool, farm_inspection_tool
 from src.rag.core.tools import PLANNING_TOOLS
 from .skills.detection_skills import create_all_detection_skills
 from .skills.planning_skills import create_all_planning_skills
 from .skills.pricing_skills import create_all_pricing_skills
+from .skills.farm_inspection_skills import create_all_farm_inspection_skills
 from .skills.orchestration_skills import create_all_orchestration_skills
 from .skills.base import Skill
 from .middleware.skill_middleware import SkillMiddleware
@@ -61,16 +62,21 @@ pricing_skills = create_all_pricing_skills(
     pricing_tool=pricing_tool,
 )
 
+# 创建农场巡检技能
+farm_inspection_skills = create_all_farm_inspection_skills(
+    farm_inspection_tool=farm_inspection_tool,
+)
+
 # 创建编排技能
 orchestration_skills = create_all_orchestration_skills()
 
-# 合并所有技能（检测3 + 规划1 + 定价1 + 编排2 = 7）
-all_skills: List[Skill] = detection_skills + planning_skills + pricing_skills + orchestration_skills
+# 合并所有技能（检测3 + 规划1 + 定价1 + 巡检1 + 编排2 = 8）
+all_skills: List[Skill] = detection_skills + planning_skills + pricing_skills + farm_inspection_skills + orchestration_skills
 
 
 # ========== 工具收集 ==========
 
-# 收集所有工具（检测3 + 定价1 + RAG 6 = 10个工具）
+# 收集所有工具（检测3 + 定价1 + 巡检1 + RAG 6 = 11个工具）
 orchestrator_tools = [
     # 检测工具
     pest_detection_tool,
@@ -78,6 +84,8 @@ orchestrator_tools = [
     cow_detection_tool,
     # 定价工具
     pricing_tool,
+    # 巡检工具
+    farm_inspection_tool,
     # RAG 规划工具（所有 6 个）
     *PLANNING_TOOLS,
 ]
@@ -87,7 +95,7 @@ orchestrator_tools = [
 
 ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 你是 RuralBrain 乡村智慧大脑的统一智能助手，专注于农业和乡村发展。
-你拥有三大核心能力：图像检测、规划咨询和智能定价。
+你拥有四大核心能力：图像检测、规划咨询、智能定价和农场巡检。
 </role>
 
 <capabilities>
@@ -95,6 +103,7 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 - **检测能力**：病虫害检测、大米品种识别、牛只检测
 - **规划能力**：乡村发展规划、政策解读、技术指导
 - **定价能力**：农产品定价、市场分析、价格优化
+- **巡检能力**：农场数据收集、农田状况、养殖状态、设备监控
 - **编排能力**：意图识别、场景切换、上下文管理
 </capabilities>
 
@@ -103,12 +112,13 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 
 1. **理解用户意图**
    - 如果需要详细了解如何处理特定类型的请求，使用 load_skill 工具加载技能详细指导
-   - 可加载技能：pest_detection, rice_detection, cow_detection, consult_planning_knowledge, pricing_analysis, intent_recognition, scenario_switching
+   - 可加载技能：pest_detection, rice_detection, cow_detection, consult_planning_knowledge, pricing_analysis, farm_inspection, intent_recognition, scenario_switching
 
 2. **选择合适的工具**
    - **有图片** → 优先使用检测工具（pest_detection_tool/rice_detection_tool/cow_detection_tool）
    - **关键词"规划/发展/政策"** → 使用 RAG 工具（search_knowledge, search_key_points 等）
    - **关键词"定价/价格/多少钱"** → 使用定价工具（pricing_tool）
+   - **关键词"农场/农田/养殖/设备"** → 使用巡检工具（farm_inspection_tool）
    - **不确定** → 加载 intent_recognition 技能获取指导
 
 3. **多轮对话管理**
