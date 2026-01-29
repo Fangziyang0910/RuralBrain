@@ -41,8 +41,8 @@ SYSTEM_PROMPT_BASE = """
 
 **快速模式**（适合简单查询）：
 1. list_documents → 了解可用资料
-2. get_document_overview → 快速了解核心内容
-3. search_key_points → 精确查找关键信息
+2. search_knowledge → 检索相关信息（主要搜索工具）
+3. get_document_overview → 如需了解文档全貌
 
 **深度模式**（适合复杂决策）：
 1. list_documents → 了解可用资料
@@ -89,9 +89,9 @@ def build_tool_description_section(tools):
     tool_reference = {
         "list_documents": "查看可用文档",
         "get_document_overview": "获取文档摘要",
-        "search_key_points": "搜索关键要点",
+        "search_knowledge": "检索知识库（主要搜索工具）",
         "get_chapter_content": "获取章节内容",
-        "search_knowledge": "检索知识库",
+        "search_key_points": "搜索关键要点（仅在有要点数据时使用）",
         "get_document_full": "获取完整文档",
     }
 

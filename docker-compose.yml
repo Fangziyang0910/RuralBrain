@@ -44,6 +44,10 @@ services:
       - ./pest_results:/app/pest_results
       - ./cow_results:/app/cow_results
       - ./rice_results:/app/rice_results
+      - ./knowledge_base:/app/knowledge_base:ro
+      - ./src:/app/src:ro
+      - ./service:/app/service:ro
+      - ./run_server.py:/app/run_server.py:ro
     depends_on:
       - triple-detector
       - planning-service
@@ -106,7 +110,7 @@ services:
       - SERVICE_HOST=0.0.0.0
       - MODEL_PROVIDER=${MODEL_PROVIDER:-deepseek}
     volumes:
-      - ./knowledge_base:/app/knowledge_base:ro
+      - ./knowledge_base:/app/knowledge_base
       - ./src:/app/src:ro
     restart: unless-stopped
     healthcheck:
