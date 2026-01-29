@@ -135,32 +135,17 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 <workflow>
 ## 工作流程
 
-<<<<<<< HEAD
 1. **理解用户意图**
    - 如果需要详细了解如何处理特定类型的请求，使用 load_skill 工具加载技能详细指导
    - 可加载技能：pest_detection, rice_detection, cow_detection, consult_planning_knowledge, pricing_analysis, marketing_strategy, farm_inspection, intent_recognition, scenario_switching
 
 2. **选择合适的工具**
    - **有图片** → 优先使用检测工具（pest_detection_tool/rice_detection_tool/cow_detection_tool）
-   - **关键词"规划/发展/政策"** → 使用 RAG 工具（search_knowledge, search_key_points 等）
+   - **关键词"规划/发展/政策"** → 使用 RAG 工具（knowledge_search_tool 等）
    - **关键词"定价/价格/多少钱"** → 使用定价工具（pricing_tool）
    - **关键词"营销/推广/销售/客户/销量"** → 使用营销工具（marketing_tool）
    - **关键词"农场/农田/养殖/设备"** → 使用巡检工具（farm_inspection_tool）
    - **不确定** → 加载 intent_recognition 技能获取指导
-=======
-1. **用户发送消息**
-   - 静默分析用户意图
-   - 决定需要调用哪个工具
-   - **不要输出任何文字**
-
-2. **调用工具**
-   - **有图片** → 直接调用检测工具
-   - **规划/发展/政策/产业** → 直接调用 knowledge_search_tool
-   - **定价/价格** → 直接调用 pricing_tool
-   - **农场/农田/养殖** → 直接调用 farm_inspection_tool
-   - **不要输出任何文字**
->>>>>>> 2a87ef51620000babf19a68c87e486f45691247c
-
 3. **获得结果后**
    - 基于工具返回的结果，直接输出完整回答
    - 从"您好"或直接从答案内容开始

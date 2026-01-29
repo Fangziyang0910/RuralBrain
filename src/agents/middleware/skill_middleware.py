@@ -103,10 +103,6 @@ class SkillMiddleware(AgentMiddleware):
         ]
         new_system_message = SystemMessage(content=new_content)
 
-<<<<<<< HEAD
-=======
-        # 异步调用 handler
->>>>>>> 2a87ef51620000babf19a68c87e486f45691247c
         return await handler(request.override(system_message=new_system_message))
 
 
