@@ -399,34 +399,60 @@ def knowledge_search_tool(query: str, top_k: int = 5, context_mode: str = "stand
     """
     return search_knowledge(query, top_k, context_mode)
 
-key_points_search_tool = Tool(
-    name="search_key_points",
-    func=search_key_points,
-    description=(
-        "搜索关键要点（预先提取的核心信息）。在所有文档的关键要点中搜索关键词。\n\n"
-        "**参数（JSON 格式）：**\n"
-        '- query: 搜索关键词（必需）\n'
-        '- sources: 限制搜索的文档列表（可选，可以是字符串或列表）\n\n'
-        "**示例：**\n"
-        '- {"query": "旅游"}\n'
-        '- {"query": "目标", "sources": "plan.docx"}\n'
-        '- {"query": "投资", "sources": ["plan1.docx", "plan2.docx"]}'
-    ),
-)
+@tool
+def key_points_search_tool(query: str, sources: Optional[str] = None) -> str:
+    """
+    搜索关键要点（预先提取的核心信息）。
 
-full_document_tool = Tool(
-    name="get_document_full",
-    func=get_full_document,
-    description=(
-        "获取完整文档内容。获取文档的完整内容和元数据。\n\n"
-        "**参数：**\n"
-        '- source: 文档名称（文件名，必需）\n\n'
-        "**示例：**\n"
-        '- {"source": "罗浮-长宁山镇融合发展战略.pptx"}\n'
-        '- {"source": "plan.docx"}\n\n'
-        "**注意：** 文档可能很长（数万字），会消耗大量 Token。谨慎使用。"
-    ),
-)
+    在所有文档的关键要点中搜索关键词，比全文检索更精确。
+
+    Args:
+        query: 搜索关键词（必需）
+        sources: 限制搜索的文档列表（可选，可以是单个文档名或用逗号分隔的多个文档名）
+
+    Returns:
+        匹配的要点列表，包含来源文档和具体内容
+    """
+    # 处理 sources 参数：将逗号分隔的字符串转换为列表
+    sources_list = None
+    if sources:
+        sources_list = [s.strip() for s in sources.split(",") if s.strip()]
+
+    # 直接调用原始函数，传递解析后的参数
+    cm = get_context_manager()
+    result = cm.search_key_points(query, sources_list)
+
+    if result['total_matches'] == 0:
+        return f"⚠️  未找到包含 '{query}' 的要点"
+
+    lines = [
+        f"【关键要点搜索结果】",
+        f"查询: {result['query']}",
+        f"匹配数量: {result['total_matches']}\n"
+    ]
+
+    for match in result['matches']:
+        lines.append(f"📄 {match['source']}\n   {match['point']}\n")
+
+    return "\n".join(lines)
+
+@tool
+def full_document_tool(source: str) -> str:
+    """
+    获取完整文档内容。
+
+    获取文档的完整内容和元数据。
+
+    Args:
+        source: 文档名称（文件名，必需）
+
+    Returns:
+        完整文档内容和元数据（类型、切片数、内容长度等）
+
+    注意：
+        文档可能很长（数万字），会消耗大量 Token。谨慎使用，优先考虑 get_document_overview 或 get_chapter_content。
+    """
+    return get_full_document(source)
 
 
 # ==================== 工具列表 ====================

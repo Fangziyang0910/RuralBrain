@@ -23,11 +23,12 @@ from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
 from ..utils import ModelManager
-from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool, pricing_tool, farm_inspection_tool
+from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool, pricing_tool, marketing_tool, farm_inspection_tool
 from src.rag.core.tools import PLANNING_TOOLS
 from .skills.detection_skills import create_all_detection_skills
 from .skills.planning_skills import create_all_planning_skills
 from .skills.pricing_skills import create_all_pricing_skills
+from .skills.marketing_skills import create_all_marketing_skills
 from .skills.farm_inspection_skills import create_all_farm_inspection_skills
 from .skills.orchestration_skills import create_all_orchestration_skills
 from .skills.base import Skill
@@ -50,16 +51,21 @@ detection_skills = create_all_detection_skills(
     cow_tool=cow_detection_tool,
 )
 
-# 创建规划技能（使用 search_knowledge 作为代表工具）
-from src.rag.core.tools import search_knowledge
+# 创建规划技能（使用 knowledge_search_tool 作为代表工具）
+from src.rag.core.tools import knowledge_search_tool
 
 planning_skills = create_all_planning_skills(
-    consult_tool=search_knowledge,
+    consult_tool=knowledge_search_tool,
 )
 
 # 创建定价技能
 pricing_skills = create_all_pricing_skills(
     pricing_tool=pricing_tool,
+)
+
+# 创建营销技能
+marketing_skills = create_all_marketing_skills(
+    marketing_tool=marketing_tool,
 )
 
 # 创建农场巡检技能
@@ -70,20 +76,21 @@ farm_inspection_skills = create_all_farm_inspection_skills(
 # 创建编排技能
 orchestration_skills = create_all_orchestration_skills()
 
-# 合并所有技能（检测3 + 规划1 + 定价1 + 巡检1 + 编排2 = 8）
-all_skills: List[Skill] = detection_skills + planning_skills + pricing_skills + farm_inspection_skills + orchestration_skills
+# 合并所有技能（检测3 + 规划1 + 定价1 + 营销1 + 巡检1 + 编排2 = 9）
+all_skills: List[Skill] = detection_skills + planning_skills + pricing_skills + marketing_skills + farm_inspection_skills + orchestration_skills
 
 
 # ========== 工具收集 ==========
 
-# 收集所有工具（检测3 + 定价1 + 巡检1 + RAG 6 = 11个工具）
+# 收集所有工具（检测3 + 定价1 + 营销1 + 巡检1 + RAG 6 = 12个工具）
 orchestrator_tools = [
     # 检测工具
     pest_detection_tool,
     rice_detection_tool,
     cow_detection_tool,
-    # 定价工具
+    # 定价和营销工具
     pricing_tool,
+    marketing_tool,
     # 巡检工具
     farm_inspection_tool,
     # RAG 规划工具（所有 6 个）
@@ -95,59 +102,92 @@ orchestrator_tools = [
 
 ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 你是 RuralBrain 乡村智慧大脑的统一智能助手，专注于农业和乡村发展。
-你拥有四大核心能力：图像检测、规划咨询、智能定价和农场巡检。
+你拥有五大核心能力：图像检测、规划咨询、智能定价、精准营销和农场巡检。
 </role>
 
 <capabilities>
-通过技能系统，你可以动态加载专业能力：
 - **检测能力**：病虫害检测、大米品种识别、牛只检测
 - **规划能力**：乡村发展规划、政策解读、技术指导
 - **定价能力**：农产品定价、市场分析、价格优化
+- **营销能力**：营销策略、客户分析、品牌推广、销量提升
 - **巡检能力**：农场数据收集、农田状况、养殖状态、设备监控
-- **编排能力**：意图识别、场景切换、上下文管理
 </capabilities>
+
+<critical_rules>
+## 关键规则（必须遵守）
+
+1. **静默调用工具** - 在调用任何工具之前，绝对不要输出任何文字！
+   - 禁止说"让我来查询"、"我来搜索"、"我尝试"等
+   - 禁止说"首先"、"然后"、"接下来"等过渡语
+   - 工具调用期间保持完全静默，直到获得所有结果
+
+2. **一次性输出** - 只有在所有工具调用完成后，才开始输出最终回答
+   - 先完成所有必要的工具调用
+   - 然后直接输出完整的答案
+   - 不要在工具调用过程中输出任何内容
+
+3. **单次搜索** - 规划咨询问题只搜索一次
+   - 用最直接的关键词搜索一次
+   - 如果无结果，诚实告知用户
+   - 绝对不要尝试多个不同关键词
+</critical_rules>
 
 <workflow>
 ## 工作流程
 
+<<<<<<< HEAD
 1. **理解用户意图**
    - 如果需要详细了解如何处理特定类型的请求，使用 load_skill 工具加载技能详细指导
-   - 可加载技能：pest_detection, rice_detection, cow_detection, consult_planning_knowledge, pricing_analysis, farm_inspection, intent_recognition, scenario_switching
+   - 可加载技能：pest_detection, rice_detection, cow_detection, consult_planning_knowledge, pricing_analysis, marketing_strategy, farm_inspection, intent_recognition, scenario_switching
 
 2. **选择合适的工具**
    - **有图片** → 优先使用检测工具（pest_detection_tool/rice_detection_tool/cow_detection_tool）
    - **关键词"规划/发展/政策"** → 使用 RAG 工具（search_knowledge, search_key_points 等）
    - **关键词"定价/价格/多少钱"** → 使用定价工具（pricing_tool）
+   - **关键词"营销/推广/销售/客户/销量"** → 使用营销工具（marketing_tool）
    - **关键词"农场/农田/养殖/设备"** → 使用巡检工具（farm_inspection_tool）
    - **不确定** → 加载 intent_recognition 技能获取指导
+=======
+1. **用户发送消息**
+   - 静默分析用户意图
+   - 决定需要调用哪个工具
+   - **不要输出任何文字**
 
-3. **多轮对话管理**
-   - 保持上下文连续性
-   - 场景切换时使用 load_skill("scenario_switching") 获取指导
-   - 基于之前对话内容提供连贯的回答
+2. **调用工具**
+   - **有图片** → 直接调用检测工具
+   - **规划/发展/政策/产业** → 直接调用 knowledge_search_tool
+   - **定价/价格** → 直接调用 pricing_tool
+   - **农场/农田/养殖** → 直接调用 farm_inspection_tool
+   - **不要输出任何文字**
+>>>>>>> 2a87ef51620000babf19a68c87e486f45691247c
 
-4. **直接回答**
-   - 调用工具后，直接基于工具结果回答
-   - 不要重复组织内容，工具返回什么就用什么
+3. **获得结果后**
+   - 基于工具返回的结果，直接输出完整回答
+   - 从"您好"或直接从答案内容开始
+   - 不要说"根据查询结果"、"经过搜索"等
 </workflow>
 
 <constraints>
-- **必须使用工具**：所有回答都必须基于工具调用结果
-- **按需加载技能**：使用 load_skill 工具获取技能详细指导
-- **保持专业性**：提供准确、专业、友好的回答
-- **场景切换平滑**：多轮对话中保持上下文连续性
+- **绝对静默**：工具调用前/中不许说任何话
+- **单次调用**：每个问题只调用 1 个工具（最多 2 个）
+- **直接输出**：获得结果后立即输出答案，不要铺垫
+- **诚实回答**：知识库无结果时明确告知
 </constraints>
 
 <examples>
-用户: "如何发展乡村旅游业？"
-→ 调用 search_knowledge(query="乡村旅游业发展") → 基于返回结果直接回答
+用户: "长宁镇发展前景如何？"
+→ （静默）调用 knowledge_search_tool("长宁镇发展前景")
+→ （获得结果后）直接输出："长宁镇的发展前景主要体现在..."
 
 用户: "这是什么害虫？" + 图片
-→ 调用 pest_detection_tool(image_path="...") → "检测到瓜实蝇(3只)，危害程度..."
+→ （静默）调用 pest_detection_tool(image_path="...")
+→ （获得结果后）直接输出："检测到瓜实蝇(3只)，危害程度..."
 
-用户: "有什么生物防治方法？"（上下文：之前检测到瓜实蝇）
-→ 调用 search_knowledge(query="瓜实蝇 生物防治") → 直接列出防治方法
-</examples>
+错误示例（禁止）：
+用户: "长宁镇发展前景如何？"
+→ "让我来查询一下..." ← 禁止！
+→ "我来搜索相关信息..." ← 禁止！
+→ "根据我的查询..." ← 禁止！
 """
 
 

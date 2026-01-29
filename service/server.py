@@ -441,6 +441,9 @@ async def chat_stream(request: ChatRequest):
 
                 # 流式处理 agent 响应
                 full_content = ""
+                content_buffer = []
+                BUFFER_SIZE = 1  # 逐字输出，避免卡顿感
+
                 async for event in agent.astream_events(
                     {"messages": [HumanMessage(content=message_content)]},
                     config,
@@ -452,12 +455,17 @@ async def chat_stream(request: ChatRequest):
                     if kind == "on_chat_model_stream":
                         content = event["data"]["chunk"].content
                         if content:
-                            full_content += content
-                            event_data = {
-                                "type": "content",
-                                "content": content,
-                            }
-                            yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+                            content_buffer.append(content)
+                            # 当缓冲达到大小时发送
+                            if len("".join(content_buffer)) >= BUFFER_SIZE:
+                                buffered_content = "".join(content_buffer)
+                                full_content += buffered_content
+                                event_data = {
+                                    "type": "content",
+                                    "content": buffered_content,
+                                }
+                                yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+                                content_buffer = []
 
                     # 处理工具调用结束事件
                     elif kind == "on_tool_end":
@@ -500,6 +508,16 @@ async def chat_stream(request: ChatRequest):
                             "result_image": result_image,
                         }
                         yield f"data: {json.dumps(tool_event, ensure_ascii=False)}\n\n"
+
+                # 发送剩余的缓冲内容
+                if content_buffer:
+                    buffered_content = "".join(content_buffer)
+                    full_content += buffered_content
+                    event_data = {
+                        "type": "content",
+                        "content": buffered_content,
+                    }
+                    yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
 
                 # 发送完成事件
                 yield f"data: {json.dumps({'type': 'end', 'full_content': full_content}, ensure_ascii=False)}\n\n"
