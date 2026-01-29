@@ -72,7 +72,7 @@ class SkillMiddleware(AgentMiddleware):
         request: ModelRequest,
         handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelResponse:
-        """将技能描述注入到系统消息中"""
+        """将技能描述注入到系统消息中（同步版本）"""
         skills_addendum = (
             f"\n\n## 可用技能\n\n{self.skills_prompt}\n\n"
             "使用 load_skill 工具获取技能的详细信息。"
@@ -85,6 +85,26 @@ class SkillMiddleware(AgentMiddleware):
         new_system_message = SystemMessage(content=new_content)
 
         return handler(request.override(system_message=new_system_message))
+
+    async def awrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse],
+    ) -> ModelResponse:
+        """将技能描述注入到系统消息中（异步版本）"""
+        skills_addendum = (
+            f"\n\n## 可用技能\n\n{self.skills_prompt}\n\n"
+            "使用 load_skill 工具获取技能的详细信息。"
+        )
+
+        # 使用 content_blocks API（LangChain 1.0+）
+        new_content = list(request.system_message.content_blocks) + [
+            {"type": "text", "text": skills_addendum}
+        ]
+        new_system_message = SystemMessage(content=new_content)
+
+        # 异步调用 handler
+        return await handler(request.override(system_message=new_system_message))
 
 
 def register_skills(skills: List["Skill"]) -> None:

@@ -179,7 +179,7 @@ async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, 
 
     # 流式输出缓冲
     content_buffer = []
-    BUFFER_SIZE = 100  # 缓冲 100 字符后发送
+    BUFFER_SIZE = 1  # 逐字输出，避免卡顿感
 
     try:
         # 发送开始事件
