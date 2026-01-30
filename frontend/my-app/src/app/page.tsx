@@ -4,7 +4,8 @@
 import React, { useState, useCallback, useRef, useEffect, FormEvent } from "react";
 import { ChatMessageBubble, type Message } from "@/components/ChatMessageBubble";
 import { Button } from "@/components/ui/button";
-import { Upload, Send, X, Loader2 } from "lucide-react";
+import { ImagePreviewCard } from "@/components/ui/ImagePreviewCard";
+import { Upload, Send, Loader2 } from "lucide-react";
 
 const API_BASE = "/api";
 
@@ -20,6 +21,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -31,19 +33,33 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // 流式输出时持续滚动，非流式时只在消息数量变化时滚动
+  // 智能滚动：检测用户是否正在查看历史消息
+  const mainContainerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(messages.length);
+  const prevContentLengthRef = useRef(0);
 
   useEffect(() => {
     const hasStreamingMessage = messages.some(msg => msg.isStreaming);
+    const currentContentLength = messages.reduce((total, msg) => total + msg.content.length, 0);
+
+    // 计算当前是否接近底部（距离底部小于 150px）
+    const isNearBottom = () => {
+      const container = mainContainerRef.current;
+      if (!container) return true;
+      return container.scrollTop + container.clientHeight >= container.scrollHeight - 150;
+    };
 
     if (hasStreamingMessage) {
-      // 流式输出中，持续滚动
-      scrollToBottom();
+      // 流式输出时，只有内容长度增加且接近底部时才滚动
+      if (currentContentLength > prevContentLengthRef.current && isNearBottom()) {
+        scrollToBottom();
+        prevContentLengthRef.current = currentContentLength;
+      }
     } else if (messages.length !== prevMessageCountRef.current) {
-      // 消息数量变化时滚动
+      // 新消息到达时，总是滚动到底部
       scrollToBottom();
       prevMessageCountRef.current = messages.length;
+      prevContentLengthRef.current = currentContentLength;
     }
   }, [messages]); // 依赖项：当 messages 变化时执行
 
@@ -60,9 +76,12 @@ export default function Home() {
 
   // 选择图片处理
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // 用户选择图片
     const files = Array.from(e.target.files || []);
+    addImagesToState(files);
+  };
 
+  // 将图片添加到状态（提取为独立函数，供拖拽和粘贴使用）
+  const addImagesToState = (files: File[]) => {
     // 限制最多10张图片
     const MAX_IMAGES = 10;
     const totalImages = selectedImages.length + files.length;
@@ -72,24 +91,79 @@ export default function Home() {
       return;
     }
 
+    // 过滤只保留图片文件
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    if (imageFiles.length === 0) {
+      alert('请选择图片文件');
+      return;
+    }
+
     // 读取所有图片的预览
     const newPreviews: string[] = [];
     let loadedCount = 0;
 
     //使用 FileReader 读取图片数据
-    files.forEach((file) => {
+    imageFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
         newPreviews.push(reader.result as string);
         loadedCount++;
 
-        if (loadedCount === files.length) {
-          setSelectedImages(prev => [...prev, ...files]);
+        if (loadedCount === imageFiles.length) {
+          setSelectedImages(prev => [...prev, ...imageFiles]);
           setImagePreviews(prev => [...prev, ...newPreviews]);
         }
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  // 拖拽事件处理
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // 只在真正离开拖拽区域时才取消高亮
+    if (e.currentTarget === e.target) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    // 提取拖拽的文件
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      addImagesToState(files);
+    }
+  };
+
+  // 粘贴事件处理
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter(item =>
+      item.type.startsWith('image/')
+    );
+
+    if (imageItems.length > 0) {
+      e.preventDefault();
+      const files = imageItems.map(item => item.getAsFile()).filter(Boolean) as File[];
+      addImagesToState(files);
+    }
   };
 
   // 删除图片处理
@@ -340,12 +414,29 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-paddy-texture">
+    <div
+      className="flex flex-col h-screen dynamic-texture page-load-animate"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* 拖拽遮罩层 - 全屏显示 */}
+      {isDragging && (
+        <div className="drag-overlay">
+          <div className="drag-overlay-content">
+            <Upload className="w-12 h-12 mb-3 text-paddy-600" />
+            <p className="text-lg font-semibold text-stone-900">拖拽图片到任意位置</p>
+            <p className="text-sm text-stone-500 mt-2">松开鼠标即可上传 · 支持 JPG、PNG、GIF、WebP</p>
+          </div>
+        </div>
+      )}
+
       {/* 顶部标题栏 */}
-      <header className="border-b border-stone-200 glass">
+      <header className="border-b border-stone-200 glass-enhanced">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-paddy-500 to-paddy-600 flex items-center justify-center text-white shadow-md shadow-paddy-500/30">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-paddy-500 to-paddy-600 flex items-center justify-center text-white shadow-md">
               <span className="text-xl">🌾</span>
             </div>
             <div>
@@ -361,81 +452,60 @@ export default function Home() {
       </header>
 
       {/* 对话区域 */}
-      <main className="flex-1 overflow-y-auto">
+      <main ref={mainContainerRef} className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* 条件渲染，显示欢迎信息或聊天消息 */}
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full pt-16 animate-fade-in">
+            <div className="flex flex-col items-center justify-center h-full pt-16">
               {/* 主图标区域 */}
-              <div className="relative mb-8">
-                <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-paddy-400 via-paddy-500 to-paddy-600 flex items-center justify-center text-6xl shadow-xl shadow-paddy-500/30 animate-scale-in">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-paddy-400 to-paddy-500 flex items-center justify-center text-5xl shadow-lg">
                   🌾
-                </div>
-                {/* 装饰元素 */}
-                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gold-400/80 flex items-center justify-center text-sm animate-bounce-slow">
-                  ✨
-                </div>
-                <div className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-sky-400/60 flex items-center justify-center text-xs animate-pulse-slow">
-                  💡
                 </div>
               </div>
 
               {/* 欢迎文字 */}
-              <h2 className="text-2xl font-bold text-stone-900 mb-2 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+              <h2 className="text-2xl font-bold text-stone-900 mb-2">
                 你好！我是 RuralBrain
               </h2>
-              <p className="text-stone-600 mb-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <p className="text-stone-600 mb-8">
                 乡村智慧大脑，为你提供专业的智能服务
               </p>
 
-              {/* 功能卡片网格 */}
+              {/* 功能卡片网格 - 简约设计 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mb-8">
                 {/* 卡片 1 */}
-                <div className="group card p-5 hover-lift cursor-pointer animate-slide-up" style={{ animationDelay: '0.3s' }}>
-                  <div className="text-4xl mb-3">🖼️</div>
+                <div className="card p-5 cursor-pointer floating-card">
+                  <div className="text-3xl mb-3">🖼️</div>
                   <h3 className="font-semibold text-stone-900 mb-1">图像识别</h3>
                   <p className="text-sm text-stone-600">
                     病虫害、农作物、牛只智能检测
                   </p>
-                  <div className="mt-3 flex items-center gap-2 text-xs text-paddy-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span>上传图片开始</span>
-                    <span>→</span>
-                  </div>
                 </div>
 
                 {/* 卡片 2 */}
-                <div className="group card p-5 hover-lift cursor-pointer animate-slide-up" style={{ animationDelay: '0.4s' }}>
-                  <div className="text-4xl mb-3">🏘️</div>
+                <div className="card p-5 cursor-pointer floating-card">
+                  <div className="text-3xl mb-3">🏘️</div>
                   <h3 className="font-semibold text-stone-900 mb-1">规划咨询</h3>
                   <p className="text-sm text-stone-600">
                     旅游、产业、政策发展建议
                   </p>
-                  <div className="mt-3 flex items-center gap-2 text-xs text-paddy-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span>提问开始</span>
-                    <span>→</span>
-                  </div>
                 </div>
 
                 {/* 卡片 3 */}
-                <div className="group card p-5 hover-lift cursor-pointer animate-slide-up" style={{ animationDelay: '0.5s' }}>
-                  <div className="text-4xl mb-3">📊</div>
+                <div className="card p-5 cursor-pointer floating-card">
+                  <div className="text-3xl mb-3">📊</div>
                   <h3 className="font-semibold text-stone-900 mb-1">科学方案</h3>
                   <p className="text-sm text-stone-600">
                     防治方案和定价分析
                   </p>
-                  <div className="mt-3 flex items-center gap-2 text-xs text-paddy-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span>深入了解</span>
-                    <span>→</span>
-                  </div>
                 </div>
               </div>
 
               {/* 提示文字 */}
-              <div className="animate-slide-up" style={{ animationDelay: '0.6s' }}>
-                <p className="text-stone-500 text-sm">
-                  💡 上传图片或直接提问，我会自动判断如何帮助你
-                </p>
-              </div>
+              <p className="text-stone-500 text-sm">
+                💡 上传图片或直接提问，我会自动判断如何帮助你
+              </p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -450,33 +520,27 @@ export default function Home() {
       </main>
 
       {/* 输入区域 */}
-      <footer className="border-t border-stone-200 glass">
+      <footer className="border-t border-stone-200 bg-white/95 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             {/* 图片预览 */}
             {imagePreviews.length > 0 && (
               <div className="flex flex-wrap gap-3">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="image-preview-card">
-                    <img
-                      src={preview}
-                      alt={`预览 ${index + 1}`}
-                      className="h-24 w-24 object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute -top-2 -right-2 bg-stone-800 text-white rounded-full p-1.5 hover:bg-stone-700 transition-colors shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <ImagePreviewCard
+                    key={index}
+                    src={preview}
+                    alt={`预览 ${index + 1}`}
+                    index={index}
+                    total={imagePreviews.length}
+                    onRemove={() => handleRemoveImage(index)}
+                  />
                 ))}
                 {imagePreviews.length > 1 && (
                   <button
                     type="button"
                     onClick={handleRemoveAllImages}
-                    className="px-4 py-2 bg-stone-100 text-stone-700 text-sm rounded-xl hover:bg-stone-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-500"
+                    className="px-5 py-2.5 bg-white text-stone-700 text-sm rounded-full hover:bg-red-50 hover:text-red-600 transition-all border-2 border-stone-200 hover:border-red-300 shadow-sm hover:shadow-md"
                   >
                     清除全部
                   </button>
@@ -485,8 +549,8 @@ export default function Home() {
             )}
 
             {/* 输入框和按钮 */}
-            <div className="flex items-end gap-3">
-              {/* 上传按钮 - 始终可用 */}
+            <div className="input-container">
+              {/* 上传按钮 */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -501,7 +565,7 @@ export default function Home() {
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={loading}
-                className="btn btn-secondary flex-none"
+                className="flex-none"
               >
                 <Upload className="w-5 h-5" />
               </Button>
@@ -512,9 +576,10 @@ export default function Home() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="输入消息... (Shift+Enter 换行)"
+                onPaste={handlePaste}
+                placeholder="输入消息... (Shift+Enter 换行，Ctrl+V 粘贴图片，拖拽图片到任意位置)"
                 disabled={loading}
-                className="input flex-1 resize-none"
+                className="input-enhanced flex-1 resize-none border-0 bg-transparent shadow-none focus:ring-0 focus:shadow-none"
                 rows={1}
               />
 
@@ -535,7 +600,7 @@ export default function Home() {
 
             {/* 提示文字 */}
             <p className="text-xs text-stone-500 text-center">
-              Enter 发送 · Shift+Enter 换行 · 支持上传图片进行检测
+              Enter 发送 · Shift+Enter 换行 · Ctrl+V 粘贴图片 · 拖拽图片到任意位置
             </p>
           </form>
         </div>

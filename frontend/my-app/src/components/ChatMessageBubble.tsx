@@ -8,6 +8,8 @@ import remarkGfm from "remark-gfm";
 import { ChevronUp, ChevronDown, FileText, BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { LoadingDots } from "./ui/LoadingDots";
+import { MessageImageGallery } from "./ui/MessageImageGallery";
+import { ToolResultImage } from "./ui/ToolResultImage";
 
 interface ToolCall {
   name: string;
@@ -84,12 +86,12 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           className={cn(
             "message-bubble",
             isUser
-              ? "message-user"
-              : "message-ai"
+              ? "message-user-enhanced"
+              : "message-ai-enhanced"
           )}
         >
           {isUser ? (
-            <p className="text-base leading-relaxed font-medium whitespace-normal">
+            <p className="text-base leading-relaxed font-medium">
               {message.content}
             </p>
           ) : (
@@ -136,26 +138,16 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
         {isUser && (message.images || message.image) && (
           <div className="mt-1.5">
             {message.images && message.images.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-md">
-                {message.images.map((img, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={img}
-                      alt={`上传的图片 ${index + 1}`}
-                      className="rounded-xl border-2 border-stone-200 w-full h-32 object-cover hover:scale-105 transition-transform shadow-sm"
-                    />
-                    <div className="absolute top-1.5 right-1.5 bg-stone-900/70 text-white text-xs px-2 py-0.5 rounded-lg backdrop-blur-sm">
-                      {index + 1}/{message.images?.length ?? 0}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <MessageImageGallery images={message.images} alt={message.content} />
             ) : (
-              <img
-                src={message.image}
-                alt="上传的图片"
-                className="rounded-xl border-2 border-stone-200 w-auto h-auto max-w-xs shadow-sm"
-              />
+              <div className="relative group inline-block">
+                <div className="absolute -inset-1 bg-gradient-to-br from-gold-400/30 via-paddy-500/20 to-gold-600/30 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-xl" />
+                <img
+                  src={message.image}
+                  alt="上传的图片"
+                  className="relative w-auto h-auto max-w-xs rounded-3xl shadow-2xl shadow-gold-500/20 group-hover:shadow-paddy-500/30 transition-all duration-500 group-hover:scale-[1.02]"
+                />
+              </div>
             )}
           </div>
         )}
@@ -183,7 +175,7 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
   const displayName = toolNameMap[toolCall.name] || toolCall.name;
 
   return (
-    <div className="tool-card">
+    <div className="tool-card-enhanced">
       <div
         className="flex items-center justify-between cursor-pointer group"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -212,16 +204,11 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
         <div className="mt-4 pt-4 border-t border-stone-100 space-y-3 animate-fade-in">
           {/* 检测结果图片 */}
           {toolCall.resultImage && (
-            <div>
-              <div className="text-xs font-semibold text-stone-600 mb-2 uppercase tracking-wide">
-                检测结果
-              </div>
-              <img
-                src={toolCall.resultImage}
-                alt="工具检测结果"
-                className="rounded-xl border border-stone-200 w-auto h-auto max-w-md shadow-sm hover:shadow-md transition-shadow"
-              />
-            </div>
+            <ToolResultImage
+              src={toolCall.resultImage}
+              alt="工具检测结果"
+              toolName={displayName}
+            />
           )}
 
           {/* 工具调用摘要 */}
@@ -250,7 +237,7 @@ function KnowledgeSourceDisplay({ sources }: { sources: KnowledgeSource[] }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="knowledge-card">
+    <div className="knowledge-card-enhanced">
       <div
         className="flex items-center justify-between cursor-pointer group"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -274,7 +261,7 @@ function KnowledgeSourceDisplay({ sources }: { sources: KnowledgeSource[] }) {
       {isExpanded && (
         <div className="mt-4 pt-4 border-t border-sky-100 space-y-3 animate-fade-in">
           {sources.map((source, idx) => (
-            <div key={idx} className="bg-white rounded-xl p-4 border border-sky-100 shadow-sm hover:shadow-md transition-shadow">
+            <div key={idx} className="knowledge-item-enhanced">
               <div className="flex items-start gap-3 mb-2">
                 <FileText className="w-4 h-4 text-sky-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
