@@ -4,6 +4,8 @@ const backendBase = process.env.BACKEND_URL ?? 'http://backend:8080';
 const nextConfig = {
   // 开启 React 严格模式
   reactStrictMode: true,
+  // standalone 模式用于生产环境 Docker 部署
+  // 开发环境 (npm run dev) 不受此配置影响
   output: 'standalone',
   async rewrites() {
     return [

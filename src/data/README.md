@@ -183,8 +183,8 @@ pandoc input.docx -o output.md
 
 **方法 1: 使用 pdf2md**
 ```bash
-pip install pdf2md
-pdf2md input.pdf > output.md
+uv add pdf2md
+uv run pdf2md input.pdf > output.md
 ```
 
 **方法 2: 使用在线工具**

@@ -58,10 +58,10 @@ check_process() {
 
 # 检查各个服务
 check_service "前端服务" 3000 "http://localhost:3000"
-check_service "病虫害检测服务" 8000 "http://localhost:8000/docs"
-check_service "大米识别服务" 8001 "http://localhost:8001/docs"
+check_service "病虫害检测服务" 8001 "http://localhost:8001/docs"
+check_service "大米识别服务" 8081 "http://localhost:8081/docs"
 check_service "奶牛检测服务" 8002 "http://localhost:8002/docs"
-check_service "后端主服务" 8081 "http://localhost:8081/docs"
+check_service "后端主服务" 8080 "http://localhost:8080/docs"
 
 # Python 进程汇总
 echo -e "${BLUE}----------------------------------------${NC}"
@@ -78,7 +78,7 @@ echo -e "${BLUE}----------------------------------------${NC}"
 echo -e "${BLUE}端口占用情况${NC}"
 echo -e "${BLUE}----------------------------------------${NC}"
 
-for PORT in 3000 8000 8001 8002 8081; do
+for PORT in 3000 8001 8081 8002 8080; do
     if lsof -ti :$PORT &>/dev/null || netstat -tlnp 2>/dev/null | grep -q ":$PORT "; then
         PID=$(lsof -ti :$PORT 2>/dev/null || netstat -tlnp 2>/dev/null | grep ":$PORT " | awk '{print $7}' | cut -d'/' -f1)
         CMD=$(ps -p $PID -o comm= 2>/dev/null || echo "unknown")
@@ -96,7 +96,7 @@ echo -e "${BLUE}----------------------------------------${NC}"
 
 # 统计运行服务数量
 RUNNING_COUNT=0
-for PORT in 3000 8000 8001 8002 8081; do
+for PORT in 3000 8001 8081 8002 8080; do
     if lsof -ti :$PORT &>/dev/null || netstat -tlnp 2>/dev/null | grep -q ":$PORT "; then
         ((RUNNING_COUNT++))
     fi

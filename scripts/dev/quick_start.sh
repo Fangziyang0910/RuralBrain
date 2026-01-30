@@ -29,7 +29,7 @@ else
     PYTHON_CMD="uv run python"
 fi
 
-echo -e "${BLUE}启动后端主服务 (端口 8081)...${NC}"
+echo -e "${BLUE}启动后端主服务 (端口 8080)...${NC}"
 $PYTHON_CMD service/server.py > logs/backend.log 2>&1 &
 BACKEND_PID=$!
 
@@ -38,12 +38,12 @@ echo ""
 
 sleep 2
 
-if curl -s http://localhost:8081/docs > /dev/null 2>&1; then
+if curl -s http://localhost:8080/docs > /dev/null 2>&1; then
     echo -e "${GREEN}✓ 后端服务就绪${NC}"
     echo ""
     echo -e "${BLUE}访问地址:${NC}"
-    echo -e "  • API 文档: ${GREEN}http://localhost:8081/docs${NC}"
-    echo -e "  • 后端服务: ${GREEN}http://localhost:8081${NC}"
+    echo -e "  • API 文档: ${GREEN}http://localhost:8080/docs${NC}"
+    echo -e "  • 后端服务: ${GREEN}http://localhost:8080${NC}"
     echo ""
     echo -e "${YELLOW}提示:${NC}"
     echo -e "  • 查看日志: tail -f logs/backend.log"

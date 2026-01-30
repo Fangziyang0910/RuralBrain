@@ -1,8 +1,8 @@
 services:
   rice-detector:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../../../..
+      dockerfile: src/algorithms/rice_detection/detector/Dockerfile
     container_name: rice-detector-api
     ports:
       - "8081:8081"

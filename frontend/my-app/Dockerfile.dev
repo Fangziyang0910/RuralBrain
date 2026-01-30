@@ -1,7 +1,6 @@
 # RuralBrain Frontend Development Dockerfile
 # 开发环境镜像 - 支持热重载
-# 使用国内镜像源
-FROM docker.1ms.run/library/node:20-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 

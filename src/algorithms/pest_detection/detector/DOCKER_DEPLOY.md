@@ -26,7 +26,7 @@ insect_detector/
 │   └── classes.txt        # 类别名称文件 (必需)
 ├── Dockerfile             # Docker 构建文件
 ├── docker-compose.yml     # Docker Compose 配置
-├── requirements.txt       # Python 依赖
+├── pyproject.toml/uv.lock # Python 依赖（统一管理）
 ├── run.py                 # 启动脚本
 └── .dockerignore          # Docker 忽略文件
 ```

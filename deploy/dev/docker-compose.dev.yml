@@ -8,7 +8,8 @@ services:
     build:
       context: ../../frontend/my-app
       dockerfile: Dockerfile.dev
-    container_name: ruralbrain-frontend-dev
+    image: ruralbrain-frontend
+    container_name: ruralbrain-frontend
     ports:
       - "3000:3000"
     environment:
@@ -17,23 +18,24 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
     volumes:
       - ../../frontend/my-app/src:/app/src
-      - ../../frontend/my-app/app:/app/app
       - ../../frontend/my-app/public:/app/public
       - ../../frontend/my-app/package.json:/app/package.json
       - ../../frontend/my-app/next.config.mjs:/app/next.config.mjs
+      - ../../frontend/my-app/tsconfig.json:/app/tsconfig.json
       - /app/node_modules      # 容器内依赖，不挂载
       - /app/.next             # 构建缓存，不挂载
     command: ["npm", "run", "dev"]
     restart: unless-stopped
     networks:
-      - ruralbrain-dev-network
+      - ruralbrain-network
 
   # 后端主服务
   backend:
     build:
       context: ../../
       dockerfile: deploy/dev/Dockerfile.backend
-    container_name: ruralbrain-backend-dev
+    image: ruralbrain-backend
+    container_name: ruralbrain-backend
     ports:
       - "8080:8080"
     env_file:
@@ -59,14 +61,15 @@ services:
       - planning-service
     restart: unless-stopped
     networks:
-      - ruralbrain-dev-network
+      - ruralbrain-network
 
   # 三合一检测服务（开发模式）
   triple-detector:
     build:
       context: ../../
       dockerfile: deploy/dev/Dockerfile.detector
-    container_name: triple-detector-dev
+    image: ruralbrain-triple-detector
+    container_name: triple-detector
     ports:
       - "8001:8001"
       - "8081:8081"
@@ -85,14 +88,15 @@ services:
     command: ["bash", "/app/start_all_dev.sh"]
     restart: unless-stopped
     networks:
-      - ruralbrain-dev-network
+      - ruralbrain-network
 
   # 规划咨询服务（开发模式）
   planning-service:
     build:
       context: ../../
       dockerfile: deploy/dev/Dockerfile.planning
-    container_name: planning-service-dev
+    image: ruralbrain-planning-service
+    container_name: planning-service
     ports:
       - "8003:8003"
     env_file:
@@ -112,9 +116,9 @@ services:
     command: ["uv", "run", "uvicorn", "src.rag.service.main:app", "--host", "0.0.0.0", "--port", "8003", "--reload"]
     restart: unless-stopped
     networks:
-      - ruralbrain-dev-network
+      - ruralbrain-network
 
 networks:
-  ruralbrain-dev-network:
+  ruralbrain-network:
     driver: bridge
-    name: ruralbrain-dev-network
+    name: ruralbrain-network

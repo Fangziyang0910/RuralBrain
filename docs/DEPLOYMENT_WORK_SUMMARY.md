@@ -73,7 +73,7 @@ src/algorithms/triple_detector/
 ├── start_all.sh         # 生产环境启动脚本
 ├── start_all_dev.sh     # 开发环境启动脚本（含 --reload）
 ├── Dockerfile           # 三合一镜像构建文件
-└── requirements.txt     # Python 依赖
+└── pyproject.toml/uv.lock  # Python 依赖（统一管理）
 ```
 
 ### 3.3 启动脚本
@@ -122,7 +122,7 @@ src/algorithms/triple_detector/
 ├── start_all.sh
 ├── start_all_dev.sh
 ├── Dockerfile
-└── requirements.txt
+└── pyproject.toml/uv.lock
 ```
 
 ---

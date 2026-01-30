@@ -60,20 +60,17 @@ docker-compose logs -f
 # 从项目根目录
 cd D:\sourse code\RuralBrain
 
-# 激活虚拟环境
-.venv\Scripts\activate
-
 # 安装依赖（如未安装）
-uv pip install -e .
+uv sync
 
 # 启动服务
-python -m src.algorithms.pest_detection.detector.start_service
+uv run python -m src.algorithms.pest_detection.detector.start_service
 ```
 
 **或直接运行：**
 ```bash
 cd src/algorithms/pest_detection/detector
-python start_service.py
+uv run python start_service.py
 ```
 
 ### 访问服务

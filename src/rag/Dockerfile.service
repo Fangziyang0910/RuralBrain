@@ -19,20 +19,10 @@ RUN apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制项目依赖文件
-COPY pyproject.toml .
-
-# 安装 Python 依赖（只安装 RAG 和 API 相关依赖）
-# 分步安装以提高稳定性，使用重试机制
-RUN pip install --no-cache-dir --upgrade pip --retries 5 --timeout 120 && \
-    pip install --no-cache-dir --retries 5 --timeout 120 \
-    fastapi uvicorn pydantic pydantic-settings python-multipart python-dotenv && \
-    pip install --no-cache-dir --retries 5 --timeout 180 \
-    langchain langchain-deepseek langchain-zhipuai langgraph langsmith \
-    langchain-chroma langchain-huggingface langchain-text-splitters && \
-    pip install --no-cache-dir --retries 5 --timeout 180 \
-    chromadb sentence-transformers python-pptx pypdf python-docx \
-    filetype requests rich
+# 复制 uv 并安装依赖（统一使用 pyproject.toml/uv.lock）
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
 # 复制应用代码
 COPY src/ ./src/
@@ -51,4 +41,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8003/health || exit 1
 
 # 启动命令
-CMD ["python", "-m", "uvicorn", "src.rag.service.main:app", "--host", "0.0.0.0", "--port", "8003"]
+CMD ["uv", "run", "uvicorn", "src.rag.service.main:app", "--host", "0.0.0.0", "--port", "8003"]

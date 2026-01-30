@@ -1,8 +1,8 @@
 services:
   insect-detector:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../../../..
+      dockerfile: src/algorithms/pest_detection/detector/Dockerfile
     container_name: insect-detector-api
     ports:
       - "8001:8001"

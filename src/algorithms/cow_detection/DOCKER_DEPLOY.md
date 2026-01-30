@@ -30,7 +30,7 @@ cow_detection/
 │   └── best.pt            # YOLOv8 模型文件 (可选)
 ├── Dockerfile             # Docker 构建文件
 ├── docker-compose.yml     # Docker Compose 配置
-├── requirements.txt       # Python 依赖
+├── pyproject.toml/uv.lock # Python 依赖（统一管理）
 ├── run.py                 # 启动脚本
 ├── .dockerignore          # Docker 忽略文件
 └── README.md              # 项目说明文档

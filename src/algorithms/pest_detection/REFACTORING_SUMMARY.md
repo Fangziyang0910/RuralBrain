@@ -147,7 +147,7 @@ python -c "from src.algorithms.pest_detection.detector.app.core.config import se
 | 目录层级 | new/insect_detector | detector |
 | 导入方式 | 相对导入 | 绝对导入 |
 | 路径配置 | 相对路径（依赖工作目录） | 绝对路径（独立） |
-| 依赖管理 | 独立 requirements.txt | 整合到 pyproject.toml |
+| 依赖管理 | 独立 requirements.txt | 整合到 pyproject.toml/uv.lock |
 | 启动方式 | 仅支持本地 | 支持模块化启动 |
 | .env 兼容 | 不兼容主项目 | 完全兼容 |
 

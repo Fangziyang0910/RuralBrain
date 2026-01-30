@@ -1,8 +1,8 @@
 services:
   cow-detector:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../../../..
+      dockerfile: src/algorithms/cow_detection/detector/Dockerfile
     container_name: cow-detector-api
     ports:
       - "8002:8002"

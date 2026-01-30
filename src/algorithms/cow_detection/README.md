@@ -40,7 +40,7 @@ cow_detection/
 ## 安装依赖
 
 ```bash
-pip install -r requirements.txt
+uv sync
 ```
 
 主要依赖包括：
@@ -67,7 +67,7 @@ pip install -r requirements.txt
 
 ```bash
 # 默认配置启动
-python start_service.py
+uv run python start_service.py
 
 # 指定主机和端口
 python start_service.py --host 0.0.0.0 --port 8002

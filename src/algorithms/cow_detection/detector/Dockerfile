@@ -22,20 +22,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制requirements文件
-COPY requirements.txt .
-
-# 安装Python依赖（分步安装以提高稳定性）
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir fastapi uvicorn pydantic pydantic-settings python-multipart && \
-    pip install --no-cache-dir numpy opencv-python-headless && \
-    pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir ultralytics
+# 安装 uv 并使用项目依赖
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
 # 复制应用代码
-COPY app/ ./app/
-COPY models/ ./models/
-COPY run.py .
+COPY src/algorithms/cow_detection/detector/app/ ./app/
+COPY src/algorithms/cow_detection/detector/models/ ./models/
+COPY src/algorithms/cow_detection/detector/run.py .
 
 # 创建非root用户
 RUN useradd --create-home --shell /bin/bash appuser && \
@@ -50,4 +45,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8002/health || exit 1
 
 # 启动命令
-CMD ["python", "run.py"]
+CMD ["uv", "run", "python", "run.py"]

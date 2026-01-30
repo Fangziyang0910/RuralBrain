@@ -296,10 +296,8 @@ allow_headers=["*"]
 
 ### 本地开发
 1. 克隆项目
-2. 创建虚拟环境: `python -m venv venv`
-3. 激活虚拟环境
-4. 安装依赖: `pip install -r requirements.txt`
-5. 运行服务: `python run.py`
+2. 安装依赖: `uv sync`
+3. 运行服务: `uv run python run.py`
 
 ### 添加新服务
 1. 在 `src/algorithms/` 目录下创建新服务目录

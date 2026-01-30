@@ -15,10 +15,10 @@
 ### 方法2：手动部署
 ```bash
 # 安装依赖
-pip install -r requirements.txt
+uv sync
 
 # 启动服务
-python run.py
+uv run python run.py
 ```
 
 ## 🌐 访问地址
@@ -43,7 +43,7 @@ insect_detector/
 │   ├── 本地部署.bat       # 一键部署脚本
 │   └── ...               # 完整应用副本
 ├── output_images/         # 输出图像目录
-├── requirements.txt       # Python依赖
+├── pyproject.toml/uv.lock # Python依赖（统一管理）
 └── run.py                # 启动脚本
 ```
 

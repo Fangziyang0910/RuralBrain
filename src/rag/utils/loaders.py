@@ -236,7 +236,7 @@ class DOCLoader(BaseDocumentLoader):
         try:
             import olefile
         except ImportError:
-            raise Exception("olefile 未安装，请运行: pip install olefile")
+            raise Exception("olefile 未安装，请运行: uv add olefile")
 
         ole = olefile.OleFileIO(self.file_path)
 
@@ -310,7 +310,7 @@ class DOCXLoader(BaseDocumentLoader):
         print(f"📝 正在读取 Word 文档（DOCX 格式）: {self.file_path} ...")
 
         if DocxDocument is None:
-            raise Exception("python-docx 未安装，请运行: pip install python-docx")
+            raise Exception("python-docx 未安装，请运行: uv add python-docx")
 
         try:
             doc = DocxDocument(str(self.file_path))
@@ -402,7 +402,7 @@ class PDFLoader(BaseDocumentLoader):
         print(f"📄 正在读取 PDF: {self.file_path} ...")
 
         if PdfReader is None:
-            raise Exception("pypdf 未安装，请运行: pip install pypdf")
+            raise Exception("pypdf 未安装，请运行: uv add pypdf")
 
         try:
             reader = PdfReader(str(self.file_path))
@@ -446,7 +446,7 @@ class PPTXLoader(BaseDocumentLoader):
         print(f"📂 正在读取 PPT: {self.file_path} ...")
 
         if Presentation is None:
-            raise Exception("python-pptx 未安装，请运行: pip install python-pptx")
+            raise Exception("python-pptx 未安装，请运行: uv add python-pptx")
 
         prs = Presentation(str(self.file_path))
         documents = []
