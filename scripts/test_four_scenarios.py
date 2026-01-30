@@ -127,7 +127,7 @@ class ScenarioTester:
         await asyncio.sleep(3)
 
         # 场景2：纯图像 - 病虫害识别
-        pest_image = Path("frontend/my-app/public/demo/pest-input.jpg")
+        pest_image = Path("frontend/public/demo/pest-input.jpg")
         if pest_image.exists():
             success, _ = await self.test_single_message(
                 "场景2：纯图像 - 病虫害识别",

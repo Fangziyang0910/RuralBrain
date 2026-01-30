@@ -77,7 +77,7 @@ def check_nodejs() -> str:
 
 def get_frontend_dir() -> Path:
     """获取前端目录路径"""
-    frontend_dir = Path(__file__).parent / "frontend" / "my-app"
+    frontend_dir = Path(__file__).parent / "frontend"
 
     if not frontend_dir.exists():
         print_error("前端目录不存在")

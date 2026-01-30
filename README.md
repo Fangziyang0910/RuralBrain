@@ -114,7 +114,7 @@ cp .env.example .env
 uv run python run_server.py
 
 # 在另一个终端启动前端服务
-cd frontend/my-app
+cd frontend
 npm install
 npm run dev
 ```

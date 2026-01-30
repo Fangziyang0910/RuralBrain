@@ -140,7 +140,7 @@ if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     echo ""
     echo -e "${BLUE}启动前端服务 (端口 3000)...${NC}"
 
-    cd "$PROJECT_ROOT/frontend/my-app"
+    cd "$PROJECT_ROOT/frontend"
 
     # 检查 node_modules
     if [ ! -d "node_modules" ]; then
@@ -162,7 +162,7 @@ if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     fi
 else
     echo -e "${YELLOW}跳过前端服务启动${NC}"
-    echo -e "${YELLOW}手动启动命令: cd frontend/my-app && npm run dev${NC}"
+    echo -e "${YELLOW}手动启动命令: cd frontend && npm run dev${NC}"
 fi
 
 # ========================================

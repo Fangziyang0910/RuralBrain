@@ -47,7 +47,7 @@ if curl -s http://localhost:8080/docs > /dev/null 2>&1; then
     echo ""
     echo -e "${YELLOW}提示:${NC}"
     echo -e "  • 查看日志: tail -f logs/backend.log"
-    echo -e "  • 启动前端: cd frontend/my-app && npm run dev"
+    echo -e "  • 启动前端: cd frontend && npm run dev"
     echo -e "  • 启动所有服务: bash scripts/dev/start_all_services.sh"
     echo ""
 else

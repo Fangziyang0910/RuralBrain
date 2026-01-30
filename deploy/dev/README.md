@@ -64,7 +64,7 @@ docker-compose -f docker-compose.dev.yml down
 
 | 服务 | 热重载方式 | 监听路径 |
 |------|-----------|---------|
-| 前端 | `next dev` | `frontend/my-app/src`, `frontend/my-app/app` |
+| 前端 | `next dev` | `frontend/src`, `frontend/app` |
 | 后端 | `uvicorn --reload` | `service/`, `src/` |
 | 检测服务 | `uvicorn --reload` | `src/algorithms/*/detector/` |
 | 规划服务 | `uvicorn --reload` | `src/rag/` |
@@ -72,7 +72,7 @@ docker-compose -f docker-compose.dev.yml down
 ### 如何使用热重载
 
 1. **前端热重载**：
-   - 修改 `frontend/my-app/src/` 或 `frontend/my-app/app/` 下的文件
+   - 修改 `frontend/src/` 或 `frontend/app/` 下的文件
    - 浏览器自动刷新（1-3秒）
 
 2. **后端热重载**：
@@ -157,7 +157,7 @@ docker-compose -f docker-compose.dev.yml up -d
 
 ### Node.js 依赖
 
-1. 修改 `frontend/my-app/package.json`
+1. 修改 `frontend/package.json`
 2. 重建前端镜像：
 
 ```bash

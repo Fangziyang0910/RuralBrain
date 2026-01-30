@@ -6,7 +6,7 @@
 
 ## 已完成的文档
 
-1. ✅ **DESIGN_SYSTEM.md** - 完整的设计系统文档（前端/my-app/DESIGN_SYSTEM.md）
+1. ✅ **DESIGN_SYSTEM.md** - 完整的设计系统文档（frontend/DESIGN_SYSTEM.md）
    - 颜色系统
    - 字体系统
    - 间距系统
@@ -330,18 +330,18 @@ export default config;
 
 ### 需要修改的文件
 
-1. **frontend/my-app/src/app/globals.css** - 全局样式（已有基础，需扩展）
-2. **frontend/my-app/src/app/page.tsx** - 主页面（需应用新样式）
-3. **frontend/my-app/src/components/ChatWindow.tsx** - 聊天窗口（需优化）
-4. **frontend/my-app/src/components/ChatMessageBubble.tsx** - 消息气泡（需优化）
-5. **frontend/my-app/tailwind.config.ts** - Tailwind 配置（需扩展）
+1. **frontend/src/app/globals.css** - 全局样式（已有基础，需扩展）
+2. **frontend/src/app/page.tsx** - 主页面（需应用新样式）
+3. **frontend/src/components/ChatWindow.tsx** - 聊天窗口（需优化）
+4. **frontend/src/components/ChatMessageBubble.tsx** - 消息气泡（需优化）
+5. **frontend/tailwind.config.ts** - Tailwind 配置（需扩展）
 
 ### 新增文件
 
-1. ✅ **frontend/my-app/DESIGN_SYSTEM.md** - 设计系统文档
-2. ⏳ **frontend/my-app/src/app/globals.css** - 扩展的全局样式
-3. ⏳ **frontend/my-app/src/components/ui/LoadingDots.tsx** - 加载动画组件
-4. ⏳ **frontend/my-app/src/components/ui/Toast.tsx** - Toast 通知组件
+1. ✅ **frontend/DESIGN_SYSTEM.md** - 设计系统文档
+2. ⏳ **frontend/src/app/globals.css** - 扩展的全局样式
+3. ⏳ **frontend/src/components/ui/LoadingDots.tsx** - 加载动画组件
+4. ⏳ **frontend/src/components/ui/Toast.tsx** - Toast 通知组件
 
 ## 测试检查清单
 

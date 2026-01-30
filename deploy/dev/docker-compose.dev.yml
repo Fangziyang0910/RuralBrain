@@ -6,7 +6,7 @@ services:
   # 前端开发服务
   frontend:
     build:
-      context: ../../frontend/my-app
+      context: ../../frontend
       dockerfile: Dockerfile.dev
     image: ruralbrain-frontend
     container_name: ruralbrain-frontend
@@ -17,11 +17,11 @@ services:
       - NEXT_TELEMETRY_DISABLED=1
       - NEXT_PUBLIC_API_URL=http://localhost:8080
     volumes:
-      - ../../frontend/my-app/src:/app/src
-      - ../../frontend/my-app/public:/app/public
-      - ../../frontend/my-app/package.json:/app/package.json
-      - ../../frontend/my-app/next.config.mjs:/app/next.config.mjs
-      - ../../frontend/my-app/tsconfig.json:/app/tsconfig.json
+      - ../../frontend/src:/app/src
+      - ../../frontend/public:/app/public
+      - ../../frontend/package.json:/app/package.json
+      - ../../frontend/next.config.mjs:/app/next.config.mjs
+      - ../../frontend/tsconfig.json:/app/tsconfig.json
       - /app/node_modules      # 容器内依赖，不挂载
       - /app/.next             # 构建缓存，不挂载
     command: ["npm", "run", "dev"]

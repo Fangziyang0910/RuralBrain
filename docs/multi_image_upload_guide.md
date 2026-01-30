@@ -80,7 +80,7 @@ async def upload_image(files: list[UploadFile] = File(...)):
 
 ### 前端改动
 
-#### 1. 状态管理 (frontend/my-app/src/app/page.tsx)
+#### 1. 状态管理 (frontend/src/app/page.tsx)
 ```typescript
 // 从单图片改为数组
 const [selectedImages, setSelectedImages] = useState<File[]>([]);

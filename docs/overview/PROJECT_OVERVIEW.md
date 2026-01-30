@@ -19,7 +19,7 @@ RuralBrain/
 │   ├── pest_detection/            # 病虫害检测服务
 │   └── rice_detection/            # 大米识别服务
 ├── service/                       # FastAPI 主服务
-├── frontend/my-app/               # Next.js 前端应用
+├── frontend/               # Next.js 前端应用
 ├── tests/resources/               # 测试资源
 ├── docs/                          # 项目文档
 ├── Dockerfile.backend             # 后端 Docker 配置
@@ -38,7 +38,7 @@ RuralBrain/
 ## 🔧 服务配置
 
 ### 0. 前端应用 (Frontend)
-- **服务目录**: `frontend/my-app/`
+- **服务目录**: `frontend/`
 - **端口**: 3000
 - **访问地址**: http://localhost:3000
 - **Docker服务名**: frontend
@@ -271,7 +271,7 @@ curl http://localhost:8002/health
 
 ### Dockerfile 说明
 - **[Dockerfile.backend](Dockerfile.backend)**: 后端服务镜像
-- **[frontend/my-app/Dockerfile](frontend/my-app/Dockerfile)**: 前端应用镜像
+- **[frontend/Dockerfile](frontend/Dockerfile)**: 前端应用镜像
 - 各检测服务目录下均有独立的 Dockerfile
 
 ### 环境变量

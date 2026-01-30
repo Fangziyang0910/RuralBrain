@@ -23,20 +23,19 @@ RuralBrain/
 │   ├── schemas.py              # 数据模型
 │   └── settings.py             # 配置文件
 ├── frontend/                   # 前端应用
-│   └── my-app/                # Next.js 应用
-│       ├── src/
-│       │   ├── app/           # 页面路由
-│       │   │   ├── page.tsx   # 主页（对话界面）
-│       │   │   └── demo/      # Demo 演示页面
-│       │   ├── components/    # React 组件
-│       │   │   ├── ChatMessageBubble.tsx  # 消息气泡组件
-│       │   │   ├── ChatWindow.tsx         # 聊天窗口组件
-│       │   │   └── ui/                    # UI 基础组件
-│       │   └── utils/         # 工具函数
-│       ├── public/            # 静态资源
-│       │   └── demo/          # Demo 页面图片资源
-│       ├── next.config.mjs    # Next.js 配置
-│       └── package.json       # 依赖配置
+│   ├── src/                   # 源代码
+│   │   ├── app/           # 页面路由
+│   │   │   ├── page.tsx   # 主页（对话界面）
+│   │   │   └── demo/      # Demo 演示页面
+│   │   ├── components/    # React 组件
+│   │   │   ├── ChatMessageBubble.tsx  # 消息气泡组件
+│   │   │   ├── ChatWindow.tsx         # 聊天窗口组件
+│   │   │   └── ui/                    # UI 基础组件
+│   │   └── utils/         # 工具函数
+│   ├── public/            # 静态资源
+│   │   └── demo/          # Demo 页面图片资源
+│   ├── next.config.mjs    # Next.js 配置
+│   └── package.json       # 依赖配置
 ├── uploads/                    # 用户上传图片目录
 ├── pest_detection_results/     # 害虫检测结果目录
 ├── cow_detection_results/      # 牛只检测结果目录
@@ -79,7 +78,7 @@ run_frontend.bat
 
 **手动启动:**
 ```bash
-cd frontend/my-app
+cd frontend
 npm install  # 首次运行需要安装依赖
 npm run dev
 ```
@@ -347,7 +346,7 @@ $env:PORT=8081   # Windows PowerShell
 
 ### Demo 页面图片不显示
 
-确保 `frontend/my-app/public/demo/` 目录下有以下图片：
+确保 `frontend/public/demo/` 目录下有以下图片：
 - `pest-input.jpg` / `pest-output.jpg`
 - `rice-input.jpg` / `rice-output.jpg`
 - `cow-input.jpg` / `cow-output.jpg`

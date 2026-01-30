@@ -10,7 +10,7 @@ async def test_pest_detection():
     print("🧪 测试病虫害检测")
 
     # 1. 上传图片
-    image_path = "/home/szh/projects/RuralBrain/frontend/my-app/public/demo/pest-input.jpg"
+    image_path = "/home/szh/projects/RuralBrain/frontend/public/demo/pest-input.jpg"
     print(f"\n⏳ 上传图片: {image_path}")
 
     async with httpx.AsyncClient() as client:

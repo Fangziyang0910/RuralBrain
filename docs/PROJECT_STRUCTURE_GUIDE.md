@@ -108,7 +108,9 @@ RuralBrain/
 │   └── settings.py            # 服务配置
 │
 ├── 📁 frontend/               # 【前端】Next.js 项目
-│   └── my-app/
+│   ├── src/                   # 源代码
+│   ├── public/                # 静态资源
+│   └── package.json           # 依赖配置
 │
 ├── 📁 tests/                  # 【测试】所有测试代码
 │   ├── integration/           # 集成测试

@@ -131,7 +131,7 @@ class OrchestratorTester:
         await asyncio.sleep(2)  # 等待2秒
 
         # 场景2：纯检测 - 病虫害
-        pest_image = Path("/home/szh/projects/RuralBrain/frontend/my-app/public/demo/pest-input.jpg")
+        pest_image = Path("/home/szh/projects/RuralBrain/frontend/public/demo/pest-input.jpg")
         if pest_image.exists():
             await self.test_scenario(
                 "场景2：纯检测 - 病虫害识别",
@@ -144,7 +144,7 @@ class OrchestratorTester:
         await asyncio.sleep(2)
 
         # 场景3：纯检测 - 大米品种
-        rice_image = Path("/home/szh/projects/RuralBrain/frontend/my-app/public/demo/rice-input.jpg")
+        rice_image = Path("/home/szh/projects/RuralBrain/frontend/public/demo/rice-input.jpg")
         if rice_image.exists():
             await self.test_scenario(
                 "场景3：纯检测 - 大米品种识别",
@@ -157,7 +157,7 @@ class OrchestratorTester:
         await asyncio.sleep(2)
 
         # 场景4：纯检测 - 牛只
-        cow_image = Path("/home/szh/projects/RuralBrain/frontend/my-app/public/demo/cow-input.jpg")
+        cow_image = Path("/home/szh/projects/RuralBrain/frontend/public/demo/cow-input.jpg")
         if cow_image.exists():
             await self.test_scenario(
                 "场景4：纯检测 - 牛只识别",

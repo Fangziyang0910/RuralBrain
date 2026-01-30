@@ -52,7 +52,7 @@ uv run python run_server.py
 uv run python run_frontend.py
 
 # 或者手动启动前端
-cd frontend/my-app
+cd frontend
 npm install
 npm run dev
 ```
@@ -113,7 +113,7 @@ uv run python scripts/dev/build_kb_auto.py
   - `server.py`：主服务器入口
   - `settings.py`：服务配置
 
-- **[frontend/my-app/](frontend/my-app/)**：Next.js 前端应用
+- **[frontend/](frontend/)**：Next.js 前端应用
 
 ### 服务端口分配
 

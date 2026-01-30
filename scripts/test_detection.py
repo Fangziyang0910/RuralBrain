@@ -95,7 +95,7 @@ async def test_detection(image_path: str, question: str, service_name: str):
 
 
 async def main():
-    base_path = Path("/home/szh/projects/RuralBrain/frontend/my-app/public/demo")
+    base_path = Path("/home/szh/projects/RuralBrain/frontend/public/demo")
 
     # 测试1：病虫害检测
     pest_image = base_path / "pest-input.jpg"

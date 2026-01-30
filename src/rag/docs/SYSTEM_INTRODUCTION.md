@@ -657,7 +657,7 @@ uv run python run_frontend.py
 
 **或者手动启动**：
 ```bash
-cd /path/to/RuralBrain/frontend/my-app
+cd /path/to/RuralBrain/frontend
 npm install  # 首次运行需要安装依赖
 npm run dev
 # 前端运行在 http://localhost:3000
@@ -705,7 +705,7 @@ def classify_intent(message: str, has_images: bool = False) -> str:
 
 ### 流式响应实现
 
-**前端代码**（frontend/my-app/src/app/page.tsx）：
+**前端代码**（frontend/src/app/page.tsx）：
 ```typescript
 const chatResponse = await fetch(`${API_BASE}/chat/stream`, {
   method: "POST",

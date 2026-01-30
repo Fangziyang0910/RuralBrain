@@ -5,7 +5,7 @@ services:
   # 前端服务 (Next.js)
   frontend:
     build:
-      context: ./frontend/my-app
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: ruralbrain-frontend
     ports:

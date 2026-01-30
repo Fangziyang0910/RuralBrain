@@ -24,7 +24,7 @@ RuralBrain 采用微服务架构，包含以下核心服务：
 
 | 服务 | 端口 | 配置文件 | 说明 |
 |------|------|----------|------|
-| **前端服务** | 3000 | `frontend/my-app/next.config.mjs` | Next.js 开发服务器 |
+| **前端服务** | 3000 | `frontend/next.config.mjs` | Next.js 开发服务器 |
 | **后端主服务** | 8081 | `service/settings.py` + `.env` | FastAPI + Orchestrator Agent |
 | **病虫害检测** | 8000 | `src/algorithms/pest_detection/detector/app/core/config.py` | 害虫识别和计数 |
 | **大米识别** | 8001 | `src/algorithms/rice_detection/detector/app/core/config.py` | 大米品种识别 |
@@ -41,7 +41,7 @@ RuralBrain 采用微服务架构，包含以下核心服务：
 
 ### 1. 前端服务 (Next.js)
 
-**位置**：`frontend/my-app/`
+**位置**：`frontend/`
 
 **配置文件**：
 - `next.config.mjs`：Next.js 配置
@@ -50,7 +50,7 @@ RuralBrain 采用微服务架构，包含以下核心服务：
 
 **启动方式**：
 ```bash
-cd frontend/my-app
+cd frontend
 npm install        # 首次运行安装依赖
 npm run dev        # 开发模式（热重载）
 npm run build      # 生产构建
@@ -231,7 +231,7 @@ uv run python start_service.py
 uv run python service/server.py
 
 # 3. 启动前端服务
-cd frontend/my-app
+cd frontend
 npm run dev
 ```
 
@@ -239,7 +239,7 @@ npm run dev
 ```bash
 # 仅启动后端和前端即可
 uv run python service/server.py
-cd frontend/my-app && npm run dev
+cd frontend && npm run dev
 ```
 
 ---
@@ -392,7 +392,7 @@ uv run pytest
 前端使用 npm：
 
 ```bash
-cd frontend/my-app
+cd frontend
 npm install  # 安装依赖
 npm run dev  # 开发模式
 ```
