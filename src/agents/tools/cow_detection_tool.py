@@ -25,7 +25,11 @@ def get_model_path() -> Path:
     Returns:
         模型文件的 Path 对象
     """
-    project_root = Path(__file__).parent.parent.parent.parent.parent.absolute()
+    env_path = os.getenv("COW_MODEL_PATH")
+    if env_path:
+        return Path(env_path)
+
+    project_root = Path(__file__).resolve().parents[3]
     return project_root / MODEL_DIR / MODEL_FILE
 
 

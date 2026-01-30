@@ -4,11 +4,12 @@ export const runtime = 'edge'; // 使用 Edge Runtime 以获得更好的流式�
 
 export async function POST(request: NextRequest) {
   try {
+    const backendBase = process.env.BACKEND_URL ?? 'http://backend:8080';
     // 获取请求体
     const body = await request.json();
 
     // 创建到后端的流式请求
-    const response = await fetch('http://localhost:8080/chat/stream', {
+    const response = await fetch(`${backendBase}/chat/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -4,6 +4,10 @@ set -e
 
 echo "Starting triple detection services..."
 
+# 让 Ultralytics 使用可写配置目录
+export YOLO_CONFIG_DIR=/app/ultralytics
+mkdir -p "$YOLO_CONFIG_DIR"
+
 # 启动病虫害检测服务 (端口 8001)
 echo "Starting pest detector on port 8001..."
 cd /app/pest

@@ -1,5 +1,5 @@
-# 使用Python 3.12官方镜像作为基础镜像 (使用国内镜像源)
-FROM docker.1ms.run/library/python:3.12-slim
+# 使用Python 3.12官方镜像作为基础镜像
+FROM python:3.12-slim
 
 # 设置工作目录
 WORKDIR /app
@@ -9,16 +9,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 
-# 配置阿里云镜像源（Debian）
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get clean
-
 # 安装系统依赖（使用重试机制）
-RUN export http_proxy= && \
-    export https_proxy= && \
-    export HTTP_PROXY= && \
-    export HTTPS_PROXY= && \
-    apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout=60 && \
+RUN apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout=60 && \
     apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
@@ -36,10 +28,10 @@ COPY requirements.txt .
 
 # 安装Python依赖（分步安装以提高稳定性）
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir fastapi uvicorn pydantic pydantic-settings python-multipart -i https://pypi.tuna.tsinghua.edu.cn/simple/ && \
-    pip install --no-cache-dir numpy opencv-python-headless -i https://pypi.tuna.tsinghua.edu.cn/simple/ && \
+    pip install --no-cache-dir fastapi uvicorn pydantic pydantic-settings python-multipart && \
+    pip install --no-cache-dir numpy opencv-python-headless && \
     pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir ultralytics -i https://pypi.tuna.tsinghua.edu.cn/simple/
+    pip install --no-cache-dir ultralytics
 
 # 复制应用代码
 COPY app/ ./app/

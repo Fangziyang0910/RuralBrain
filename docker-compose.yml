@@ -13,11 +13,12 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      - BACKEND_URL=http://backend:8080
     depends_on:
       - backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -39,6 +40,8 @@ services:
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=production
       - PLANNING_SERVICE_URL=http://planning-service:8003
+      - PEST_DETECTION_API_URL=http://triple-detector:8001/detect
+      - RICE_DETECTION_API_URL=http://triple-detector:8081/predict
     volumes:
       - ./uploads:/app/uploads
       - ./pest_results:/app/pest_results

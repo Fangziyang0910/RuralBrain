@@ -3,6 +3,7 @@
 调用大米识别服务分析图片中的大米品种。
 """
 from pathlib import Path
+import os
 from typing import Any
 import uuid
 
@@ -12,7 +13,10 @@ from langchain_core.tools import tool
 from .detection_utils import encode_image_to_base64, save_result_image
 
 
-API_URL = "http://127.0.0.1:8081/predict"
+API_URL = os.getenv(
+    "RICE_DETECTION_API_URL",
+    "http://triple-detector:8081/predict"
+)
 SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 

@@ -66,7 +66,7 @@ class Detection(BaseModel):
     )
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "name": "奶牛",
                 "count": 2
@@ -112,7 +112,7 @@ class DetectRequest(BaseModel):
             return v
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "image_base64": "/9j/4AAQSkZJRgABAQEAYGBgY..."
             }
@@ -138,7 +138,7 @@ class DetectResponse(BaseModel):
     )
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": True,
                 "detections": [
@@ -225,7 +225,7 @@ class DetailedDetectResponse(BaseModel):
     )
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": True,
                 "detections": [
@@ -277,7 +277,7 @@ class ErrorResponse(BaseModel):
     )
     
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "success": False,
                 "message": "无效的base64编码格式"

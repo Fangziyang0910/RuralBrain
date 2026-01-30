@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const backendBase = process.env.BACKEND_URL ?? 'http://backend:8080';
+
 const nextConfig = {
   // 开启 React 严格模式
   reactStrictMode: true,
@@ -9,15 +11,15 @@ const nextConfig = {
       // 保留静态资源的代理规则
       {
         source: '/pest_results/:path*',
-        destination: 'http://localhost:8080/pest_results/:path*',
+        destination: `${backendBase}/pest_results/:path*`,
       },
       {
         source: '/cow_results/:path*',
-        destination: 'http://localhost:8080/cow_results/:path*',
+        destination: `${backendBase}/cow_results/:path*`,
       },
       {
         source: '/rice_results/:path*',
-        destination: 'http://localhost:8080/rice_results/:path*',
+        destination: `${backendBase}/rice_results/:path*`,
       },
     ];
   },

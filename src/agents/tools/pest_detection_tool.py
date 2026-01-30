@@ -3,6 +3,7 @@
 调用检测服务分析图片中的害虫种类和数量。
 """
 from pathlib import Path
+import os
 from typing import Any
 
 import requests
@@ -11,7 +12,10 @@ from langchain_core.tools import tool
 from .detection_utils import encode_image_to_base64, save_result_image
 
 
-DETECTION_API_URL = "http://127.0.0.1:8001/detect"
+DETECTION_API_URL = os.getenv(
+    "PEST_DETECTION_API_URL",
+    "http://triple-detector:8001/detect"
+)
 SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 

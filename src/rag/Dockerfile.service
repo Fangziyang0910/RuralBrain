@@ -13,16 +13,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     SERVICE_PORT=8003 \
     SERVICE_HOST=0.0.0.0
 
-# 配置阿里云镜像源（Debian Trixie）
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get clean
-
 # 安装系统依赖（使用重试机制）
-RUN export http_proxy= && \
-    export https_proxy= && \
-    export HTTP_PROXY= && \
-    export HTTPS_PROXY= && \
-    apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout=60 && \
+RUN apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout=60 && \
     apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -34,16 +26,13 @@ COPY pyproject.toml .
 # 分步安装以提高稳定性，使用重试机制
 RUN pip install --no-cache-dir --upgrade pip --retries 5 --timeout 120 && \
     pip install --no-cache-dir --retries 5 --timeout 120 \
-    fastapi uvicorn pydantic pydantic-settings python-multipart python-dotenv \
-    -i https://pypi.tuna.tsinghua.edu.cn/simple/ && \
+    fastapi uvicorn pydantic pydantic-settings python-multipart python-dotenv && \
     pip install --no-cache-dir --retries 5 --timeout 180 \
     langchain langchain-deepseek langchain-zhipuai langgraph langsmith \
-    langchain-chroma langchain-huggingface langchain-text-splitters \
-    -i https://pypi.tuna.tsinghua.edu.cn/simple/ && \
+    langchain-chroma langchain-huggingface langchain-text-splitters && \
     pip install --no-cache-dir --retries 5 --timeout 180 \
     chromadb sentence-transformers python-pptx pypdf python-docx \
-    filetype requests rich \
-    -i https://pypi.tuna.tsinghua.edu.cn/simple/
+    filetype requests rich
 
 # 复制应用代码
 COPY src/ ./src/
