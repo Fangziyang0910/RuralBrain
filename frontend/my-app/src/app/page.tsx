@@ -340,20 +340,20 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-primary-50/30 to-white">
+    <div className="flex flex-col h-screen bg-paddy-texture">
       {/* 顶部标题栏 */}
-      <header className="border-b border-primary-100 bg-white/90 backdrop-blur-sm shadow-sm">
+      <header className="border-b border-stone-200 glass">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white shadow-sm">
-              🌾
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-paddy-500 to-paddy-600 flex items-center justify-center text-white shadow-md shadow-paddy-500/30">
+              <span className="text-xl">🌾</span>
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-primary-900">
+              <h1 className="text-xl font-bold text-stone-900">
                 RuralBrain 乡村智慧大脑
               </h1>
-              <p className="text-sm text-primary-700 mt-0.5">
-                统一智能助手 - 图像检测与规划咨询
+              <p className="text-sm text-stone-600 mt-0.5">
+                统一智能助手 · 图像检测与规划咨询
               </p>
             </div>
           </div>
@@ -365,24 +365,77 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* 条件渲染，显示欢迎信息或聊天消息 */}
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-primary-300 pt-20">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center text-5xl mb-6 shadow-sm">
-                🌾
+            <div className="flex flex-col items-center justify-center h-full pt-16 animate-fade-in">
+              {/* 主图标区域 */}
+              <div className="relative mb-8">
+                <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-paddy-400 via-paddy-500 to-paddy-600 flex items-center justify-center text-6xl shadow-xl shadow-paddy-500/30 animate-scale-in">
+                  🌾
+                </div>
+                {/* 装饰元素 */}
+                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-gold-400/80 flex items-center justify-center text-sm animate-bounce-slow">
+                  ✨
+                </div>
+                <div className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-sky-400/60 flex items-center justify-center text-xs animate-pulse-slow">
+                  💡
+                </div>
               </div>
-              <p className="text-lg mb-2 text-primary-700 font-medium">
-                你好！我是 RuralBrain 乡村智慧大脑
+
+              {/* 欢迎文字 */}
+              <h2 className="text-2xl font-bold text-stone-900 mb-2 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                你好！我是 RuralBrain
+              </h2>
+              <p className="text-stone-600 mb-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                乡村智慧大脑，为你提供专业的智能服务
               </p>
-              <p className="text-sm text-primary-600 mb-4">
-                我可以帮助你：
-              </p>
-              <div className="text-sm text-primary-600 space-y-2">
-                <p>• 🖼️ 识别病虫害、农作物品种、牛只等</p>
-                <p>• 🏘️ 乡村发展规划咨询（旅游、产业、政策）</p>
-                <p>• 📊 提供科学的防治方案和发展建议</p>
+
+              {/* 功能卡片网格 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mb-8">
+                {/* 卡片 1 */}
+                <div className="group card p-5 hover-lift cursor-pointer animate-slide-up" style={{ animationDelay: '0.3s' }}>
+                  <div className="text-4xl mb-3">🖼️</div>
+                  <h3 className="font-semibold text-stone-900 mb-1">图像识别</h3>
+                  <p className="text-sm text-stone-600">
+                    病虫害、农作物、牛只智能检测
+                  </p>
+                  <div className="mt-3 flex items-center gap-2 text-xs text-paddy-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span>上传图片开始</span>
+                    <span>→</span>
+                  </div>
+                </div>
+
+                {/* 卡片 2 */}
+                <div className="group card p-5 hover-lift cursor-pointer animate-slide-up" style={{ animationDelay: '0.4s' }}>
+                  <div className="text-4xl mb-3">🏘️</div>
+                  <h3 className="font-semibold text-stone-900 mb-1">规划咨询</h3>
+                  <p className="text-sm text-stone-600">
+                    旅游、产业、政策发展建议
+                  </p>
+                  <div className="mt-3 flex items-center gap-2 text-xs text-paddy-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span>提问开始</span>
+                    <span>→</span>
+                  </div>
+                </div>
+
+                {/* 卡片 3 */}
+                <div className="group card p-5 hover-lift cursor-pointer animate-slide-up" style={{ animationDelay: '0.5s' }}>
+                  <div className="text-4xl mb-3">📊</div>
+                  <h3 className="font-semibold text-stone-900 mb-1">科学方案</h3>
+                  <p className="text-sm text-stone-600">
+                    防治方案和定价分析
+                  </p>
+                  <div className="mt-3 flex items-center gap-2 text-xs text-paddy-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span>深入了解</span>
+                    <span>→</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-sm text-primary-600 mt-4">
-                你可以直接上传图片或描述问题，我会自动判断如何帮助你！
-              </p>
+
+              {/* 提示文字 */}
+              <div className="animate-slide-up" style={{ animationDelay: '0.6s' }}>
+                <p className="text-stone-500 text-sm">
+                  💡 上传图片或直接提问，我会自动判断如何帮助你
+                </p>
+              </div>
             </div>
           ) : (
             <div className="space-y-6">
@@ -397,23 +450,23 @@ export default function Home() {
       </main>
 
       {/* 输入区域 */}
-      <footer className="border-t border-primary-100 bg-white/90 backdrop-blur-sm shadow-sm">
+      <footer className="border-t border-stone-200 glass">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             {/* 图片预览 */}
             {imagePreviews.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {imagePreviews.map((preview, index) => (
                   <div key={index} className="image-preview-card">
                     <img
                       src={preview}
                       alt={`预览 ${index + 1}`}
-                      className="h-20 w-20 object-cover rounded-lg"
+                      className="h-24 w-24 object-cover"
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveImage(index)}
-                      className="absolute -top-2 -right-2 bg-error text-white rounded-full p-1.5 hover:bg-error/90 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error"
+                      className="absolute -top-2 -right-2 bg-stone-800 text-white rounded-full p-1.5 hover:bg-stone-700 transition-colors shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-600"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -423,7 +476,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleRemoveAllImages}
-                    className="px-3 py-1.5 bg-error/10 text-error text-sm rounded-lg hover:bg-error/20 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-error"
+                    className="px-4 py-2 bg-stone-100 text-stone-700 text-sm rounded-xl hover:bg-stone-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-500"
                   >
                     清除全部
                   </button>
@@ -432,7 +485,7 @@ export default function Home() {
             )}
 
             {/* 输入框和按钮 */}
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-3">
               {/* 上传按钮 - 始终可用 */}
               <input
                 ref={fileInputRef}
@@ -481,8 +534,8 @@ export default function Home() {
             </div>
 
             {/* 提示文字 */}
-            <p className="text-xs text-muted-foreground">
-              Enter 发送，Shift+Enter 换行 · 支持上传图片进行检测
+            <p className="text-xs text-stone-500 text-center">
+              Enter 发送 · Shift+Enter 换行 · 支持上传图片进行检测
             </p>
           </form>
         </div>

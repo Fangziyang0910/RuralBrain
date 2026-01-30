@@ -3,47 +3,81 @@
 @tailwind utilities;
 
 /* ==================== 字体导入 ==================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+/* 使用更具特色的字体组合 */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @layer base {
   :root {
-    /* Primary - 农业/生长主题 */
-    --color-primary-50: #ecfdf5;
-    --color-primary-100: #d1fae5;
-    --color-primary-200: #a7f3d0;
-    --color-primary-300: #6ee7b7;
-    --color-primary-400: #34d399;
-    --color-primary-500: #10b981;
-    --color-primary-600: #059669;
-    --color-primary-700: #047857;
-    --color-primary-800: #065f46;
-    --color-primary-900: #064e3b;
+    /* ==================== RuralBrain 色彩系统 ==================== */
+    /* 主色 - 稻田绿 */
+    --color-paddy-50: #f0fdf7;
+    --color-paddy-100: #dcfce7;
+    --color-paddy-200: #bbf7d0;
+    --color-paddy-300: #86efac;
+    --color-paddy-400: #4ade80;
+    --color-paddy-500: #22c55e;
+    --color-paddy-600: #16a34a;
+    --color-paddy-700: #15803d;
+    --color-paddy-800: #166534;
+    --color-paddy-900: #14532d;
 
-    /* Secondary - 科技/AI主题 */
-    --color-secondary-500: #3b82f6;
-    --color-secondary-600: #2563eb;
+    /* 强调色 - 稻穗金 */
+    --color-gold-50: #fefce8;
+    --color-gold-100: #fef9c3;
+    --color-gold-200: #fef08a;
+    --color-gold-300: #fde047;
+    --color-gold-400: #facc15;
+    --color-gold-500: #eab308;
+    --color-gold-600: #ca8a04;
+    --color-gold-700: #a16207;
+    --color-gold-800: #854d0e;
+    --color-gold-900: #713f12;
+
+    /* 辅助色 - 晴空蓝 */
+    --color-sky-50: #f0f9ff;
+    --color-sky-100: #e0f2fe;
+    --color-sky-200: #bae6fd;
+    --color-sky-300: #7dd3fc;
+    --color-sky-400: #38bdf8;
+    --color-sky-500: #0ea5e9;
+    --color-sky-600: #0284c7;
+    --color-sky-700: #0369a1;
+    --color-sky-800: #075985;
+    --color-sky-900: #0c4a6e;
 
     /* 语义色 */
-    --color-success: #10b981;
-    --color-warning: #f59e0b;
+    --color-success: #22c55e;
+    --color-warning: #eab308;
     --color-error: #ef4444;
-    --color-info: #3b82f6;
+    --color-info: #0ea5e9;
+
+    /* 中性色 */
+    --color-stone-50: #fafaf9;
+    --color-stone-100: #f5f5f4;
+    --color-stone-200: #e7e5e4;
+    --color-stone-300: #d6d3d1;
+    --color-stone-400: #a8a29e;
+    --color-stone-500: #78716c;
+    --color-stone-600: #57534e;
+    --color-stone-700: #44403c;
+    --color-stone-800: #292524;
+    --color-stone-900: #1c1917;
 
     /* 主题变量 */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 158 64% 42%; /* #10b981 */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217 91% 60%; /* #3b82f6 */
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 158 64% 42%;
-    --radius: 0.5rem;
+    --card-foreground: 240 10% 3.9%;
+    --primary: 142 76% 36%; /* 稻田绿 #16a34a */
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 48 96% 53%; /* 稻穗金 #eab308 */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 199 89% 48%; /* 晴空蓝 #0ea5e9 */
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142 76% 36%;
+    --radius: 0.75rem;
   }
 
   * {
@@ -51,7 +85,7 @@
   }
 
   body {
-    font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+    font-family: 'Outfit', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     @apply bg-background text-foreground;
@@ -59,27 +93,29 @@
 
   /* 改善焦点可见性 */
   *:focus-visible {
-    outline: 2px solid var(--color-primary-500);
+    outline: 2px solid var(--color-paddy-500);
     outline-offset: 2px;
   }
 
   /* 改善滚动条样式 */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #f3f4f6;
+    background: var(--color-stone-100);
+    border-radius: 10px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 4px;
+    background: var(--color-stone-300);
+    border-radius: 10px;
+    transition: background 0.2s;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: var(--color-stone-400);
   }
 }
 
@@ -88,69 +124,82 @@
   /* 按钮基础样式 */
   .btn {
     @apply inline-flex items-center justify-center gap-2;
-    @apply font-medium rounded-lg;
-    @apply transition-all duration-200 ease-out;
+    @apply font-medium rounded-xl;
+    @apply transition-all duration-300 ease-out;
     @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
     @apply cursor-pointer;
   }
 
   .btn-primary {
-    @apply bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700;
-    @apply shadow-sm hover:shadow focus:ring-primary-400;
+    @apply bg-gradient-to-r from-paddy-500 to-paddy-600 text-white;
+    @apply hover:from-paddy-600 hover:to-paddy-700 active:scale-95;
+    @apply shadow-md shadow-paddy-500/20 hover:shadow-lg hover:shadow-paddy-500/30;
+    @apply focus:ring-paddy-400;
   }
 
   .btn-secondary {
-    @apply bg-white text-gray-700 border border-gray-300;
-    @apply hover:bg-gray-50 active:bg-gray-100 focus:ring-gray-400;
+    @apply bg-white text-stone-700 border border-stone-200;
+    @apply hover:bg-stone-50 hover:border-stone-300 active:bg-stone-100 active:scale-95;
+    @apply focus:ring-stone-400;
   }
 
   .btn-ghost {
-    @apply bg-transparent text-gray-600;
-    @apply hover:bg-gray-100 active:bg-gray-200 focus:ring-gray-400;
+    @apply bg-transparent text-stone-600;
+    @apply hover:bg-stone-100 active:bg-stone-200 focus:ring-stone-400;
   }
 
   /* 卡片基础样式 */
   .card {
-    @apply bg-white rounded-xl border border-gray-200;
+    @apply bg-white rounded-2xl border border-stone-200;
     @apply shadow-sm hover:shadow-md;
-    @apply transition-shadow duration-200 ease-out;
+    @apply transition-all duration-300 ease-out;
   }
 
   /* 输入框基础样式 */
   .input {
-    @apply w-full px-4 py-2;
-    @apply rounded-lg border border-gray-300;
-    @apply focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent;
+    @apply w-full px-4 py-3;
+    @apply rounded-xl border border-stone-300 bg-white;
+    @apply focus:outline-none focus:ring-2 focus:ring-paddy-400 focus:border-transparent;
     @apply transition-all duration-200 ease-out;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply overflow-hidden;
   }
 
   .input:focus {
-    @apply shadow-sm;
+    @apply shadow-md shadow-paddy-500/10;
+  }
+
+  .input::placeholder {
+    @apply text-stone-400;
   }
 
   /* 消息气泡 */
   .message-bubble {
-    @apply max-w-[85%] px-4 py-3 rounded-2xl;
-    @apply transition-all duration-200 ease-out;
+    @apply max-w-[90%] px-5 py-4 rounded-3xl;
+    @apply transition-all duration-300 ease-out;
   }
 
   .message-user {
-    @apply bg-primary-500 text-white rounded-br-sm;
+    @apply bg-gradient-to-br from-paddy-500 to-paddy-600 text-white;
+    @apply shadow-md shadow-paddy-500/20 rounded-br-lg;
+    width: fit-content;
+    min-width: 80px;
+    max-width: 90%;
   }
 
   .message-ai {
-    @apply bg-white border border-gray-200 text-gray-800 rounded-bl-sm;
+    @apply bg-white border border-stone-200 text-stone-800 rounded-bl-lg;
+    @apply shadow-sm hover:shadow-md;
   }
 
   /* 加载动画 */
   .loading-dots {
-    @apply flex items-center gap-1;
+    @apply flex items-center gap-1.5;
   }
 
   .loading-dot {
-    @apply w-2 h-2 bg-primary-500 rounded-full;
+    @apply w-2 h-2 bg-paddy-500 rounded-full;
     animation: bounce 1.4s infinite ease-in-out both;
   }
 
@@ -175,40 +224,40 @@
 
   /* Skeleton Screen */
   .skeleton {
-    @apply bg-gray-200 animate-pulse rounded;
+    @apply bg-stone-200 animate-pulse rounded;
   }
 
   /* 图片预览卡片 */
   .image-preview-card {
-    @apply relative inline-block rounded-lg overflow-hidden;
-    @apply border border-gray-200 shadow-sm;
-    @apply transition-all duration-200 ease-out;
+    @apply relative inline-block rounded-xl overflow-hidden;
+    @apply border border-stone-200 shadow-sm;
+    @apply transition-all duration-300 ease-out;
   }
 
   .image-preview-card:hover {
-    @apply shadow-md transform scale-105;
+    @apply shadow-lg transform scale-105;
   }
 
   /* 模式切换按钮 */
   .mode-toggle {
-    @apply flex items-center gap-2 px-4 py-2;
-    @apply rounded-lg border border-gray-200;
-    @apply transition-all duration-200 ease-out;
+    @apply flex items-center gap-2 px-4 py-2.5;
+    @apply rounded-xl border border-stone-200;
+    @apply transition-all duration-300 ease-out;
     @apply cursor-pointer;
   }
 
   .mode-toggle-active {
-    @apply bg-primary-50 border-primary-500 text-primary-700;
+    @apply bg-paddy-50 border-paddy-500 text-paddy-700 shadow-sm;
   }
 
   .mode-toggle-inactive {
-    @apply bg-white text-gray-600 hover:bg-gray-50;
+    @apply bg-white text-stone-600 hover:bg-stone-50;
   }
 
   /* Toast 通知 */
   .toast {
     @apply fixed top-4 right-4 z-50;
-    @apply bg-white rounded-lg shadow-lg border border-gray-200;
+    @apply bg-white rounded-2xl shadow-lg border border-stone-200;
     @apply px-4 py-3 animate-slide-in;
   }
 
@@ -225,30 +274,56 @@
 
   /* 徽章 */
   .badge {
-    @apply inline-flex items-center px-2 py-1;
-    @apply rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-1;
+    @apply rounded-full text-xs font-semibold;
   }
 
   .badge-primary {
-    @apply bg-primary-100 text-primary-700;
+    @apply bg-paddy-100 text-paddy-700;
   }
 
   .badge-secondary {
-    @apply bg-secondary-100 text-secondary-700;
+    @apply bg-gold-100 text-gold-700;
+  }
+
+  .badge-sky {
+    @apply bg-sky-100 text-sky-700;
+  }
+
+  /* 工具调用卡片 */
+  .tool-card {
+    @apply bg-white rounded-2xl border border-stone-200 p-4;
+    @apply shadow-sm hover:shadow-md;
+    @apply transition-all duration-300 ease-out;
+  }
+
+  /* 知识库引用卡片 */
+  .knowledge-card {
+    @apply bg-sky-50 rounded-2xl border border-sky-200 p-4;
+    @apply transition-all duration-300 ease-out;
   }
 }
 
 /* ==================== 工具类 ==================== */
 @layer utilities {
-  /* Text Gradient */
+  /* Text Gradient - 稻田渐变 */
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(to right, #10b981, #3b82f6);
+    background-image: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #4ade80 100%);
   }
 
-  /* Glass Effect */
+  /* Glass Effect - 磨砂玻璃效果 */
   .glass {
-    @apply bg-white/80 backdrop-blur-sm border border-white/20;
+    @apply bg-white/70 backdrop-blur-xl border border-white/30;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+
+  /* 稻田纹理背景 */
+  .bg-paddy-texture {
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(34, 197, 94, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(234, 179, 8, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 40% 20%, rgba(14, 165, 233, 0.02) 0%, transparent 50%);
   }
 
   /* Hide Scrollbar */
@@ -275,12 +350,65 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* 入场动画 */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.4s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* 悬停效果 */
+  .hover-lift {
+    @apply transition-transform duration-300 ease-out;
+  }
+
+  .hover-lift:hover {
+    @apply -translate-y-1;
+  }
 }
 
 /* ==================== 响应式优化 ==================== */
 @media (max-width: 768px) {
   .message-bubble {
-    @apply max-w-[95%];
+    @apply max-w-[92%] px-4 py-3;
   }
 
   .btn {
