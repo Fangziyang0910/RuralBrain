@@ -5,8 +5,8 @@ services:
   # 前端服务 (Next.js)
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: ../frontend
+      dockerfile: ../docker/Dockerfile.frontend
     container_name: ruralbrain-frontend
     ports:
       - "3000:3000"
@@ -29,13 +29,13 @@ services:
   # 后端主服务 (FastAPI + Agents)
   backend:
     build:
-      context: .
-      dockerfile: deploy/dev/Dockerfile.backend
+      context: ..
+      dockerfile: docker/Dockerfile.backend
     container_name: ruralbrain-backend
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - ../.env
     environment:
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=production
@@ -43,14 +43,14 @@ services:
       - PEST_DETECTION_API_URL=http://triple-detector:8001/detect
       - RICE_DETECTION_API_URL=http://triple-detector:8081/predict
     volumes:
-      - ./uploads:/app/uploads
-      - ./pest_results:/app/pest_results
-      - ./cow_results:/app/cow_results
-      - ./rice_results:/app/rice_results
-      - ./knowledge_base:/app/knowledge_base:ro
-      - ./src:/app/src:ro
-      - ./service:/app/service:ro
-      - ./run_server.py:/app/run_server.py:ro
+      - ../uploads:/app/uploads
+      - ../pest_results:/app/pest_results
+      - ../cow_results:/app/cow_results
+      - ../rice_results:/app/rice_results
+      - ../knowledge_base:/app/knowledge_base:ro
+      - ../src:/app/src:ro
+      - ../service:/app/service:ro
+      - ../run_server.py:/app/run_server.py:ro
     depends_on:
       - triple-detector
       - planning-service
@@ -67,9 +67,9 @@ services:
   # 三合一检测服务（替代原来的三个独立服务）
   triple-detector:
     build:
-      context: .
-      dockerfile: src/algorithms/triple_detector/Dockerfile
-    container_name: triple-detector
+      context: ..
+      dockerfile: docker/Dockerfile.detector
+    container_name: ruralbrain-triple-detector
     ports:
       - "8001:8001"  # 病虫害检测
       - "8081:8081"  # 大米检测
@@ -77,9 +77,9 @@ services:
     environment:
       - ENVIRONMENT=production
     volumes:
-      - ./src/algorithms/pest_detection/detector/models:/app/pest/detector/models:ro
-      - ./src/algorithms/rice_detection/detector/models:/app/rice/detector/models:ro
-      - ./src/algorithms/cow_detection/detector/models:/app/cow/detector/models:ro
+      - ../src/algorithms/pest_detection/detector/models:/app/pest/models:ro
+      - ../src/algorithms/rice_detection/detector/models:/app/rice/models:ro
+      - ../src/algorithms/cow_detection/detector/models:/app/cow/models:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8001/health && curl -f http://localhost:8081/health && curl -f http://localhost:8002/health"]
@@ -99,13 +99,13 @@ services:
   # 规划咨询服务 (Planning Service)
   planning-service:
     build:
-      context: .
-      dockerfile: src/rag/Dockerfile.service
-    container_name: planning-service
+      context: ..
+      dockerfile: docker/Dockerfile.planning
+    container_name: ruralbrain-planning-service
     ports:
       - "8003:8003"
     env_file:
-      - .env
+      - ../.env
     environment:
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=production
@@ -113,8 +113,8 @@ services:
       - SERVICE_HOST=0.0.0.0
       - MODEL_PROVIDER=${MODEL_PROVIDER:-deepseek}
     volumes:
-      - ./knowledge_base:/app/knowledge_base
-      - ./src:/app/src:ro
+      - ../knowledge_base:/app/knowledge_base
+      - ../src:/app/src:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8003/health"]

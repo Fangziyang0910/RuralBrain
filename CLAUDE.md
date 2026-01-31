@@ -30,8 +30,13 @@ uv run pytest
 
 **Docker 部署（推荐）**：
 ```bash
-# 启动所有服务
+# 生产环境
+cd docker
 docker-compose up -d
+
+# 开发环境（支持热重载）
+cd docker
+docker-compose -f docker-compose.dev.yml up -d
 
 # 查看服务状态
 docker-compose ps

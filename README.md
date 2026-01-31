@@ -33,20 +33,48 @@
 - **内存**：至少 8GB
 - **磁盘空间**：至少 10GB
 
-#### 一键部署
+#### 生产环境部署
 ```bash
 # 克隆仓库
 git clone https://github.com/Fangziyang0910/RuralBrain.git
 cd RuralBrain
 
-# 启动所有服务（前端 + 后端 + 所有检测算法服务）
-docker-compose up -d
+# 进入 docker 目录
+cd docker
+
+# 停止旧服务（如果存在）
+docker-compose -p ruralbrain down
+
+# 构建并启动所有服务（--build 会自动构建镜像）
+docker-compose -p ruralbrain up -d --build
 
 # 查看服务状态
-docker-compose ps
+docker-compose -p ruralbrain ps
 
 # 查看日志
-docker-compose logs -f
+docker-compose -p ruralbrain logs -f
+```
+
+#### 开发环境部署（支持热重载）
+```bash
+# 克隆仓库
+git clone https://github.com/Fangziyang0910/RuralBrain.git
+cd RuralBrain
+
+# 进入 docker 目录
+cd docker
+
+# 停止旧服务（如果存在）
+docker-compose -f docker-compose.dev.yml -p ruralbrain down
+
+# 构建并启动所有服务（--build 会自动构建镜像）
+docker-compose -f docker-compose.dev.yml -p ruralbrain up -d --build
+
+# 查看服务状态
+docker-compose -f docker-compose.dev.yml -p ruralbrain ps
+
+# 查看日志
+docker-compose -f docker-compose.dev.yml -p ruralbrain logs -f
 ```
 
 #### 服务访问地址
@@ -60,11 +88,16 @@ docker-compose logs -f
 
 #### 停止服务
 ```bash
-# 停止所有服务
-docker-compose down
+# 生产环境 - 停止所有服务
+cd docker
+docker-compose -p ruralbrain down
+
+# 开发环境 - 停止所有服务
+cd docker
+docker-compose -f docker-compose.dev.yml -p ruralbrain down
 
 # 停止并删除数据卷
-docker-compose down -v
+docker-compose -f docker-compose.dev.yml -p ruralbrain down -v
 ```
 
 ---
@@ -132,8 +165,8 @@ npm run dev
 - **cow-detector**: 奶牛检测服务
 
 ### Docker Compose 配置
-- **[docker-compose.yml](docker-compose.yml)**: 完整的服务编排（前端 + 后端 + 所有检测服务）
-- **[docker-compose.all.yml](docker-compose.all.yml)**: 仅检测算法服务编排
+- **[docker/docker-compose.yml](docker/docker-compose.yml)**: 生产环境配置（前端 + 后端 + 所有检测服务）
+- **[docker/docker-compose.dev.yml](docker/docker-compose.dev.yml)**: 开发环境配置（支持热重载）
 
 ### 生产环境部署建议
 1. 设置环境变量 `ENVIRONMENT=production`

@@ -9,24 +9,21 @@
 
 完成了 RuralBrain 项目的 Docker 化部署架构优化，主要包含：
 
-1. **开发环境 Docker 化** - 创建 `deploy/dev/` 目录，实现所有服务的热重载功能
+1. **开发环境 Docker 化** - 创建 `docker/` 目录，实现所有服务的热重载功能
 2. **三合一检测服务架构** - 整合三个独立检测服务为统一容器，降低部署复杂度
 
 ---
 
-## 二、开发环境配置（deploy/dev/）
+## 二、开发环境配置（docker/）
 
 ### 2.1 目录结构
 
 ```
-deploy/dev/
+docker/
 ├── docker-compose.dev.yml    # 开发环境编排配置
 ├── Dockerfile.backend        # 后端开发镜像
 ├── Dockerfile.planning       # 规划服务开发镜像
 ├── Dockerfile.detector       # 检测服务开发镜像
-├── scripts/
-│   ├── dev-start.sh          # 一键启动脚本
-│   └── dev-stop.sh           # 一键停止脚本
 └── README.md                 # 使用指南
 ```
 
@@ -48,9 +45,8 @@ deploy/dev/
 ### 2.4 快速启动
 
 ```bash
-cd deploy/dev/scripts
-chmod +x dev-start.sh dev-stop.sh
-./dev-start.sh
+cd docker
+docker-compose -f docker-compose.dev.yml up -d
 ```
 
 ---
@@ -109,13 +105,11 @@ CMD ["/app/start_all.sh"]
 ## 四、新增文件清单
 
 ```
-deploy/dev/
+docker/
 ├── docker-compose.dev.yml
 ├── Dockerfile.backend
 ├── Dockerfile.planning
 ├── Dockerfile.detector
-├── scripts/dev-start.sh
-├── scripts/dev-stop.sh
 └── README.md
 
 src/algorithms/triple_detector/
@@ -128,5 +122,5 @@ src/algorithms/triple_detector/
 ---
 
 **相关文档**：
-- [deploy/dev/README.md](../deploy/dev/README.md) - 开发环境详细指南
+- [docker/README.md](../docker/README.md) - 开发环境详细指南
 - [CLAUDE.md](../CLAUDE.md) - 项目主文档
