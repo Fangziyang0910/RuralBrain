@@ -14,7 +14,7 @@ from .detection_utils import encode_image_to_base64, save_result_image
 
 DETECTION_API_URL = os.getenv(
     "PEST_DETECTION_API_URL",
-    "http://triple-detector:8001/pest/detect"
+    "http://detection-service:8001/detection/pest/detect"
 )
 SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 

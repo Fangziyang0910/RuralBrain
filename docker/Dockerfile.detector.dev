@@ -1,23 +1,18 @@
-# RuralBrain Triple Detector Development Dockerfile
-# 开发环境镜像 - 支持热重载的统一检测服务
-FROM python:3.12-slim
+# RuralBrain Algorithm Service Development Dockerfile
+# 开发环境镜像 - 支持热重载的统一算法服务
+FROM python:3.13-slim
 
 WORKDIR /app
 
 # 安装系统依赖（YOLOv8 需要的依赖）
-# 配置阿里云镜像源加速下载
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get clean
-# 使用 cache mount 缓存 APT 下载，加速后续构建
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout=60 && \
+# 注意：opencv-python 通过 uv 安装，不需要 apt 安装 python3-opencv
+# 不使用 cache mount 避免缓存损坏的数据
+RUN apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout=300 && \
     apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     pkg-config \
     libopencv-dev \
-    python3-opencv \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -30,18 +25,18 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_CACHE_DIR=/tmp/uv-cache \
     UV_HTTP_TIMEOUT=600 \
-    PYTHONPATH=/app/triple_detector
+    PYTHONPATH=/app/algorithms
 
 # 复制项目依赖配置文件
 COPY pyproject.toml uv.lock ./
 
 # 安装依赖（包含 YOLOv8 相关依赖）
-# 使用 cache mount 缓存 uv 下载，加速后续构建
+# 显式使用 Python 3.13，避免自动下载 3.14
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen
+    uv sync --frozen --python 3.13
 
 # 暴露统一服务端口
 EXPOSE 8001
 
 # 启动命令（使用 --reload 实现热重载）
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+CMD ["uv", "run", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

@@ -4,20 +4,12 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# 安装系统依赖（使用重试机制）
-# 配置阿里云镜像源加速下载
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get clean
-# 使用 cache mount 缓存 APT 下载，加速后续构建
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout=60 && \
+# 安装系统依赖
+# 注意：Backend 不直接使用 OpenCV，只调用 detection-service API
+# 不使用 cache mount 避免缓存损坏的数据
+RUN apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout=300 && \
     apt-get install -y --no-install-recommends \
     build-essential \
-    cmake \
-    pkg-config \
-    libopencv-dev \
-    python3-opencv \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -36,10 +28,9 @@ ENV PYTHONUNBUFFERED=1 \
 COPY pyproject.toml uv.lock ./
 
 # 安装依赖（包含开发依赖，支持热重载）
-# 使用 cache mount 缓存 uv 下载，加速后续构建
-# 注意：开发环境代码通过 volume 挂载，不需要 COPY
+# 显式使用 Python 3.13
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen
+    uv sync --frozen --python 3.13
 
 # 创建必要的目录
 RUN mkdir -p uploads pest_results cow_results rice_results

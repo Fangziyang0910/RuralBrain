@@ -40,10 +40,10 @@ services:
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=production
       - PLANNING_SERVICE_URL=http://planning-service:8003
-      # 统一检测服务 API 地址（使用路由前缀）
-      - PEST_DETECTION_API_URL=http://triple-detector:8001/pest/detect
-      - RICE_DETECTION_API_URL=http://triple-detector:8001/rice/predict
-      - COW_DETECTION_API_URL=http://triple-detector:8001/cow/detect
+      # 检测服务 API 地址（使用统一网关路由前缀 /detection）
+      - PEST_DETECTION_API_URL=http://detection-service:8001/detection/pest/detect
+      - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
+      - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
     volumes:
       - ../uploads:/app/uploads
       - ../pest_results:/app/pest_results
@@ -54,7 +54,7 @@ services:
       - ../service:/app/service:ro
       - ../run_server.py:/app/run_server.py:ro
     depends_on:
-      - triple-detector
+      - detection-service
       - planning-service
     restart: unless-stopped
     healthcheck:
@@ -66,21 +66,20 @@ services:
     networks:
       - ruralbrain-network
 
-  # 统一检测服务（整合病虫害、大米、奶牛三个检测服务）
-  triple-detector:
+  # 检测服务（整合病虫害、大米、奶牛等多种检测算法）
+  # 新架构：FastAPI 网关 + 独立算法模块
+  detection-service:
     build:
       context: ..
       dockerfile: docker/Dockerfile.detector
-    container_name: ruralbrain-triple-detector
+    container_name: ruralbrain-detection-service
     ports:
-      - "8001:8001"  # 统一服务端口
+      - "8001:8001"  # 检测服务端口
     environment:
       - ENVIRONMENT=production
-      - PYTHONPATH=/app/triple_detector
+      - PYTHONPATH=/app/algorithms
     volumes:
-      - ../src/algorithms/pest_detection/detector/models:/app/triple_detector/pest/models:ro
-      - ../src/algorithms/rice_detection/detector/models:/app/triple_detector/rice/models:ro
-      - ../src/algorithms/cow_detection/detector/models:/app/triple_detector/cow/models:ro
+      - ../src/algorithms/detection/models:/app/algorithms/detection/models:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8001/health"]

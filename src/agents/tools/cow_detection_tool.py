@@ -1,264 +1,169 @@
 """奶牛检测工具。
 
-使用本地 YOLO 模型检测图像或视频中的奶牛。
+调用奶牛检测服务分析图片中的奶牛种类和数量。
 """
-import json
-import os
-import cv2
-import uuid
-from datetime import datetime
 from pathlib import Path
+import os
 from typing import Any
 
-from ultralytics import YOLO
+import requests
 from langchain_core.tools import tool
 
-
-MODEL_DIR = Path("src/algorithms/cow_detection/detector/models")
-MODEL_FILE = "yolov8n.pt"
-RESULTS_DIR = Path("cow_detection_results")
+from .detection_utils import encode_image_to_base64, save_result_image
 
 
-def get_model_path() -> Path:
-    """获取模型文件的绝对路径。
-
-    Returns:
-        模型文件的 Path 对象
-    """
-    env_path = os.getenv("COW_MODEL_PATH")
-    if env_path:
-        return Path(env_path)
-
-    project_root = Path(__file__).resolve().parents[3]
-    return project_root / MODEL_DIR / MODEL_FILE
+DETECTION_API_URL = os.getenv(
+    "COW_DETECTION_API_URL",
+    "http://detection-service:8001/detection/cow/detect"
+)
+SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 
-def load_model() -> YOLO | None:
-    """加载 YOLO 模型。
-
-    Returns:
-        加载的 YOLO 模型，失败返回 None
-    """
-    model_path = get_model_path()
-
-    if not model_path.exists():
-        return None
-
-    return YOLO(str(model_path))
-
-
-def detect_cows(image_path: str, model: YOLO) -> dict[str, Any]:
-    """检测图片中的奶牛。
+def validate_image_path(image_path: str) -> None:
+    """验证图片路径是否有效。
 
     Args:
         image_path: 图片文件路径
-        model: YOLO 模型实例
 
-    Returns:
-        检测结果字典，包含奶牛数量、位置等信息
+    Raises:
+        FileNotFoundError: 图片文件不存在
+        ValueError: 文件格式不支持
     """
-    image = cv2.imread(image_path)
-    if image is None:
-        return {"success": False, "error": "无法读取图片文件"}
+    path = Path(image_path)
 
-    height, width = image.shape[:2]
-    results = model(image, verbose=False)
+    if not path.exists():
+        raise FileNotFoundError(f"图片文件不存在: {image_path}")
 
-    cow_boxes = []
-    for result in results:
-        boxes = result.boxes
-        if boxes:
-            for box in boxes:
-                class_id = int(box.cls[0])
-                confidence = float(box.conf[0])
-                class_name = model.names[class_id]
+    if not path.is_file():
+        raise ValueError(f"路径不是文件: {image_path}")
 
-                if class_name.lower() == "cow":
-                    x1, y1, x2, y2 = box.xyxy[0].tolist()
-                    cow_boxes.append({
-                        "class": "cow",
-                        "confidence": confidence,
-                        "bbox": [x1, y1, x2, y2],
-                        "center": [(x1 + x2) / 2, (y1 + y2) / 2]
-                    })
-
-    RESULTS_DIR.mkdir(exist_ok=True)
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    unique_id = uuid.uuid4().hex[:8]
-    result_image_name = f"cow_result_{timestamp}_{unique_id}.jpg"
-    result_image_path = RESULTS_DIR / result_image_name
-
-    result_image = image.copy()
-    for cow in cow_boxes:
-        x1, y1, x2, y2 = map(int, cow["bbox"])
-        confidence = cow["confidence"]
-
-        cv2.rectangle(result_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
-        label = f"Cow: {confidence:.2f}"
-        label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 2)[0]
-        cv2.rectangle(
-            result_image,
-            (x1, y1 - label_size[1] - 4),
-            (x1 + label_size[0], y1),
-            (0, 255, 0),
-            -1
-        )
-        cv2.putText(
-            result_image,
-            label,
-            (x1, y1 - 2),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (0, 0, 0),
-            2
+    if path.suffix.lower() not in SUPPORTED_FORMATS:
+        raise ValueError(
+            f"不支持的图片格式: {path.suffix}。"
+            f"支持的格式: {', '.join(SUPPORTED_FORMATS)}"
         )
 
-    cv2.imwrite(str(result_image_path), result_image)
 
-    return {
-        "success": True,
-        "cow_count": len(cow_boxes),
-        "cow_boxes": cow_boxes,
-        "image_size": {"width": width, "height": height},
-        "result_image_path": str(result_image_path),
-        "result_image_name": result_image_name
-    }
-
-
-def process_video(video_path: str, model: YOLO) -> dict[str, Any]:
-    """处理视频文件中的奶牛检测。
+def encode_image_to_base64_with_validation(image_path: str) -> str:
+    """编码图片为 base64 并进行验证。
 
     Args:
-        video_path: 视频文件路径
-        model: YOLO 模型实例
+        image_path: 图片文件路径
 
     Returns:
-        检测结果字典，包含奶牛统计信息
+        base64 编码的图片字符串
     """
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        return {"success": False, "error": "无法打开视频文件"}
+    validate_image_path(image_path)
+    return encode_image_to_base64(image_path)
 
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    frame_results = []
-    frame_count = 0
+def save_result_image_base64(image_base64: str) -> str:
+    """保存检测结果图像到本地。
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    Args:
+        image_base64: base64 编码的结果图像
 
-        if frame_count % 10 == 0:
-            results = model(frame, verbose=False)
-            cow_count = 0
-            for result in results:
-                boxes = result.boxes
-                if boxes:
-                    for box in boxes:
-                        class_id = int(box.cls[0])
-                        class_name = model.names[class_id]
-                        if class_name.lower() == "cow":
-                            cow_count += 1
+    Returns:
+        保存的图像文件绝对路径
+    """
+    import base64
 
-            frame_results.append({
-                "frame": frame_count,
-                "time": frame_count / fps,
-                "cow_count": cow_count
-            })
+    image_data = base64.b64decode(image_base64)
+    return save_result_image(image_data, "cow_detection_results", "cow_detection")
 
-        frame_count += 1
 
-    cap.release()
+def format_detection_result(api_response: dict[str, Any]) -> str:
+    """将检测接口返回的结果格式化为简洁的数据摘要。
 
-    if frame_results:
-        max_cows = max(r["cow_count"] for r in frame_results)
-        avg_cows = sum(r["cow_count"] for r in frame_results) / len(frame_results)
-    else:
-        max_cows = 0
-        avg_cows = 0
+    Args:
+        api_response: 检测接口返回的 JSON 数据
 
-    return {
-        "success": True,
-        "video_info": {
-            "duration": total_frames / fps,
-            "fps": fps,
-            "total_frames": total_frames
-        },
-        "detection_results": {
-            "max_cows": max_cows,
-            "avg_cows": avg_cows,
-            "frame_results": frame_results
-        }
-    }
+    Returns:
+        简洁的检测结果字符串
+    """
+    if not api_response.get("success"):
+        error_msg = api_response.get("error", api_response.get("message", "未知错误"))
+        return f"检测失败: {error_msg}"
+
+    detections = api_response.get("detections", [])
+
+    if not detections:
+        return "检测完成，未发现奶牛。"
+
+    result_parts = []
+    total_count = 0
+    for detection in detections:
+        name = detection.get("name", "未知品种")
+        count = detection.get("count", 0)
+        total_count += count
+        result_parts.append(f"{name}({count}只)")
+
+    summary = "、".join(result_parts)
+    return f"检测结果: {summary}，共计{total_count}只奶牛"
 
 
 @tool
-def cow_detection_tool(file_path: str) -> str:
-    """检测图像或视频中的奶牛。
+def cow_detection_tool(image_path: str) -> str:
+    """调用奶牛检测服务分析图片中的奶牛种类和数量。
 
-    该工具使用本地 YOLO 模型检测奶牛，支持：
-    1. 图像检测：检测奶牛数量、位置，并保存带标注的结果图像
-    2. 视频检测：统计视频中的奶牛数量变化
+    该工具会：
+    1. 读取指定路径的图片文件
+    2. 将图片发送到奶牛检测服务（基于 YOLOv8 模型）进行分析
+    3. 自动保存带标注框的检测结果图像到本地（cow_detection_results 目录）
+    4. 返回奶牛检测的文字摘要结果
+
+    注意：检测结果图像会自动保存，但不会在返回结果中包含图像路径，
+    以避免占用过多 token。
 
     Args:
-        file_path: 本地文件路径，支持格式：
-            - 图像：.jpg, .jpeg, .png, .bmp
-            - 视频：.mp4, .avi, .mov
+        image_path: 图片文件的本地路径，支持格式：jpg、jpeg、png、bmp、webp
 
     Returns:
-        JSON 格式的检测结果，包含：
-        - success: 操作是否成功
-        - cow_count: 奶牛数量（图像）
-        - cow_boxes: 奶牛位置信息（图像）
-        - result_image_path: 结果图像保存路径（图像）
-        - max_cows: 最大奶牛数量（视频）
-        - avg_cows: 平均奶牛数量（视频）
-        - error: 错误信息（失败时）
+        检测结果字符串，示例：
+        - 成功："检测结果: 荷斯坦牛(3只)、娟姗牛(2只)，共计5只奶牛"
+        - 未检测到："检测完成，未发现奶牛。"
+        - 失败："检测失败: [错误原因]"
 
     Examples:
-        >>> cow_detection_tool("cows.jpg")
-        '{"success": true, "cow_count": 3, ...}'
-
-        >>> cow_detection_tool("farm.mp4")
-        '{"success": true, "max_cows": 5, ...}'
+        >>> cow_detection_tool("test_images/cows1.jpg")
+        "检测结果: 荷斯坦牛(3只)、娟姗牛(2只)，共计5只奶牛"
     """
-    if not file_path or not os.path.exists(file_path):
-        return json.dumps(
-            {"success": False, "error": f"文件路径不存在: {file_path}"},
-            ensure_ascii=False
-        )
-
-    model = load_model()
-    if model is None:
-        return json.dumps(
-            {"success": False, "error": f"模型文件不存在: {get_model_path()}"},
-            ensure_ascii=False
-        )
-
-    file_ext = os.path.splitext(file_path)[1].lower()
-
     try:
-        if file_ext in {".jpg", ".jpeg", ".png", ".bmp"}:
-            result = detect_cows(file_path, model)
-        elif file_ext in {".mp4", ".avi", ".mov"}:
-            result = process_video(file_path, model)
-        else:
-            return json.dumps(
-                {"success": False, "error": f"不支持的文件格式: {file_ext}"},
-                ensure_ascii=False
-            )
+        image_base64 = encode_image_to_base64_with_validation(image_path)
 
-        return json.dumps(result, ensure_ascii=False)
+        payload = {"image_base64": image_base64}
 
-    except Exception as e:
-        return json.dumps(
-            {"success": False, "error": f"检测处理失败: {str(e)}"},
-            ensure_ascii=False
+        response = requests.post(
+            DETECTION_API_URL,
+            json=payload,
+            timeout=60
         )
+
+        if response.status_code != 200:
+            return f"检测服务请求失败 (HTTP {response.status_code})"
+
+        api_response = response.json()
+
+        if api_response.get("success") and api_response.get("result_image"):
+            try:
+                save_result_image_base64(api_response["result_image"])
+            except Exception:
+                pass
+
+        return format_detection_result(api_response)
+
+    except FileNotFoundError as e:
+        return f"文件错误: {str(e)}"
+    except ValueError as e:
+        return f"参数错误: {str(e)}"
+    except requests.Timeout:
+        return "检测服务请求超时，请检查服务是否正常运行"
+    except requests.ConnectionError:
+        return "无法连接到检测服务，请确认服务已启动"
+    except requests.exceptions.JSONDecodeError as e:
+        return f"检测服务返回数据格式错误: {str(e)}"
+    except Exception as e:
+        return f"检测过程发生未知错误: {type(e).__name__}: {str(e)}"
 
 
 __all__ = ["cow_detection_tool"]

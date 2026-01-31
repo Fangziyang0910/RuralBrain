@@ -22,7 +22,7 @@ RUN apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout
 # 复制 uv 并安装依赖（统一使用 pyproject.toml/uv.lock）
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --python 3.13
 
 # 复制应用代码
 COPY src/ ./src/

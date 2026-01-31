@@ -51,31 +51,29 @@ services:
       - ../rice_results:/app/rice_results          # 大米检测结果
     command: ["uv", "run", "python", "run_server.py"]
     depends_on:
-      - triple-detector
+      - detection-service
       - planning-service
     restart: unless-stopped
     networks:
       - ruralbrain-network
 
-  # 统一检测服务（开发模式 - 支持热重载）
-  triple-detector:
+  # 检测服务（开发模式 - 支持热重载）
+  # 新架构：FastAPI 网关 + 独立算法模块
+  detection-service:
     build:
       context: ../
       dockerfile: docker/Dockerfile.detector.dev
-    image: ruralbrain-triple-detector
-    container_name: ruralbrain-triple-detector-dev
+    image: ruralbrain-detection-service
+    container_name: ruralbrain-detection-service-dev
     ports:
-      - "8001:8001"  # 统一服务端口
+      - "8001:8001"  # 检测服务端口
     environment:
       - ENVIRONMENT=development
       - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/triple_detector
+      - PYTHONPATH=/app/algorithms
     volumes:
-      - ../src/algorithms/triple_detector:/app/triple_detector                    # 统一服务代码（热重载）
-      - ../src/algorithms/pest_detection/detector/models:/app/triple_detector/pest/models:ro
-      - ../src/algorithms/rice_detection/detector/models:/app/triple_detector/rice/models:ro
-      - ../src/algorithms/cow_detection/detector/models:/app/triple_detector/cow/models:ro
-      - ../src/algorithms/triple_detector/uploads:/app/triple_detector/uploads      # 上传目录
+      - ../src/algorithms:/app/algorithms                                    # 算法服务代码（热重载，包含 api/ 和 detection/）
+      - ../src/algorithms/detection/uploads:/app/algorithms/detection/uploads  # 上传目录
     # 命令在 Dockerfile 中通过 CMD 指定（使用 --reload）
     restart: unless-stopped
     networks:

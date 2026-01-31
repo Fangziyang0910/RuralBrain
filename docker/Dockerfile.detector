@@ -1,29 +1,24 @@
-# RuralBrain Triple Detector Production Dockerfile
-# 统一检测服务 - 整合病虫害、大米、奶牛三个检测服务
-FROM python:3.12-slim
+# RuralBrain Algorithm Service Production Dockerfile
+# 统一算法服务 - FastAPI 网关 + 检测算法模块
+FROM python:3.13-slim
 
 WORKDIR /app
 
 # 设置环境变量
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app \
+    PYTHONPATH=/app/algorithms \
     YOLO_CONFIG_DIR=/app/ultralytics
 
 # 安装系统依赖（YOLOv8 需要的依赖）
-# 配置阿里云镜像源加速下载
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get clean
-# 使用 cache mount 缓存 APT 下载，加速后续构建
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout=60 && \
+# 注意：opencv-python 通过 uv 安装，不需要 apt 安装 python3-opencv
+# 不使用 cache mount 避免缓存损坏的数据
+RUN apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout=300 && \
     apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     pkg-config \
     libopencv-dev \
-    python3-opencv \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -33,27 +28,22 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # 复制项目依赖配置文件
 COPY pyproject.toml uv.lock ./
 
-# 安装 Python 依赖（使用 cache mount 缓存）
+# 安装 Python 依赖（显式使用 Python 3.13，避免自动下载 3.14）
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --frozen --no-dev --python 3.13
 
-# 复制统一检测服务代码
-COPY src/algorithms/triple_detector ./triple_detector/
-
-# 复制三个检测服务的模型目录（保持原有结构）
-COPY src/algorithms/pest_detection/detector/models ./triple_detector/pest/models/
-COPY src/algorithms/rice_detection/detector/models ./triple_detector/rice/models/
-COPY src/algorithms/cow_detection/detector/models ./triple_detector/cow/models/
+# 复制算法服务代码（包含 API 网关和检测算法）
+COPY src/algorithms ./algorithms/
 
 # 创建非root用户并设置权限
 RUN useradd --create-home --shell /bin/bash appuser && \
-    mkdir -p /app/triple_detector/uploads /app/ultralytics && \
+    mkdir -p /app/algorithms/detection/uploads /app/ultralytics && \
     chown -R appuser:appuser /app
 
 USER appuser
 
-# 切换到统一服务目录
-WORKDIR /app/triple_detector
+# 切换到算法服务目录
+WORKDIR /app/algorithms
 
 # 暴露统一服务端口
 EXPOSE 8001
@@ -62,5 +52,5 @@ EXPOSE 8001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8001/health || exit 1
 
-# 启动统一检测服务（单 uvicorn 进程）
-CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+# 启动统一算法服务（FastAPI 网关）
+CMD ["uv", "run", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8001"]
