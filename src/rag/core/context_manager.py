@@ -56,20 +56,26 @@ class DocumentContextManager:
 
     def build_index(self, documents: list[Document], splits: list[Document]) -> None:
         """从原始文档和切片构建索引"""
-        # 按来源分组
-        original_docs = {doc.metadata.get("source", "unknown"): doc for doc in documents}
+        # 按来源分组切片
         splits_by_source: dict[str, list[Document]] = {}
-
         for split in splits:
             source = split.metadata.get("source", "unknown")
             splits_by_source.setdefault(source, []).append(split)
 
-        # 构建索引
+        # 构建索引（合并相同 source 的文档内容）
         self.doc_index = {}
 
-        for source, orig_doc in original_docs.items():
-            source_splits = splits_by_source.get(source, [])
+        # 按来源合并文档内容
+        docs_by_source: dict[str, list[Document]] = {}
+        for doc in documents:
+            source = doc.metadata.get("source", "unknown")
+            docs_by_source.setdefault(source, []).append(doc)
 
+        for source, source_docs in docs_by_source.items():
+            # 合并所有相同 source 的文档内容（解决 PPT 多页问题）
+            merged_content = "\n\n".join([doc.page_content for doc in source_docs])
+
+            source_splits = splits_by_source.get(source, [])
             chunks_info = [
                 {
                     "start_index": split.metadata.get("start_index", 0),
@@ -79,11 +85,13 @@ class DocumentContextManager:
                 for split in source_splits
             ]
 
+            # 使用第一个文档的元数据
+            first_doc = source_docs[0]
             self.doc_index[source] = DocumentIndex(
                 source=source,
-                doc_type=orig_doc.metadata.get("type", "unknown"),
-                full_content=orig_doc.page_content,
-                metadata=orig_doc.metadata,
+                doc_type=first_doc.metadata.get("type", "unknown"),
+                full_content=merged_content,
+                metadata=first_doc.metadata,
                 chunks_info=chunks_info
             )
 
