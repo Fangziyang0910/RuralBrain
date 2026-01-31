@@ -86,20 +86,20 @@ model = model_manager.get_chat_model()
 
 ## 在 Agent 中使用
 
-`image_detection_agent.py` 已更新为使用模型管理器:
+`src/agents/orchestrator_agent_v2.py` 已集成模型管理器：
 
 ```python
-from src.utils import ModelManager
+from src.config import ModelManager
 
 # 自动从环境变量读取配置
 model_manager = ModelManager.from_env()
 model = model_manager.get_chat_model()
 
 # 在 agent 中使用
-agent = create_agent(
+agent = create_react_agent(
     model=model,
-    tools=[...],
-    system_prompt=SYSTEM_PROMPT,
+    tools=tools,
+    state_modifier=system_prompt,
 )
 ```
 
@@ -132,6 +132,20 @@ $env:MODEL_PROVIDER="glm"; python main.py
 ```bash
 MODEL_PROVIDER=glm python main.py
 ```
+
+## Agent 版本配置
+
+RuralBrain 支持两个 Agent 版本，可以通过环境变量切换：
+
+```bash
+# .env 文件
+AGENT_VERSION=v2  # 或 v1
+```
+
+- **V1（传统架构）**：固定提示词，所有工具始终加载
+- **V2（Skills 架构）**：渐进式披露，按需加载技能（推荐）
+
+详细说明：[V2 Agent 架构](../architecture/v2-agent-upgrade.md)
 
 ## 模型配置
 
@@ -166,7 +180,7 @@ MODEL_CONFIGS = {
 **解决方案:**
 - 检查 `.env` 文件是否存在且配置正确
 - 确认对应的环境变量名称正确(DEEPSEEK_API_KEY 或 ZHIPUAI_API_KEY)
-- 确保在 `main.py` 中已调用 `load_dotenv()`
+- 确保在服务启动时已加载环境变量
 
 ### 问题: 不支持的供应商
 
@@ -179,4 +193,7 @@ MODEL_CONFIGS = {
 **解决方案:**
 - 验证 API Key 是否有效
 - 检查网络连接
-- 查看模型名称是否正确(如 "deepseek-chat" 或 "glm-4")
+- 查看模型名称是否正确（如 "deepseek-chat" 或 "glm-4"）
+
+**最后更新**: 2026-01-31
+**版本**: v2.0

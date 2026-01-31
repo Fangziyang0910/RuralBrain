@@ -186,6 +186,11 @@ export type Message = {
 
 ## 🔗 相关文档
 
-- [前端开发指南](./frontend_guide.md)
-- [API 接口文档](../README.md)
-- [模型管理文档](./model_management.md)
+- [前端开发指南](frontend.md)
+- [服务管理指南](service-management.md)
+- [部署指南](deployment.md)
+
+---
+
+**最后更新**: 2026-01-31
+**版本**: v2.0

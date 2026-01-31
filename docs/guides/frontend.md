@@ -359,11 +359,10 @@ $env:PORT=8081   # Windows PowerShell
 
 ## 🔗 相关文档
 
-- [项目总览](../PROJECT_OVERVIEW.md)
-- [模型管理文档](model_management.md)
-- [多图上传指南](multi_image_upload_guide.md)
-- [场景 Demo 说明](场景demo.md)
-- [Docker 部署指南](../docker-compose.all.yml)
+- [项目概览](../overview/PROJECT_OVERVIEW.md)
+- [部署指南](deployment.md)
+- [模型管理](model-management.md)
+- [服务管理](service-management.md)
 
 ## 💡 技术支持
 
@@ -371,4 +370,8 @@ $env:PORT=8081   # Windows PowerShell
 1. 查看后端终端日志
 2. 检查浏览器控制台错误信息
 3. 访问 `/docs` 查看 API 文档
-4. 参考项目 GitHub Issues
+
+---
+
+**最后更新**: 2026-01-31
+**版本**: v2.0
