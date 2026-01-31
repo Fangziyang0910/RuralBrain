@@ -1,5 +1,5 @@
 # RuralBrain Triple Detector Development Dockerfile
-# 开发环境镜像 - 支持三个检测服务热重载
+# 开发环境镜像 - 支持热重载的统一检测服务
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -29,7 +29,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_CACHE_DIR=/tmp/uv-cache \
-    UV_HTTP_TIMEOUT=600
+    UV_HTTP_TIMEOUT=600 \
+    PYTHONPATH=/app/triple_detector
 
 # 复制项目依赖配置文件
 COPY pyproject.toml uv.lock ./
@@ -39,8 +40,8 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen
 
-# 暴露三个端口
-EXPOSE 8001 8081 8002
+# 暴露统一服务端口
+EXPOSE 8001
 
-# 启动命令（使用 start_all_dev.sh 启动三个带热重载的服务）
-CMD ["bash", "/app/start_all_dev.sh"]
+# 启动命令（使用 --reload 实现热重载）
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

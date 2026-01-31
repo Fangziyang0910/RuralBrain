@@ -15,7 +15,7 @@ from .detection_utils import encode_image_to_base64, save_result_image
 
 API_URL = os.getenv(
     "RICE_DETECTION_API_URL",
-    "http://triple-detector:8081/predict"
+    "http://triple-detector:8001/rice/predict"
 )
 SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 

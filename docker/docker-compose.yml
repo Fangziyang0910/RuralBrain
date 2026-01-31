@@ -40,8 +40,10 @@ services:
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=production
       - PLANNING_SERVICE_URL=http://planning-service:8003
-      - PEST_DETECTION_API_URL=http://triple-detector:8001/detect
-      - RICE_DETECTION_API_URL=http://triple-detector:8081/predict
+      # 统一检测服务 API 地址（使用路由前缀）
+      - PEST_DETECTION_API_URL=http://triple-detector:8001/pest/detect
+      - RICE_DETECTION_API_URL=http://triple-detector:8001/rice/predict
+      - COW_DETECTION_API_URL=http://triple-detector:8001/cow/detect
     volumes:
       - ../uploads:/app/uploads
       - ../pest_results:/app/pest_results
@@ -64,25 +66,24 @@ services:
     networks:
       - ruralbrain-network
 
-  # 三合一检测服务（替代原来的三个独立服务）
+  # 统一检测服务（整合病虫害、大米、奶牛三个检测服务）
   triple-detector:
     build:
       context: ..
       dockerfile: docker/Dockerfile.detector
     container_name: ruralbrain-triple-detector
     ports:
-      - "8001:8001"  # 病虫害检测
-      - "8081:8081"  # 大米检测
-      - "8002:8002"  # 牛只检测
+      - "8001:8001"  # 统一服务端口
     environment:
       - ENVIRONMENT=production
+      - PYTHONPATH=/app/triple_detector
     volumes:
-      - ../src/algorithms/pest_detection/detector/models:/app/pest/models:ro
-      - ../src/algorithms/rice_detection/detector/models:/app/rice/models:ro
-      - ../src/algorithms/cow_detection/detector/models:/app/cow/models:ro
+      - ../src/algorithms/pest_detection/detector/models:/app/triple_detector/pest/models:ro
+      - ../src/algorithms/rice_detection/detector/models:/app/triple_detector/rice/models:ro
+      - ../src/algorithms/cow_detection/detector/models:/app/triple_detector/cow/models:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8001/health && curl -f http://localhost:8081/health && curl -f http://localhost:8002/health"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health"]
       interval: 30s
       timeout: 15s
       retries: 3

@@ -57,7 +57,7 @@ services:
     networks:
       - ruralbrain-network
 
-  # 三合一检测服务（开发模式）
+  # 统一检测服务（开发模式 - 支持热重载）
   triple-detector:
     build:
       context: ../
@@ -65,21 +65,18 @@ services:
     image: ruralbrain-triple-detector
     container_name: ruralbrain-triple-detector-dev
     ports:
-      - "8001:8001"
-      - "8081:8081"
-      - "8002:8002"
+      - "8001:8001"  # 统一服务端口
     environment:
       - ENVIRONMENT=development
       - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/triple_detector
     volumes:
-      - ../src/algorithms/pest_detection/detector:/app/pest
-      - ../src/algorithms/rice_detection/detector:/app/rice
-      - ../src/algorithms/cow_detection/detector:/app/cow
-      - ../src/algorithms/pest_detection/detector/models:/app/pest/models:ro
-      - ../src/algorithms/rice_detection/detector/models:/app/rice/models:ro
-      - ../src/algorithms/cow_detection/detector/models:/app/cow/models:ro
-      - ../src/algorithms/triple_detector/start_all_dev.sh:/app/start_all_dev.sh
-    command: ["bash", "/app/start_all_dev.sh"]
+      - ../src/algorithms/triple_detector:/app/triple_detector                    # 统一服务代码（热重载）
+      - ../src/algorithms/pest_detection/detector/models:/app/triple_detector/pest/models:ro
+      - ../src/algorithms/rice_detection/detector/models:/app/triple_detector/rice/models:ro
+      - ../src/algorithms/cow_detection/detector/models:/app/triple_detector/cow/models:ro
+      - ../src/algorithms/triple_detector/uploads:/app/triple_detector/uploads      # 上传目录
+    # 命令在 Dockerfile 中通过 CMD 指定（使用 --reload）
     restart: unless-stopped
     networks:
       - ruralbrain-network

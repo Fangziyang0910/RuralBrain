@@ -1,5 +1,5 @@
 # RuralBrain Triple Detector Production Dockerfile
-# 生产环境镜像 - 三合一检测服务
+# 统一检测服务 - 整合病虫害、大米、奶牛三个检测服务
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -37,30 +37,30 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
-# 复制三个服务的完整代码
-COPY src/algorithms/pest_detection/detector ./pest/
-COPY src/algorithms/rice_detection/detector ./rice/
-COPY src/algorithms/cow_detection/detector ./cow/
+# 复制统一检测服务代码
+COPY src/algorithms/triple_detector ./triple_detector/
+
+# 复制三个检测服务的模型目录（保持原有结构）
+COPY src/algorithms/pest_detection/detector/models ./triple_detector/pest/models/
+COPY src/algorithms/rice_detection/detector/models ./triple_detector/rice/models/
+COPY src/algorithms/cow_detection/detector/models ./triple_detector/cow/models/
 
 # 创建非root用户并设置权限
 RUN useradd --create-home --shell /bin/bash appuser && \
-    mkdir -p /app/pest/uploads /app/rice/uploads /app/cow/uploads /app/ultralytics && \
+    mkdir -p /app/triple_detector/uploads /app/ultralytics && \
     chown -R appuser:appuser /app
 
 USER appuser
 
-# 复制启动脚本并转换换行符
-COPY src/algorithms/triple_detector/start_all.sh .
-RUN sed -i 's/\r$//' start_all.sh
+# 切换到统一服务目录
+WORKDIR /app/triple_detector
 
-# 暴露三个端口
-EXPOSE 8001 8081 8002
+# 暴露统一服务端口
+EXPOSE 8001
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8001/health && \
-        curl -f http://localhost:8081/health && \
-        curl -f http://localhost:8002/health || exit 1
+    CMD curl -f http://localhost:8001/health || exit 1
 
-# 启动所有服务
-CMD ["bash", "start_all.sh"]
+# 启动统一检测服务（单 uvicorn 进程）
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
