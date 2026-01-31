@@ -10,7 +10,7 @@ import threading
 from typing import Dict, List, Tuple, Optional
 from ultralytics import YOLO
 
-from detection.config import config
+from src.algorithms.detection.config import config
 
 
 class CowModelService:

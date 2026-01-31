@@ -1,10 +1,12 @@
 import { NextRequest } from 'next/server';
 
-export const runtime = 'edge'; // 使用 Edge Runtime 以获得更好的流式支持
+// 使用 Node.js Runtime 以支持环境变量和本地开发
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    const backendBase = process.env.BACKEND_URL ?? 'http://backend:8080';
+    // 优先使用环境变量，否则使用本地开发地址
+    const backendBase = process.env.BACKEND_URL ?? 'http://localhost:8080';
     // 获取请求体
     const body = await request.json();
 

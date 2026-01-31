@@ -54,7 +54,7 @@ app.add_middleware(
 )
 
 # 导入检测算法的路由
-from api.routes.detection import router as detection_router
+from src.algorithms.api.routes.detection import router as detection_router
 
 # 注册路由，添加前缀
 app.include_router(detection_router, prefix="/detection", tags=["检测服务"])

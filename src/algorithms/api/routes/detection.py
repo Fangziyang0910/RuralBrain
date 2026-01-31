@@ -13,14 +13,14 @@ router = APIRouter()
 
 # 导入检测算法服务（纯算法代码）
 # 注意：这些服务不依赖 FastAPI，可以独立测试
-from detection.services.pest_service import pest_service
-from detection.services.rice_service import rice_service
-from detection.services.cow_service import cow_service
+from src.algorithms.detection.services.pest_service import pest_service
+from src.algorithms.detection.services.rice_service import rice_service
+from src.algorithms.detection.services.cow_service import cow_service
 
 # 导入数据模型
-from detection.schemas.pest import DetectRequest as PestDetectionRequest, DetectResponse as PestDetectionResponse
-from detection.schemas.rice import RicePredictionRequest as RiceDetectionRequest, RicePredictionResponse as RiceDetectionResponse
-from detection.schemas.cow import DetectRequest as CowDetectionRequest, DetectResponse as CowDetectionResponse
+from src.algorithms.detection.schemas.pest import DetectRequest as PestDetectionRequest, DetectResponse as PestDetectionResponse
+from src.algorithms.detection.schemas.rice import RicePredictionRequest as RiceDetectionRequest, RicePredictionResponse as RiceDetectionResponse
+from src.algorithms.detection.schemas.cow import DetectRequest as CowDetectionRequest, DetectResponse as CowDetectionResponse
 
 
 # ==================== 病虫害检测 ====================
