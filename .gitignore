@@ -68,8 +68,7 @@ src/data/cases/
 
 # Node.js
 node_modules/
-package-lock.json
-package.json
+# 注意：前端需要 package.json 和 package-lock.json，不能忽略
 
 references/
 
