@@ -64,12 +64,12 @@ def save_result_image_base64(image_base64: str) -> str:
         image_base64: base64 编码的结果图像
 
     Returns:
-        保存的图像文件绝对路径
+        保存的图像文件访问路径
     """
     import base64
 
     image_data = base64.b64decode(image_base64)
-    return save_result_image(image_data, "pest_detection_results", "pest_detection")
+    return save_result_image(image_data, "pest", "pest_detection")
 
 
 def format_detection_result(api_response: dict[str, Any]) -> str:

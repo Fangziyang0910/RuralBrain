@@ -8,7 +8,9 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/algorithms \
-    YOLO_CONFIG_DIR=/app/ultralytics
+    YOLO_CONFIG_DIR=/app/ultralytics \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    UV_HTTP_TIMEOUT=600
 
 # 安装系统依赖（YOLOv8 需要的依赖）
 # 注意：opencv-python 通过 uv 安装，不需要 apt 安装 python3-opencv
@@ -37,8 +39,8 @@ COPY src/algorithms ./algorithms/
 
 # 创建非root用户并设置权限
 RUN useradd --create-home --shell /bin/bash appuser && \
-    mkdir -p /app/algorithms/detection/uploads /app/ultralytics && \
-    chown -R appuser:appuser /app
+    mkdir -p /app/ultralytics /tmp/uv-cache && \
+    chown -R appuser:appuser /app /tmp/uv-cache
 
 USER appuser
 

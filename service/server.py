@@ -42,13 +42,6 @@ SSE_HEADERS = {
     "X-Accel-Buffering": "no",
 }
 
-# 检测结果目录配置
-DETECTION_RESULT_DIRS = {
-    "pest": ("pest_detection_results", "pest_detection_*.jpg", "/pest_results"),
-    "cow": ("cow_detection_results", "cow_result_*.jpg", "/cow_results"),
-    "rice": ("rice_detection_results", "rice_detection_*.jpg", "/rice_results"),
-}
-
 app = FastAPI(
     title="RuralBrain API",
     description="乡村智慧大脑 - 图像检测对话服务",
@@ -66,10 +59,16 @@ app.add_middleware(
 
 def mount_static_dirs():
     """挂载所有静态文件目录"""
+    from service.settings import DETECTION_RESULTS_DIR
+
     app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
-    for name, (dir_path, _, mount_name) in DETECTION_RESULT_DIRS.items():
-        Path(dir_path).mkdir(parents=True, exist_ok=True)
-        app.mount(f"/{mount_name.strip('/')}", StaticFiles(directory=dir_path), name=name)
+
+    # 挂载检测结果目录
+    for detection_type in ["pest", "cow", "rice"]:
+        url_path = f"/{detection_type}_results"
+        dir_path = DETECTION_RESULTS_DIR / detection_type
+        if dir_path.exists():
+            app.mount(url_path, StaticFiles(directory=str(dir_path)), name=detection_type)
 
 
 mount_static_dirs()
@@ -475,7 +474,8 @@ async def chat_stream(request: ChatRequest):
                         result_image = None
                         if tool_name == "pest_detection_tool":
                             # 查找最新的害虫检测结果图片
-                            result_dir = Path("pest_detection_results")
+                            from service.settings import DETECTION_RESULTS_DIR
+                            result_dir = DETECTION_RESULTS_DIR / "pest"
                             if result_dir.exists():
                                 images = sorted(result_dir.glob("pest_detection_*.jpg"),
                                               key=lambda p: p.stat().st_mtime, reverse=True)
@@ -484,7 +484,8 @@ async def chat_stream(request: ChatRequest):
 
                         elif tool_name == "rice_detection_tool":
                             # 查找最新的大米检测结果图片
-                            result_dir = Path("rice_detection_results")
+                            from service.settings import DETECTION_RESULTS_DIR
+                            result_dir = DETECTION_RESULTS_DIR / "rice"
                             if result_dir.exists():
                                 images = sorted(result_dir.glob("rice_detection_*.jpg"),
                                               key=lambda p: p.stat().st_mtime, reverse=True)
@@ -493,9 +494,10 @@ async def chat_stream(request: ChatRequest):
 
                         elif tool_name == "cow_detection_tool":
                             # 查找最新的牛只检测结果图片
-                            result_dir = Path("cow_detection_results")
+                            from service.settings import DETECTION_RESULTS_DIR
+                            result_dir = DETECTION_RESULTS_DIR / "cow"
                             if result_dir.exists():
-                                images = sorted(result_dir.glob("cow_result_*.jpg"),
+                                images = sorted(result_dir.glob("cow_detection_*.jpg"),
                                               key=lambda p: p.stat().st_mtime, reverse=True)
                                 if images:
                                     result_image = f"/cow_results/{images[0].name}"

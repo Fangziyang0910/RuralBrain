@@ -39,16 +39,16 @@ services:
       - ENVIRONMENT=development
       - PLANNING_SERVICE_URL=http://planning-service:8003
       - PYTHONPATH=/app
+      - MAX_CACHE_SIZE=400
     volumes:
       - ../service:/app/service                    # 服务代码
       - ../src:/app/src                            # 源代码
       - ../run_server.py:/app/run_server.py        # 启动脚本
       - ../pyproject.toml:/app/pyproject.toml      # 依赖配置
       - ../uv.lock:/app/uv.lock                    # 依赖锁文件
-      - ../uploads:/app/uploads                    # 上传目录
-      - ../pest_results:/app/pest_results          # 病虫害检测结果
-      - ../cow_results:/app/cow_results            # 奶牛检测结果
-      - ../rice_results:/app/rice_results          # 大米检测结果
+    # 使用 tmpfs 存储临时文件（内存存储，容器重启自动清空）
+    tmpfs:
+      - /tmp/ruralbrain:size=500M,mode=0777
     command: ["uv", "run", "python", "run_server.py"]
     depends_on:
       - detection-service
@@ -72,8 +72,7 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONPATH=/app/algorithms
     volumes:
-      - ../src/algorithms:/app/algorithms                                    # 算法服务代码（热重载，包含 api/ 和 detection/）
-      - ../src/algorithms/detection/uploads:/app/algorithms/detection/uploads  # 上传目录
+      - ../src/algorithms:/app/algorithms  # 算法服务代码（热重载，包含 api/ 和 detection/）
     # 命令在 Dockerfile 中通过 CMD 指定（使用 --reload）
     restart: unless-stopped
     networks:

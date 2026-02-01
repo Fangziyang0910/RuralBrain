@@ -32,8 +32,8 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --python 3.13
 
-# 创建必要的目录
-RUN mkdir -p uploads pest_results cow_results rice_results
+# 创建临时文件根目录（/tmp 通常是已存在的，这里确保子目录存在）
+RUN mkdir -p /tmp/ruralbrain
 
 # 暴露端口
 EXPOSE 8080

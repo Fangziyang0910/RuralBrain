@@ -44,15 +44,16 @@ services:
       - PEST_DETECTION_API_URL=http://detection-service:8001/detection/pest/detect
       - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
+      # 缓存容量限制（MB）
+      - MAX_CACHE_SIZE=400
     volumes:
-      - ../uploads:/app/uploads
-      - ../pest_results:/app/pest_results
-      - ../cow_results:/app/cow_results
-      - ../rice_results:/app/rice_results
       - ../knowledge_base:/app/knowledge_base:ro
       - ../src:/app/src:ro
       - ../service:/app/service:ro
       - ../run_server.py:/app/run_server.py:ro
+    # 使用 tmpfs 存储临时文件（内存存储，容器重启自动清空）
+    tmpfs:
+      - /tmp/ruralbrain:size=500M,mode=0777
     depends_on:
       - detection-service
       - planning-service

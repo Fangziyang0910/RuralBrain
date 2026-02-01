@@ -39,12 +39,19 @@ Desktop.ini
 
 # algorithms input and output
 uploads/
+pest_results/
+cow_results/
+rice_results/
 pest_detection_results/
 cow_detection_results/
 rice_detection_results/
+src/algorithms/detection/uploads/
 src/algorithms/rice_detection/res/
 res/
 knowledge_base/
+
+# 临时文件（自动清理的 LRU 缓存）
+/tmp/ruralbrain/
 
 # Log files
 *.log

@@ -21,11 +21,6 @@ class DetectionConfig:
         """模型文件根目录"""
         return self.DETECTION_DIR / "models"
 
-    @property
-    def UPLOADS_DIR(self) -> Path:
-        """上传目录"""
-        return self.DETECTION_DIR / "uploads"
-
     # 模型路径
     @property
     def PEST_MODEL_PATH(self) -> str:
@@ -50,6 +45,3 @@ class DetectionConfig:
 
 # 创建全局配置实例
 config = DetectionConfig()
-
-# 确保必要的目录存在
-os.makedirs(config.UPLOADS_DIR, exist_ok=True)

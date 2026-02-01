@@ -9,9 +9,24 @@ from typing import List
 # 项目根目录路径
 BASE_DIR = Path(__file__).parent.parent
 
-# 上传文件存储目录（使用系统临时目录，跨平台兼容）
-UPLOAD_DIR = Path(tempfile.gettempdir()) / "ruralbrain_uploads"
+# ============================================
+# 临时文件存储配置（简洁版：LRU 缓存）
+# ============================================
+
+# 临时文件根目录（统一放在系统临时目录）
+TEMP_DIR = Path(tempfile.gettempdir()) / "ruralbrain"
+TEMP_DIR.mkdir(exist_ok=True)
+
+# 上传文件目录
+UPLOAD_DIR = TEMP_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+# 检测结果目录
+DETECTION_RESULTS_DIR = TEMP_DIR / "detection_results"
+DETECTION_RESULTS_DIR.mkdir(exist_ok=True)
+
+# 缓存容量限制（默认 500MB）
+MAX_CACHE_SIZE = int(os.getenv("MAX_CACHE_SIZE", "500")) * 1024 * 1024
 
 # CORS 配置
 # CORS 跨域白名单

@@ -9,32 +9,41 @@ from pathlib import Path
 from typing import Any
 import uuid
 
+from service.settings import DETECTION_RESULTS_DIR, MAX_CACHE_SIZE
+from src.utils.file_manager import cleanup_lru
+
 
 def save_result_image(
     image_content: bytes,
-    directory_name: str,
+    detection_type: str,
     file_prefix: str,
 ) -> str:
-    """保存检测结果图片到指定目录。
+    """保存检测结果图片（带自动 LRU 清理）
 
     Args:
         image_content: 图片二进制内容
-        directory_name: 结果保存目录名称
+        detection_type: 检测类型（pest/cow/rice）
         file_prefix: 结果文件名前缀
 
     Returns:
-        保存的图片文件绝对路径
+        图片访问路径（URL 路径）
     """
-    results_dir = Path(directory_name)
+    # 1. 确定保存目录
+    results_dir = DETECTION_RESULTS_DIR / detection_type
     results_dir.mkdir(exist_ok=True)
 
+    # 2. 检查并清理（如果容量超限）
+    cleanup_lru(DETECTION_RESULTS_DIR, MAX_CACHE_SIZE)
+
+    # 3. 保存新文件
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     unique_id = uuid.uuid4().hex[:8]
     filename = f"{file_prefix}_result_{timestamp}_{unique_id}.jpg"
     file_path = results_dir / filename
-
     file_path.write_bytes(image_content)
-    return str(file_path.absolute())
+
+    # 4. 返回访问路径
+    return f"/{detection_type}_results/{filename}"
 
 
 def encode_image_to_base64(image_path: str) -> str:

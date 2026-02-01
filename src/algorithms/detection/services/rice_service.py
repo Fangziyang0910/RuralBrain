@@ -14,7 +14,7 @@ try:
 except Exception:
     YOLO = None
 
-from src.algorithms.detection.config import config
+from detection.config import config
 
 
 class RiceService:
