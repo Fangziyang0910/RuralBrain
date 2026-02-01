@@ -13,11 +13,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     SERVICE_PORT=8003 \
     SERVICE_HOST=0.0.0.0
 
-# 安装系统依赖（使用重试机制）
-RUN apt-get update --fix-missing -o Acquire::Retries=3 -o Acquire::http::Timeout=60 && \
-    apt-get install -y --no-install-recommends \
+# 安装系统依赖（带重试机制）
+RUN for i in 1 2 3; do \
+    apt-get update --fix-missing -o Acquire::Retries=10 -o Acquire::http::Timeout=600 && \
+    apt-get install -y --no-install-recommends --fix-missing \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* && exit 0; \
+    echo "Retry $i failed, trying again..."; \
+    sleep 5; \
+    done; exit 1
 
 # 复制 uv 并安装依赖（统一使用 pyproject.toml/uv.lock）
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
