@@ -9,8 +9,8 @@ WORKDIR /app
 # 复制 package 文件
 COPY package.json package-lock.json* ./
 
-# 安装依赖（使用 --prefer-offline 加速构建）
-RUN npm ci --prefer-offline --no-audit
+# 安装依赖（使用 --prefer-offline 加速构建，--legacy-peer-deps 解决依赖冲突）
+RUN npm ci --prefer-offline --no-audit --legacy-peer-deps
 
 # 复制源代码
 COPY . .
