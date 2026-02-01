@@ -32,7 +32,7 @@
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │                  前端 (Next.js)                         │
-│              http://localhost:3000                     │
+│              http://localhost:3001                     │
 │  - 多模态输入（文本 + 图片）                             │
 │  - 流式对话展示                                         │
 │  - 工具调用可视化                                       │
@@ -41,7 +41,7 @@
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │            后端主服务 (FastAPI)                        │
-│             http://localhost:8080                       │
+│             http://localhost:8081                       │
 │  ┌───────────────────────────────────────────────────┐ │
 │  │  意图识别 (Intent Router)                         │ │
 │  │   ├─ 有图片 + 检测关键词 → 检测流程               │ │
@@ -246,7 +246,7 @@ RuralBrain/
 | 服务 | 端口 | 配置位置 | 说明 |
 |------|------|----------|------|
 | **前端** | 3000 | `frontend/package.json` | Next.js 应用 |
-| **后端主服务** | 8080 | `service/settings.py` + `.env` | FastAPI + Orchestrator Agent V2 |
+| **后端主服务** | 8081 | `service/settings.py` + `.env` | FastAPI + Orchestrator Agent V2 |
 | **检测服务网关** | 8001 | `src/algorithms/api/main.py` | ⭐ 统一检测服务（所有检测类型） |
 | **规划咨询服务** | 8003 | `src/rag/service/main.py` | RAG 知识库服务 |
 
@@ -282,7 +282,7 @@ uv run pytest                       # 运行测试
 #### 方式一：使用启动脚本（推荐）
 
 ```bash
-# 启动后端（端口 8080）
+# 启动后端（端口 8081）
 uv run python run_server.py
 
 # 启动前端（端口 3000）
@@ -488,10 +488,10 @@ pip install package
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
-| **后端 API** | http://localhost:8080/docs | FastAPI 主服务文档 |
+| **后端 API** | http://localhost:8081/docs | FastAPI 主服务文档 |
 | **检测服务网关** | http://localhost:8001/docs | 统一检测服务文档 |
 | **规划咨询服务** | http://localhost:8003/docs | RAG 服务文档 |
-| **前端界面** | http://localhost:3000 | Next.js 应用 |
+| **前端界面** | http://localhost:3001 | Next.js 应用 |
 
 ---
 
@@ -591,7 +591,7 @@ curl -X POST "http://localhost:8001/detection/pest/predict" \
 ### Q: 如何查看 API 文档？
 
 **A**:
-- 后端：http://localhost:8080/docs
+- 后端：http://localhost:8081/docs
 - 检测：http://localhost:8001/docs
 - 规划：http://localhost:8003/docs
 
@@ -604,7 +604,7 @@ curl -X POST "http://localhost:8001/detection/pest/predict" \
 
 **主要变更**：
 - 更新为 V2 Agent Skills 架构说明
-- 修正端口分配（后端 8080，检测网关 8001，规划 8003）
+- 修正端口分配（后端 8081，检测网关 8001，规划 8003）
 - 更新目录结构（反映最新的代码组织）
 - 修正服务启动命令
 - 添加各部分逻辑关系的详细说明

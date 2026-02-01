@@ -26,7 +26,7 @@ if not exist "node_modules" (
 
 echo.
 echo 启动前端开发服务器...
-echo 访问地址: http://localhost:3000
+echo 访问地址: http://localhost:3001
 echo.
 
 call npm run dev

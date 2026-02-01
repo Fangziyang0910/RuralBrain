@@ -49,7 +49,7 @@ docker-compose up -d
 docker-compose ps
 
 # 访问前端
-open http://localhost:3000
+open http://localhost:3001
 ```
 
 ### 本地开发
@@ -75,7 +75,7 @@ npm run dev
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
-| 前端界面 | http://localhost:3000 | Web 用户界面 |
+| 前端界面 | http://localhost:3001 | Web 用户界面 |
 | 后端 API | http://localhost:8081 | FastAPI 服务 |
 | API 文档 | http://localhost:8081/docs | Swagger 文档 |
 | 病虫害检测 | http://localhost:8000 | 检测服务 |

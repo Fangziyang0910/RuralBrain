@@ -30,12 +30,12 @@ MAX_CACHE_SIZE = int(os.getenv("MAX_CACHE_SIZE", "500")) * 1024 * 1024
 
 # CORS 配置
 # CORS 跨域白名单
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3001").split(",")
 
 # 服务配置
 # 服务监听地址和端口
 HOST = os.getenv("HOST", "127.0.0.1")
-PORT = int(os.getenv("PORT", "8080"))
+PORT = int(os.getenv("PORT", "8081"))
 
 # 文件上传配置
 # 文件大小限制

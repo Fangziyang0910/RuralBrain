@@ -104,8 +104,8 @@ docker-compose -f docker-compose.dev.yml -p ruralbrain down -v
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
-| 前端 | http://localhost:3000 | Next.js 开发服务器 |
-| 后端 API | http://localhost:8080/docs | FastAPI 文档 |
+| 前端 | http://localhost:3001 | Next.js 开发服务器 |
+| 后端 API | http://localhost:8081/docs | FastAPI 文档 |
 | 病虫害检测 | http://localhost:8001/docs | 检测服务 API |
 | 大米检测 | http://localhost:8081/docs | 检测服务 API |
 | 牛只检测 | http://localhost:8002/docs | 检测服务 API |

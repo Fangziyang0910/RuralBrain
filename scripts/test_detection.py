@@ -19,7 +19,7 @@ async def test_detection(image_path: str, question: str, service_name: str):
     print("\n⏳ 上传图片...")
     async with httpx.AsyncClient() as client:
         files = {"files": open(image_path, "rb")}
-        upload_response = await client.post("http://localhost:8080/upload", files=files)
+        upload_response = await client.post("http://localhost:8081/upload", files=files)
 
         if upload_response.status_code != 200:
             print(f"❌ 上传失败: {upload_response.status_code}")
@@ -41,7 +41,7 @@ async def test_detection(image_path: str, question: str, service_name: str):
         async with httpx.AsyncClient(timeout=60.0) as client:
             async with client.stream(
                 "POST",
-                "http://localhost:8080/chat/stream",
+                "http://localhost:8081/chat/stream",
                 json=data,
                 headers={"Content-Type": "application/json"}
             ) as response:
@@ -129,7 +129,7 @@ async def main():
     print("="*60)
     print("⚠️ 此场景需要在浏览器中手动测试以保持对话上下文")
     print("   步骤：")
-    print("   1. 访问 http://localhost:3000")
+    print("   1. 访问 http://localhost:3001")
     print("   2. 上传病虫害图片，问'这是什么害虫？'")
     print("   3. 追问'有什么生物防治方法？'")
     print("   预期：先调用 pest_detection_tool，后调用 search_knowledge")

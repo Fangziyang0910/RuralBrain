@@ -9,11 +9,11 @@ services:
     image: ruralbrain-frontend
     container_name: ruralbrain-frontend
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_API_URL=http://localhost:8081
     volumes:
       - ../frontend:/app                     # 挂载整个前端目录
       - /app/node_modules                     # 容器内依赖（不覆盖）
@@ -31,7 +31,7 @@ services:
     image: ruralbrain-backend
     container_name: ruralbrain-backend
     ports:
-      - "8080:8080"
+      - "8081:8081"
     env_file:
       - ../.env
     environment:

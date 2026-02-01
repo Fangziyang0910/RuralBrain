@@ -113,7 +113,7 @@ fi
 
 # ========================================
 echo ""
-echo -e "${BLUE}[4/4] 启动后端主服务 (端口 8080)...${NC}"
+echo -e "${BLUE}[4/4] 启动后端主服务 (端口 8081)...${NC}"
 
 cd "$PROJECT_ROOT"
 run_python service/server.py > "$PROJECT_ROOT/logs/backend.log" 2>&1 &
@@ -123,8 +123,8 @@ echo -e "${GREEN}✓ 后端主服务已启动 (PID: $BACKEND_PID)${NC}"
 echo -e "${YELLOW}等待服务启动...${NC}"
 sleep 3
 
-if curl -s http://localhost:8080/docs > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ 后端主服务就绪 (http://localhost:8080)${NC}"
+if curl -s http://localhost:8081/docs > /dev/null 2>&1; then
+    echo -e "${GREEN}✓ 后端主服务就绪 (http://localhost:8081)${NC}"
 else
     echo -e "${YELLOW}⚠ 警告: 后端主服务可能未正常启动，查看日志: logs/backend.log${NC}"
 fi
@@ -138,7 +138,7 @@ read -r response
 
 if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     echo ""
-    echo -e "${BLUE}启动前端服务 (端口 3000)...${NC}"
+    echo -e "${BLUE}启动前端服务 (端口 3001)...${NC}"
 
     cd "$PROJECT_ROOT/frontend"
 
@@ -155,8 +155,8 @@ if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     echo -e "${YELLOW}等待服务启动...${NC}"
     sleep 5
 
-    if curl -s http://localhost:3000 > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ 前端服务就绪 (http://localhost:3000)${NC}"
+    if curl -s http://localhost:3001 > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ 前端服务就绪 (http://localhost:3001)${NC}"
     else
         echo -e "${YELLOW}⚠ 警告: 前端服务可能未正常启动，查看日志: logs/frontend.log${NC}"
     fi
@@ -177,8 +177,8 @@ echo -e "${BLUE}服务状态:${NC}"
 echo -e "  • 病虫害检测: ${GREEN}http://localhost:8001${NC}/docs"
 echo -e "  • 大米识别:   ${GREEN}http://localhost:8081${NC}/docs"
 echo -e "  • 奶牛检测:   ${GREEN}http://localhost:8002${NC}/docs"
-echo -e "  • 后端服务:   ${GREEN}http://localhost:8080${NC}/docs"
-echo -e "  • 前端界面:   ${GREEN}http://localhost:3000${NC}"
+echo -e "  • 后端服务:   ${GREEN}http://localhost:8081${NC}/docs"
+echo -e "  • 前端界面:   ${GREEN}http://localhost:3001${NC}"
 echo ""
 echo -e "${YELLOW}提示:${NC}"
 echo -e "  • 查看日志: tail -f logs/*.log"

@@ -27,7 +27,7 @@ if (-not (Test-Path "node_modules")) {
 
 Write-Host ""
 Write-Host "启动前端开发服务器..."
-Write-Host "访问地址: http://localhost:3000"
+Write-Host "访问地址: http://localhost:3001"
 Write-Host ""
 
 npm run dev

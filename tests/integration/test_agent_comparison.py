@@ -424,7 +424,7 @@ def test_agent_live_comparison():
         server_ready = False
         for i in range(max_retries):
             try:
-                response = requests.get("http://localhost:8080/health", timeout=2)
+                response = requests.get("http://localhost:8081/health", timeout=2)
                 if response.status_code == 200:
                     print(f"[OK] 服务器已就绪")
                     server_ready = True
@@ -451,7 +451,7 @@ def test_agent_live_comparison():
             }
 
             response = requests.post(
-                "http://localhost:8080/chat/stream",
+                "http://localhost:8081/chat/stream",
                 json=api_request,
                 stream=True,
                 timeout=60

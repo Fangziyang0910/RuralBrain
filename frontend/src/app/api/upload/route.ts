@@ -4,7 +4,7 @@ export const runtime = 'nodejs'; // 上传文件需要 Node.js Runtime
 
 export async function POST(request: NextRequest) {
   try {
-    const backendBase = process.env.BACKEND_URL ?? 'http://localhost:8080';
+    const backendBase = process.env.BACKEND_URL ?? 'http://localhost:8081';
     // 获取表单数据
     const formData = await request.formData();
 

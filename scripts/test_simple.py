@@ -16,7 +16,7 @@ async def test_pest_detection():
     async with httpx.AsyncClient() as client:
         with open(image_path, "rb") as f:
             files = {"files": f}
-            upload_response = await client.post("http://localhost:8080/upload", files=files)
+            upload_response = await client.post("http://localhost:8081/upload", files=files)
 
             if upload_response.status_code != 200:
                 print(f"❌ 上传失败: {upload_response.status_code} - {upload_response.text}")
@@ -48,7 +48,7 @@ async def test_pest_detection():
         async with httpx.AsyncClient(timeout=30.0) as client:
             async with client.stream(
                 "POST",
-                "http://localhost:8080/chat/stream",
+                "http://localhost:8081/chat/stream",
                 json=data
             ) as response:
                 if response.status_code != 200:

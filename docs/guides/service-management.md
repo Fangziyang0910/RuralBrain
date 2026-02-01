@@ -9,9 +9,9 @@
 RuralBrain 采用微服务架构，包含以下核心服务：
 
 ```
-前端 (3000)
+前端 (3001)
     ↓
-后端主服务 (8080) - Orchestrator Agent V2
+后端主服务 (8081) - Orchestrator Agent V2
     ↓
     ├─→ 检测服务网关 (8001) - 整合所有检测
     └─→ 规划咨询服务 (8003) - RAG 知识库
@@ -23,8 +23,8 @@ RuralBrain 采用微服务架构，包含以下核心服务：
 
 | 服务 | 端口 | 配置文件 | 说明 |
 |------|------|----------|------|
-| **前端服务** | 3000 | `frontend/package.json` | Next.js 应用 |
-| **后端主服务** | 8080 | `service/settings.py` + `.env` | FastAPI + Orchestrator Agent |
+| **前端服务** | 3001 | `frontend/package.json` | Next.js 应用 |
+| **后端主服务** | 8081 | `service/settings.py` + `.env` | FastAPI + Orchestrator Agent |
 | **检测服务网关** | 8001 | `src/algorithms/api/main.py` | 统一检测服务（所有检测类型） |
 | **规划咨询服务** | 8003 | `src/rag/service/config.py` | RAG 知识库服务 |
 
@@ -35,7 +35,7 @@ RuralBrain 采用微服务架构，包含以下核心服务：
   - 8001: 检测服务统一网关
   - 8002: 留用（可用于其他服务）
   - 8003: 规划咨询服务
-  - 8080: 后端主服务
+  - 8081: 后端主服务
 
 ---
 
@@ -62,7 +62,7 @@ npm run build        # 生产构建
 npm start            # 生产模式
 ```
 
-**访问地址**：http://localhost:3000
+**访问地址**：http://localhost:3001
 
 **依赖**：无（独立运行）
 
@@ -81,13 +81,13 @@ npm start            # 生产模式
 ```python
 # service/settings.py
 HOST = "127.0.0.1"      # 本地监听
-PORT = 8080              # 默认端口（会被 .env 覆盖）
+PORT = 8081              # 默认端口（会被 .env 覆盖）
 ALLOWED_ORIGINS = [...]  # CORS 配置
 ```
 
 ```bash
 # .env
-PORT=8080                # 实际运行端口
+PORT=8081                # 实际运行端口
 MODEL_PROVIDER=deepseek  # 模型供应商
 AGENT_VERSION=v2         # Agent 版本
 ```
@@ -101,12 +101,12 @@ uv run python run_server.py
 uv run python service/server.py
 
 # 方式三：使用 uvicorn
-uv run uvicorn service.server:app --host 127.0.0.1 --port 8080 --reload
+uv run uvicorn service.server:app --host 127.0.0.1 --port 8081 --reload
 ```
 
 **访问地址**：
-- 服务：http://localhost:8080
-- API 文档：http://localhost:8080/docs
+- 服务：http://localhost:8081
+- API 文档：http://localhost:8081/docs
 
 **依赖**：
 - 可选：检测服务网关（8001）用于图像检测
@@ -268,8 +268,8 @@ cd frontend && npm run dev
 bash scripts/dev/check_services.sh
 
 # 或手动检查
-curl http://localhost:3000       # 前端
-curl http://localhost:8080/docs  # 后端
+curl http://localhost:3001       # 前端
+curl http://localhost:8081/docs  # 后端
 curl http://localhost:8001/docs  # 检测服务网关
 curl http://localhost:8003/docs  # 规划服务
 ```
@@ -278,13 +278,13 @@ curl http://localhost:8003/docs  # 规划服务
 
 ```bash
 # Linux/macOS
-lsof -i :3000
-lsof -i :8080
+lsof -i :3001
+lsof -i :8081
 lsof -i :8001
 lsof -i :8003
 
 # 或使用 ss
-ss -tlnp | grep -E ":(3000|8080|8001|8003)"
+ss -tlnp | grep -E ":(3001|8081|8001|8003)"
 ```
 
 ---
@@ -297,9 +297,9 @@ ss -tlnp | grep -E ":(3000|8080|8001|8003)"
 # ============================================
 # 后端服务配置
 # ============================================
-PORT=8080                          # 后端端口
+PORT=8081                          # 后端端口
 HOST=127.0.0.1                     # 监听地址
-ALLOWED_ORIGINS=http://localhost:3000  # CORS 配置
+ALLOWED_ORIGINS=http://localhost:3001  # CORS 配置
 
 # ============================================
 # Agent 配置
@@ -345,7 +345,7 @@ DETECTION_SERVICE_URL=http://localhost:8001
 **解决方案**：
 ```bash
 # 查找占用端口的进程
-lsof -i :8080
+lsof -i :8081
 
 # 杀死进程
 kill -9 <PID>
@@ -388,7 +388,7 @@ ls src/algorithms/detection/models/
 **解决方案**：
 ```bash
 # 检查 .env 中 CORS 配置
-ALLOWED_ORIGINS=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3001
 
 # 确保前端地址在允许列表中
 ```
@@ -431,8 +431,8 @@ ls knowledge_base/chroma_db/
 ## 📊 服务依赖关系
 
 ### 核心服务（必需）
-- **后端主服务** (8080)：核心服务，包含 Orchestrator Agent V2
-- **前端服务** (3000)：用户界面
+- **后端主服务** (8081)：核心服务，包含 Orchestrator Agent V2
+- **前端服务** (3001)：用户界面
 
 ### 可选服务
 - **检测服务网关** (8001)：用于图像检测功能

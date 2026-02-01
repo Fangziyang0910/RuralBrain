@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const backendBase = process.env.BACKEND_URL ?? 'http://backend:8080';
+const backendBase = process.env.BACKEND_URL ?? 'http://backend:8081';
 
 const nextConfig = {
   // 开启 React 严格模式

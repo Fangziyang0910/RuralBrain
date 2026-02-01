@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN mkdir -p /tmp/ruralbrain
 
 # 暴露端口
-EXPOSE 8080
+EXPOSE 8081
 
 # 启动命令（使用 uvicorn --reload 实现热重载）
 # 注意：run_server.py 中已配置 reload=True

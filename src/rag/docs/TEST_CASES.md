@@ -5,13 +5,13 @@
 ### 前置条件
 
 1. **服务启动**：按照《系统介绍文档》中的"服务启动指南"启动所有服务
-2. **网络访问**：确保能访问 http://localhost:3000
+2. **网络访问**：确保能访问 http://localhost:3001
 3. **测试材料**：准备 `temp_test_images/` 文件夹中的测试图片
 
 ### 服务状态检查
 
 启动服务后，访问以下地址确认服务正常：
-- 前端：http://localhost:3000
+- 前端：http://localhost:3001
 - 主服务：http://localhost:8081/health
 - 规划咨询：http://localhost:8003/docs
 - 害虫检测：http://localhost:8000/docs
@@ -24,7 +24,7 @@
 
 **测试步骤**：
 
-1. 访问前端界面：http://localhost:3000
+1. 访问前端界面：http://localhost:3001
 2. 点击"上传图片"按钮
 3. 从 `temp_test_images/` 文件夹选择害虫测试图片（如稻飞虱、蚜虫等）
 4. 在输入框输入测试问题："这张图片里的害虫是什么？如何防治？"

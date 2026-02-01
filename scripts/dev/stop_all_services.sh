@@ -70,7 +70,7 @@ echo ""
 
 # 停止前端服务
 echo -e "[1/5] 停止前端服务..."
-stop_service_on_port 3000 "前端服务"
+stop_service_on_port 3001 "前端服务"
 
 # 停止后端服务
 echo -e "[2/5] 停止后端主服务..."

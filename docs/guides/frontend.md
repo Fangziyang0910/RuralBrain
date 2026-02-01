@@ -62,7 +62,7 @@ uv run run_server.py
 python run_server.py
 ```
 
-后端服务将在 `http://localhost:8080` 启动
+后端服务将在 `http://localhost:8081` 启动
 
 ### 3. 启动前端服务
 
@@ -83,15 +83,15 @@ npm install  # 首次运行需要安装依赖
 npm run dev
 ```
 
-前端服务将在 `http://localhost:3000` 启动
+前端服务将在 `http://localhost:3001` 启动
 
 ### 4. 访问应用
 
 **主对话界面:**
-打开浏览器访问: `http://localhost:3000`
+打开浏览器访问: `http://localhost:3001`
 
 **Demo 演示页面:**
-访问: `http://localhost:3000/demo`
+访问: `http://localhost:3001/demo`
 查看完整的三种检测功能演示（害虫、大米、牛只识别）
 
 ## 📖 使用说明
@@ -258,10 +258,10 @@ GET /rice_results/{filename}
 配置了 API 代理和静态资源路径映射：
 ```javascript
 rewrites: [
-  { source: '/api/:path*', destination: 'http://localhost:8080/:path*' },
-  { source: '/pest_results/:path*', destination: 'http://localhost:8080/pest_results/:path*' },
-  { source: '/cow_results/:path*', destination: 'http://localhost:8080/cow_results/:path*' },
-  { source: '/rice_results/:path*', destination: 'http://localhost:8080/rice_results/:path*' },
+  { source: '/api/:path*', destination: 'http://localhost:8081/:path*' },
+  { source: '/pest_results/:path*', destination: 'http://localhost:8081/pest_results/:path*' },
+  { source: '/cow_results/:path*', destination: 'http://localhost:8081/cow_results/:path*' },
+  { source: '/rice_results/:path*', destination: 'http://localhost:8081/rice_results/:path*' },
 ]
 ```
 
@@ -291,7 +291,7 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
   - 浏览器开发者工具 Console
   - React DevTools 查看组件状态
   - Network 面板查看 API 请求
-- **API 测试**: 访问 `http://localhost:8080/docs` 查看 Swagger 文档
+- **API 测试**: 访问 `http://localhost:8081/docs` 查看 Swagger 文档
 - **SSE 调试**: 使用浏览器 Network 面板的 EventStream 过滤器
 
 ### 开发最佳实践
@@ -325,7 +325,7 @@ $env:PORT=8081   # Windows PowerShell
 
 ### 前端无法连接后端
 
-1. 检查后端服务是否已启动: `http://localhost:8080/docs`
+1. 检查后端服务是否已启动: `http://localhost:8081/docs`
 2. 检查 `next.config.mjs` 中的代理配置
 3. 查看浏览器控制台的网络错误信息
 4. 确认防火墙没有阻止本地端口

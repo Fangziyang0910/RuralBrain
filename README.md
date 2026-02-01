@@ -22,7 +22,7 @@
 ## 🏗️ 微服务架构
 
 ```
-前端 (3000) → 后端服务 (8080) → 检测服务网关 (8001)
+前端 (3001) → 后端服务 (8081) → 检测服务网关 (8001)
                             ↓           ├─ /detection/pest (病虫害)
                             ↓           ├─ /detection/rice (大米)
                             ↓           └─ /detection/cow (奶牛)
@@ -145,8 +145,8 @@ npm run dev
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| 前端 | 3000 | Next.js 应用 |
-| 后端 API | 8080 | FastAPI 主服务 |
+| 前端 | 3001 | Next.js 应用 |
+| 后端 API | 8081 | FastAPI 主服务 |
 | 检测服务网关 | 8001 | 统一检测服务（病虫害/大米/奶牛） |
 | 规划咨询 | 8003 | RAG 服务 |
 
@@ -158,7 +158,7 @@ npm run dev
 
 ## 📚 API 文档
 
-- **后端 API**：http://localhost:8080/docs
+- **后端 API**：http://localhost:8081/docs
 - **检测服务网关**：http://localhost:8001/docs
 - **规划咨询**：http://localhost:8003/docs
 

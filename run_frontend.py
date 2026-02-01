@@ -138,7 +138,7 @@ def start_frontend() -> None:
 
     # 启动服务
     print("启动前端开发服务器...")
-    print_success("访问地址: http://localhost:3000")
+    print_success("访问地址: http://localhost:3001")
     print()
     print("按 Ctrl+C 停止服务")
     print("=" * 60)
@@ -155,7 +155,7 @@ def start_frontend() -> None:
         print()
         print_error("前端服务启动失败")
         print("\n请检查:")
-        print("  - 端口 3000 是否被占用")
+        print("  - 端口 3001 是否被占用")
         print("  - 查看上方错误信息")
         print(f"\n尝试手动运行: cd {frontend_dir} && npm run dev")
         sys.exit(1)

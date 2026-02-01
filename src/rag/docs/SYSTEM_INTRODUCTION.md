@@ -37,7 +37,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      前端层 (Next.js)                        │
-│                   http://localhost:3000                      │
+│                   http://localhost:3001                      │
 │  - 聊天界面  - 图片上传  - 流式响应  - 结果可视化             │
 └────────────────────────┬────────────────────────────────────┘
                          │
@@ -68,7 +68,7 @@ RuralBrain 采用微服务架构，各服务独立部署和扩展：
 
 | 服务名称 | 端口 | 技术栈 | 职责 |
 |---------|------|--------|------|
-| **前端应用** | 3000 | Next.js + React | 用户界面和交互 |
+| **前端应用** | 3001 | Next.js + React | 用户界面和交互 |
 | **主服务** | 8081 | FastAPI + LangGraph | 统一编排和智能路由 |
 | **害虫检测** | 8000 | FastAPI + YOLOv8 | 29种农业害虫识别 |
 | **大米识别** | 8001 | FastAPI + YOLO | 大米品种和品质检测 |
@@ -607,7 +607,7 @@ docker-compose ps
 docker-compose logs -f
 
 # 5. 访问前端
-open http://localhost:3000
+open http://localhost:3001
 ```
 
 **停止服务**：
@@ -652,7 +652,7 @@ uv run python service/server.py
 cd /path/to/RuralBrain
 uv run python run_frontend.py
 # 自动检查环境、安装依赖、启动服务
-# 前端运行在 http://localhost:3000
+# 前端运行在 http://localhost:3001
 ```
 
 **或者手动启动**：
@@ -660,14 +660,14 @@ uv run python run_frontend.py
 cd /path/to/RuralBrain/frontend
 npm install  # 首次运行需要安装依赖
 npm run dev
-# 前端运行在 http://localhost:3000
+# 前端运行在 http://localhost:3001
 ```
 
 ### 服务验证
 
 启动后，访问以下地址验证服务状态：
 
-- **前端界面**：http://localhost:3000
+- **前端界面**：http://localhost:3001
 - **主服务 API**：http://localhost:8081/docs
 - **规划咨询**：http://localhost:8003/docs
 - **害虫检测**：http://localhost:8000/docs

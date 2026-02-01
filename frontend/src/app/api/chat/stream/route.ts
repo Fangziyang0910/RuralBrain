@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   try {
     // 优先使用环境变量，否则使用本地开发地址
-    const backendBase = process.env.BACKEND_URL ?? 'http://localhost:8080';
+    const backendBase = process.env.BACKEND_URL ?? 'http://localhost:8081';
     // 获取请求体
     const body = await request.json();
 

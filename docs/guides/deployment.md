@@ -62,9 +62,9 @@ docker-compose logs -f
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
-| 前端界面 | http://localhost:3000 | Next.js 应用 |
-| 后端 API | http://localhost:8080 | FastAPI 主服务 |
-| API 文档 | http://localhost:8080/docs | Swagger 文档 |
+| 前端界面 | http://localhost:3001 | Next.js 应用 |
+| 后端 API | http://localhost:8081 | FastAPI 主服务 |
+| API 文档 | http://localhost:8081/docs | Swagger 文档 |
 | 检测服务网关 | http://localhost:8001 | 统一检测服务 |
 | 规划咨询 | http://localhost:8003 | RAG 知识库服务 |
 
@@ -228,7 +228,7 @@ uv run python scripts/dev/build_kb_auto.py
 
 ```bash
 # 后端服务
-curl http://localhost:8080/health
+curl http://localhost:8081/health
 
 # 检测服务网关
 curl http://localhost:8001/health
@@ -241,7 +241,7 @@ curl http://localhost:8003/health
 
 **测试规划咨询**：
 ```bash
-curl -X POST "http://localhost:8080/chat/planning" \
+curl -X POST "http://localhost:8081/chat/planning" \
   -H "Content-Type: application/json" \
   -d '{
     "message": "长宁镇的旅游发展目标是什么？",
@@ -266,7 +266,7 @@ curl -X POST "http://localhost:8001/detection/cow/predict" \
 
 ### 访问前端界面
 
-打开浏览器访问：http://localhost:3000
+打开浏览器访问：http://localhost:3001
 
 ---
 
@@ -301,7 +301,7 @@ docker-compose logs [service-name]
 ### Q3: 前端无法连接后端？
 
 **检查事项**：
-1. 后端服务是否启动（http://localhost:8080/health）
+1. 后端服务是否启动（http://localhost:8081/health）
 2. CORS 配置是否正确（`.env` 中的 `ALLOWED_ORIGINS`）
 3. API Keys 是否配置正确
 
@@ -396,7 +396,7 @@ uv run python src/algorithms/api/main.py
 
 ## 获取帮助
 
-- **API 文档**: http://localhost:8080/docs
+- **API 文档**: http://localhost:8081/docs
 - **项目文档**: [docs/](../README.md)
 - **问题反馈**: https://github.com/Fangziyang0910/RuralBrain/issues
 

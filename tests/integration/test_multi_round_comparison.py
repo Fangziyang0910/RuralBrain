@@ -112,7 +112,7 @@ def run_multi_round_test(version, images_by_type, thread_id):
             start_time = time.time()
 
             response = requests.post(
-                "http://localhost:8080/chat/stream",
+                "http://localhost:8081/chat/stream",
                 json=api_request,
                 stream=True,
                 timeout=60
@@ -276,7 +276,7 @@ def main():
 
     # 检查服务器状态
     try:
-        response = requests.get("http://localhost:8080/health", timeout=2)
+        response = requests.get("http://localhost:8081/health", timeout=2)
         if response.status_code != 200:
             print("[ERROR] 后端服务未就绪")
             print("请先启动后端服务: uv run python run_server.py")

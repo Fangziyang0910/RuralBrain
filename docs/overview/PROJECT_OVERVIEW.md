@@ -27,7 +27,7 @@ RuralBrain 是一个基于 **LangChain/LangGraph** 的乡村智慧决策系统�
 │  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐ │
 │  │   Frontend   │────▶│    Backend   │────▶│  Agent V2    │ │
 │  │   Next.js    │     │   FastAPI    │     │ Orchestrator │ │
-│  │    :3000     │     │    :8080     │     │  (Skills)    │ │
+│  │    :3001     │     │    :8081     │     │  (Skills)    │ │
 │  └──────────────┘     └──────────────┘     └──────┬───────┘ │
 │       │                    │                      │         │
 │       │                    ▼                      ▼         │
@@ -176,7 +176,7 @@ http://localhost:8001
   - V2 Orchestrator Agent（基于 Skills 架构）
   - 意图识别和智能路由
   - 流式 SSE 响应
-- **API 文档**: http://localhost:8080/docs
+- **API 文档**: http://localhost:8081/docs
 
 #### 2. 检测服务网关
 - **位置**: `src/algorithms/api/main.py`
@@ -244,9 +244,9 @@ docker-compose logs -f
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
-| 前端界面 | http://localhost:3000 | Web 用户界面 |
-| 后端 API | http://localhost:8080 | FastAPI 主服务 |
-| API 文档 | http://localhost:8080/docs | Swagger 文档 |
+| 前端界面 | http://localhost:3001 | Web 用户界面 |
+| 后端 API | http://localhost:8081 | FastAPI 主服务 |
+| API 文档 | http://localhost:8081/docs | Swagger 文档 |
 | 检测服务 | http://localhost:8001 | 统一检测服务网关 |
 | 规划咨询 | http://localhost:8003 | RAG 知识库服务 |
 
@@ -393,7 +393,7 @@ uv run python scripts/dev/build_kb_auto.py
 
 ```bash
 # 后端服务
-curl http://localhost:8080/health
+curl http://localhost:8081/health
 
 # 检测服务网关
 curl http://localhost:8001/health
@@ -418,7 +418,7 @@ curl -X POST "http://localhost:8001/detection/cow/predict" \
   -F "file=@path/to/image.jpg"
 
 # 规划咨询
-curl -X POST "http://localhost:8080/chat/planning" \
+curl -X POST "http://localhost:8081/chat/planning" \
   -H "Content-Type: application/json" \
   -d '{"message": "长宁镇的旅游发展目标是什么？", "mode": "auto"}'
 ```
@@ -452,7 +452,7 @@ curl -X POST "http://localhost:8080/chat/planning" \
 # 后端服务配置
 PORT=8080                          # 后端端口
 HOST=127.0.0.1                     # 监听地址
-ALLOWED_ORIGINS=http://localhost:3000  # CORS 配置
+ALLOWED_ORIGINS=http://localhost:3001  # CORS 配置
 
 # Agent 配置
 MODEL_PROVIDER=deepseek             # 模型供应商（deepseek/glm）
@@ -578,7 +578,7 @@ V2 Agent 相比 V1：
 **Q: 服务启动失败？**
 
 A: 检查以下项：
-- 端口是否被占用（`lsof -i :8080`）
+- 端口是否被占用（`lsof -i :8081`）
 - API Keys 是否配置正确
 - 依赖是否安装完整（`uv sync`）
 
@@ -602,7 +602,7 @@ AGENT_VERSION=v1  # 或 v2
 
 ### 获取帮助
 
-- 查看 API 文档：http://localhost:8080/docs
+- 查看 API 文档：http://localhost:8081/docs
 - 查看服务日志：`docker-compose logs -f`
 - 提交 Issue 到项目仓库
 

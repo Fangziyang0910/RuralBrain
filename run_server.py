@@ -23,7 +23,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "service.server:app",
         host="0.0.0.0",  # Docker 容器内需要监听所有接口
-        port=8080,
+        port=8081,
         # 开发模式热重载 - 修改代码并保存时自动重启服务
         # 生产环境设为 False
         reload=True,

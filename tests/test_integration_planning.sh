@@ -3,7 +3,7 @@
 
 set -e
 
-BACKEND_URL="http://localhost:8080"
+BACKEND_URL="http://localhost:8081"
 PLANNING_URL="http://localhost:8003"
 
 echo "🧪 Backend → Planning Service 集成测试"
