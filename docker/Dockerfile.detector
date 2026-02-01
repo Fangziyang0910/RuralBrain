@@ -15,14 +15,22 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # 安装系统依赖（YOLOv8 需要的依赖）
 # 注意：opencv-python 通过 uv 安装，不需要 apt 安装 python3-opencv
 # 不使用 cache mount 避免缓存损坏的数据
-RUN apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout=300 && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -o Acquire::Retries=10 -o Acquire::http::Timeout=600 && \
+    apt-get install -y --no-install-recommends --fix-missing \
+    build-essential \
+    cmake \
+    pkg-config \
+    curl \
+    && rm -rf /var/lib/apt/lists/* || \
+    (apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     pkg-config \
-    libopencv-dev \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*)
 
 # 安装 uv 包管理器
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
