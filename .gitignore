@@ -79,3 +79,8 @@ references/
 
 # Temporary test images folder
 temp_test_images/
+
+# Docker images and archives
+*.tar
+*.tar.gz
+*.zip

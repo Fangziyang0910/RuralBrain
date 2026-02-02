@@ -1,0 +1,88 @@
+# RuralBrain 离线部署配置
+# 使用现有 latest 镜像，无需重新构建
+
+version: '3.8'
+
+services:
+  # 后端主服务
+  backend:
+    image: ruralbrain-backend:latest
+    container_name: ruralbrain-backend
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    environment:
+      - DETECTION_SERVICE_URL=http://detection-pest:8000
+      - PLANNING_SERVICE_URL=http://planning:8003
+    depends_on:
+      - detection-pest
+      - planning
+    restart: unless-stopped
+    networks:
+      - ruralbrain
+
+  # 检测服务 - 病虫害
+  detection-pest:
+    image: ruralbrain-pest-detector:latest
+    container_name: ruralbrain-detection-pest
+    restart: unless-stopped
+    networks:
+      - ruralbrain
+
+  # 检测服务 - 大米品种
+  detection-rice:
+    image: ruralbrain-rice-detector:latest
+    container_name: ruralbrain-detection-rice
+    restart: unless-stopped
+    networks:
+      - ruralbrain
+
+  # 检测服务 - 奶牛
+  detection-cow:
+    image: ruralbrain-cow-detector:latest
+    container_name: ruralbrain-detection-cow
+    restart: unless-stopped
+    networks:
+      - ruralbrain
+
+  # 规划咨询服务
+  planning:
+    image: ruralbrain-planning-service:latest
+    container_name: ruralbrain-planning
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./knowledge_base/chroma_db:/app/knowledge_base/chroma_db:ro
+    restart: unless-stopped
+    networks:
+      - ruralbrain
+
+  # 前端
+  frontend:
+    image: ruralbrain-frontend:deploy
+    container_name: ruralbrain-frontend
+    ports:
+      - "3001:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8081
+    restart: unless-stopped
+    networks:
+      - ruralbrain
+
+  # 门户页
+  portal:
+    image: nginx:alpine
+    container_name: ruralbrain-portal
+    ports:
+      - "8080:80"
+    volumes:
+      - ./portal-static/static:/usr/share/nginx/html/static:ro
+      - ./docker/nginx.portal.conf:/etc/nginx/conf.d/default.conf:ro
+    restart: unless-stopped
+    networks:
+      - ruralbrain
+
+networks:
+  ruralbrain:
+    driver: bridge
