@@ -83,14 +83,24 @@ else
     echo -e "${GREEN}Docker Compose 已安装${NC}"
 fi
 
-# 3. 登录 Docker Hub
+# 3. 登录 Docker Hub（跳过，假设镜像是公开的）
 echo ""
 echo "=================================="
-echo "步骤 3/5: 登录 Docker Hub"
+echo "步骤 3/5: 检查 Docker Hub"
 echo "=================================="
 
-echo -e "${YELLOW}请输入 Docker Hub 用户名和密码${NC}"
-docker login
+if docker info &> /dev/null; then
+    echo -e "${GREEN}Docker 已就绪${NC}"
+    # 尝试拉取一个公开镜像测试
+    if docker pull hello-world &> /dev/null; then
+        echo -e "${GREEN}可以拉取公开镜像，跳过登录步骤${NC}"
+    else
+        echo -e "${YELLOW}警告: 无法拉取公开镜像，可能需要登录${NC}"
+    fi
+else
+    echo -e "${RED}Docker 未正确运行${NC}"
+    exit 1
+fi
 
 # 4. 拉取镜像
 echo ""
