@@ -23,13 +23,14 @@ from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
 from ..utils import ModelManager
-from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool, pricing_tool, marketing_tool, farm_inspection_tool
+from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool, pricing_tool, marketing_tool, farm_inspection_tool, disease_prediction_tool
 from src.rag.core.tools import PLANNING_TOOLS
 from .skills.detection_skills import create_all_detection_skills
 from .skills.planning_skills import create_all_planning_skills
 from .skills.pricing_skills import create_all_pricing_skills
 from .skills.marketing_skills import create_all_marketing_skills
 from .skills.farm_inspection_skills import create_all_farm_inspection_skills
+from .skills.disease_prediction_skills import create_all_disease_prediction_skills
 from .skills.orchestration_skills import create_all_orchestration_skills
 from .skills.base import Skill
 from .middleware.skill_middleware import SkillMiddleware
@@ -73,16 +74,21 @@ farm_inspection_skills = create_all_farm_inspection_skills(
     farm_inspection_tool=farm_inspection_tool,
 )
 
+# 创建疾病预测技能
+disease_prediction_skills = create_all_disease_prediction_skills(
+    disease_prediction_tool=disease_prediction_tool,
+)
+
 # 创建编排技能
 orchestration_skills = create_all_orchestration_skills()
 
-# 合并所有技能（检测3 + 规划1 + 定价1 + 营销1 + 巡检1 + 编排2 = 9）
-all_skills: List[Skill] = detection_skills + planning_skills + pricing_skills + marketing_skills + farm_inspection_skills + orchestration_skills
+# 合并所有技能（检测3 + 规划1 + 定价1 + 营销1 + 巡检1 + 疾病预测1 + 编排2 = 10）
+all_skills: List[Skill] = detection_skills + planning_skills + pricing_skills + marketing_skills + farm_inspection_skills + disease_prediction_skills + orchestration_skills
 
 
 # ========== 工具收集 ==========
 
-# 收集所有工具（检测3 + 定价1 + 营销1 + 巡检1 + RAG 6 = 12个工具）
+# 收集所有工具（检测3 + 定价1 + 营销1 + 巡检1 + 疾病预测1 + RAG 6 = 13个工具）
 orchestrator_tools = [
     # 检测工具
     pest_detection_tool,
@@ -93,6 +99,8 @@ orchestrator_tools = [
     marketing_tool,
     # 巡检工具
     farm_inspection_tool,
+    # 疾病预测工具
+    disease_prediction_tool,
     # RAG 规划工具（所有 6 个）
     *PLANNING_TOOLS,
 ]
@@ -111,6 +119,7 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 - **定价能力**：农产品定价、市场分析、价格优化
 - **营销能力**：营销策略、客户分析、品牌推广、销量提升
 - **巡检能力**：农场数据收集、农田状况、养殖状态、设备监控
+- **疾病预测能力**：畜禽疾病预测、症状分析、健康评估
 </capabilities>
 
 <critical_rules>
@@ -137,7 +146,7 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 
 1. **理解用户意图**
    - 如果需要详细了解如何处理特定类型的请求，使用 load_skill 工具加载技能详细指导
-   - 可加载技能：pest_detection, rice_detection, cow_detection, consult_planning_knowledge, pricing_analysis, marketing_strategy, farm_inspection, intent_recognition, scenario_switching
+   - 可加载技能：pest_detection, rice_detection, cow_detection, consult_planning_knowledge, pricing_analysis, marketing_strategy, farm_inspection, disease_prediction, intent_recognition, scenario_switching
 
 2. **选择合适的工具**
    - **有图片** → 优先使用检测工具（pest_detection_tool/rice_detection_tool/cow_detection_tool）
@@ -145,6 +154,7 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
    - **关键词"定价/价格/多少钱"** → 使用定价工具（pricing_tool）
    - **关键词"营销/推广/销售/客户/销量"** → 使用营销工具（marketing_tool）
    - **关键词"农场/农田/养殖/设备"** → 使用巡检工具（farm_inspection_tool）
+   - **关键词"疾病/症状/生病/发热/咳嗽/拉稀"** → 使用疾病预测工具（disease_prediction_tool）
    - **不确定** → 加载 intent_recognition 技能获取指导
 3. **获得结果后**
    - 基于工具返回的结果，直接输出完整回答

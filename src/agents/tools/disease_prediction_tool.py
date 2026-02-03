@@ -5,8 +5,12 @@
 """
 import json
 import os
+from datetime import datetime
 from typing import Optional
 from langchain_core.tools import tool
+from langchain_core.messages import HumanMessage
+
+from ...utils import ModelManager
 
 
 # TODO: 后续接入真实图像识别模型时替换此函数
@@ -86,31 +90,105 @@ def _predict_with_actual_model(animal_type: str, symptoms: str, **kwargs) -> dic
     pass
 
 
-def _simple_rule_predict(animal_type: str, symptoms: str, **kwargs) -> dict:
-    """简单规则预测（临时模拟实现）
+def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None,
+                      temperature: Optional[float] = None,
+                      other_signs: Optional[str] = None) -> dict:
+    """使用 DeepSeek LLM 进行疾病预测
 
-    后续会被真实模型替换，这里只是占位实现。
+    通过构造专业的兽医诊断提示词，让 LLM 分析症状并预测可能的疾病。
+
+    Args:
+        animal_type: 动物类型
+        symptoms: 症状描述
+        age: 动物年龄（月龄）
+        temperature: 体温（摄氏度）
+        other_signs: 其他体征描述
+
+    Returns:
+        预测结果字典，包含可能的疾病列表及概率
     """
-    # 简单的关键词匹配模拟
-    symptom_lower = symptoms.lower()
+    try:
+        # 初始化模型管理器
+        model_manager = ModelManager.from_env()
+        model = model_manager.get_chat_model(temperature=0.3)
 
-    # 模拟预测结果
-    predictions = []
+        # 构造诊断提示词
+        age_info = f"- 年龄：{age}月龄" if age else "- 年龄：未知"
+        temp_info = f"- 体温：{temperature}°C" if temperature else "- 体温：未测量"
+        signs_info = f"- 其他体征：{other_signs}" if other_signs else ""
 
-    if "发热" in symptom_lower or "发烧" in symptom_lower:
-        predictions.append({"disease": "感染性疾病", "probability": 0.75})
-    if "咳嗽" in symptom_lower or "喘" in symptom_lower:
-        predictions.append({"disease": "呼吸道疾病", "probability": 0.68})
-    if "拉稀" in symptom_lower or "腹泻" in symptom_lower:
-        predictions.append({"disease": "消化道疾病", "probability": 0.72})
-    if "不食" in symptom_lower or "厌食" in symptom_lower:
-        predictions.append({"disease": "代谢紊乱", "probability": 0.55})
+        prompt = f"""你是一位专业的兽医专家，请根据以下信息进行疾病预测分析。
 
-    # 如果没有匹配，返回默认
-    if not predictions:
-        predictions.append({"disease": "待进一步检查", "probability": 0.5})
+## 动物信息
+- 动物类型：{animal_type}
+{age_info}
+{temp_info}
+- 症状描述：{symptoms}
+{signs_info}
 
-    return {"predictions": predictions}
+## 分析要求
+请根据以上信息，分析可能的疾病，并按以下格式返回：
+
+1. **可能的疾病**（按概率从高到低排序，至少列出3种）
+   - 疾病名称：概率（如 75%）
+   - 简要说明原因
+
+2. **关键依据**
+   - 列出判断的主要依据（症状、体征等）
+
+3. **建议措施**
+   - 提供初步的处理建议
+   - 是否需要紧急就医
+   - 护理要点
+
+请以 JSON 格式返回，格式如下：
+{{
+  "predictions": [
+    {{"disease": "疾病名称", "probability": 75, "reason": "判断原因"}},
+    {{"disease": "疾病名称", "probability": 60, "reason": "判断原因"}},
+    {{"disease": "疾病名称", "probability": 45, "reason": "判断原因"}}
+  ],
+  "key_evidence": ["依据1", "依据2", "依据3"],
+  "recommendations": ["建议1", "建议2", "建议3"],
+  "urgency": "高/中/低"
+}}
+
+注意：
+- 只返回 JSON，不要有其他文字
+- 概率范围为 0-100
+- urgency 为"高"、"中"或"低"之一
+- 如果症状描述过于简单，请在 recommendations 中说明需要更多信息"""
+
+        # 调用模型
+        response = model.invoke([HumanMessage(content=prompt)])
+        response_text = response.content.strip()
+
+        # 尝试解析 JSON
+        # 移除可能的 markdown 代码块标记
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0].strip()
+
+        result = json.loads(response_text)
+
+        # 添加元数据
+        result["model_used"] = "deepseek-llm"
+        result["analysis_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        return result
+
+    except Exception as e:
+        # 如果 LLM 调用失败，降级到简单规则
+        return {
+            "error": f"LLM预测失败: {str(e)}",
+            "predictions": [
+                {"disease": "需要进一步检查", "probability": 50, "reason": "AI分析暂时不可用，建议咨询专业兽医"}
+            ],
+            "key_evidence": [f"症状: {symptoms}"],
+            "recommendations": ["建议联系专业兽医进行诊断", "注意观察动物状态变化"],
+            "urgency": "中"
+        }
 
 
 @tool
@@ -124,8 +202,8 @@ def disease_prediction_tool(
 ) -> str:
     """预测畜禽可能的疾病。
 
-    根据动物类型、症状描述、患处图片/视频等信息，预测可能的疾病。
-    注意：当前为模拟实现，仅供参考，不能替代专业兽医诊断。
+    根据动物类型、症状描述、患处图片/视频等信息，使用 AI 分析预测可能的疾病。
+    注意：仅供参考，不能替代专业兽医诊断。
 
     Args:
         animal_type: 动物类型，如 牛、猪、鸡、鸭、羊 等
@@ -141,11 +219,8 @@ def disease_prediction_tool(
         - image_analysis: 图片/视频分析结果（如果有）
     """
     try:
-        # TODO: 后续切换到真实模型
-        # result = _predict_with_actual_model(animal_type, symptoms)
-
-        # 当前使用简单规则模拟
-        result = _simple_rule_predict(animal_type, symptoms)
+        # 使用 LLM 进行疾病预测
+        result = _predict_with_llm(animal_type, symptoms, age, temperature, other_signs)
 
         # 添加输入信息到结果
         result["input"] = {
