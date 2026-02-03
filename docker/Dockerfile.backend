@@ -1,45 +1,51 @@
-# RuralBrain Backend Development Dockerfile
-# 开发环境镜像 - 支持热重载
+# RuralBrain Backend Production Dockerfile
+# 生产环境镜像 - 精简依赖，仅包含后端服务必需组件
 FROM python:3.13-slim
 
 WORKDIR /app
 
-# 安装系统依赖（带重试机制）
-RUN for i in 1 2 3; do \
-    apt-get update -o Acquire::Retries=10 -o Acquire::http::Timeout=600 && \
-    apt-get install -y --no-install-recommends --fix-missing \
-    build-essential \
-    curl \
-    && rm -rf /var/lib/apt/lists/* && exit 0; \
-    echo "Retry $i failed, trying again..."; \
-    sleep 5; \
-    done; exit 1
+# 安装系统依赖（只安装运行时需要的，去掉 build-essential）
+RUN apt-get update -o Acquire::Retries=10 && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
-# 安装 uv 包管理器（使用官方安装脚本）
+# 安装 uv 包管理器
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
 # 设置环境变量
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    UV_CACHE_DIR=/tmp/uv-cache \
-    UV_HTTP_TIMEOUT=600 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PATH="/app/.venv/bin:$PATH"
 
-# 复制项目依赖配置文件
-COPY pyproject.toml uv.lock ./
+# 后端服务精简依赖（只包含 Agent 编排需要的核心库）
+# 不包含：torch、ultralytics、opencv、chromadb 等（这些由独立的检测/RAG服务提供）
+RUN uv pip install --system \
+    python-dotenv>=1.0.0 \
+    langchain>=1.1.0 \
+    langchain-deepseek>=1.0.0 \
+    langgraph>=1.0.4 \
+    langsmith>=0.4.38 \
+    requests>=2.31.0 \
+    fastapi>=0.104.1 \
+    uvicorn[standard]>=0.24.0 \
+    pydantic>=2.4.2 \
+    pydantic-settings>=2.0.3 \
+    python-multipart>=0.0.6 \
+    aiohttp>=3.9.0
 
-# 安装依赖（包含开发依赖，支持热重载）
-# 显式使用 Python 3.13
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --python 3.13
+# 复制项目源代码（只复制后端需要的）
+COPY run_server.py ./
+COPY service ./service
+COPY src/agents ./src/agents
+COPY src/config.py ./src/
 
-# 创建临时文件根目录（/tmp 通常是已存在的，这里确保子目录存在）
+# 创建临时文件目录
 RUN mkdir -p /tmp/ruralbrain
 
 # 暴露端口
 EXPOSE 8081
 
-# 启动命令（使用 uvicorn --reload 实现热重载）
-# 注意：run_server.py 中已配置 reload=True
-CMD ["uv", "run", "python", "run_server.py"]
+# 启动命令（生产环境，不使用 reload）
+CMD ["python", "run_server.py"]
