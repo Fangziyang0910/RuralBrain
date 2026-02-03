@@ -1,18 +1,45 @@
-# RuralBrain 部署配置 - 使用 Docker Hub 镜像
-# 适用于新电脑部署
+#!/bin/bash
+# ====================================
+# RuralBrain 一键部署脚本（自包含版本）
+# ====================================
 
+set -e
+
+echo "=================================="
+echo "  RuralBrain 一键部署"
+echo "=================================="
+
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+# 检查 Docker
+if ! command -v docker &> /dev/null; then
+    echo "Docker 未安装，请先安装 Docker"
+    exit 1
+fi
+
+# 拉取镜像
+echo "正在拉取镜像..."
+docker pull zhihongsheng/rural-brain-portal:latest
+docker pull zhihongsheng/rural-brain-frontend:latest
+docker pull zhihongsheng/rural-brain-backend:latest
+docker pull zhihongsheng/rural-brain-pest-detector:latest
+docker pull zhihongsheng/rural-brain-planning-service:latest
+
+# 创建目录
+mkdir -p ~/ruralbrain-deploy
+cd ~/ruralbrain-deploy
+
+# 直接写入 docker-compose.yml
+cat > docker-compose.yml << 'COMPOSE_EOF'
 version: '3.8'
-
 services:
-  # 门户页面 (3000端口) - 师兄给的总入口，有3个卡片
   portal:
     image: zhihongsheng/rural-brain-portal:latest
     container_name: rural-brain-portal
     ports:
       - "3000:80"
     restart: always
-
-  # 乡村智慧大脑前端 (3001端口)
   frontend:
     image: zhihongsheng/rural-brain-frontend:latest
     container_name: rural-brain-frontend
@@ -24,8 +51,6 @@ services:
     depends_on:
       - backend
     restart: always
-
-  # 后端主服务 (8081端口)
   backend:
     image: zhihongsheng/rural-brain-backend:latest
     container_name: rural-brain-backend
@@ -41,19 +66,33 @@ services:
       - detection-gateway
       - planning-service
     restart: always
-
-  # 检测服务网关 (8001端口)
   detection-gateway:
     image: zhihongsheng/rural-brain-pest-detector:latest
     container_name: rural-brain-detection-gateway
     ports:
       - "8001:8001"
     restart: always
-
-  # 规划服务 (8003端口)
   planning-service:
     image: zhihongsheng/rural-brain-planning-service:latest
     container_name: rural-brain-planning-service
     ports:
       - "8003:8003"
     restart: always
+COMPOSE_EOF
+
+# 启动服务
+echo "启动服务..."
+docker-compose up -d
+
+sleep 5
+
+echo ""
+echo -e "${GREEN}部署完成！${NC}"
+echo ""
+echo "访问地址："
+echo "  - 门户页面: http://localhost:3000"
+echo "  - 乡村智慧大脑: http://localhost:3001"
+echo ""
+echo "常用命令："
+echo "  cd ~/ruralbrain-deploy && docker-compose ps"
+echo "  cd ~/ruralbrain-deploy && docker-compose logs"

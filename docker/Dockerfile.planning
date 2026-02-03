@@ -1,7 +1,7 @@
 # Planning Service Dockerfile
-# 独立的乡村规划咨询服务微服务
-ARG PYTHON_VERSION=3.13
-FROM python:${PYTHON_VERSION}-slim
+# 独立的乡村规划咨询服务微服务（优化版，不包含深度学习依赖）
+ARG PYTHON_VERSION=3.13-slim
+FROM python:${PYTHON_VERSION}
 
 # 设置工作目录
 WORKDIR /app
@@ -11,7 +11,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     SERVICE_PORT=8003 \
-    SERVICE_HOST=0.0.0.0
+    SERVICE_HOST=0.0.0.0 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # 安装系统依赖（带重试机制）
 RUN for i in 1 2 3; do \
@@ -23,10 +25,9 @@ RUN for i in 1 2 3; do \
     sleep 5; \
     done; exit 1
 
-# 复制 uv 并安装依赖（统一使用 pyproject.toml/uv.lock）
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev --python 3.13
+# 复制并安装独立依赖（只包含 RAG 相关，不含 torch/ultralytics）
+COPY docker/requirements.planning.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 复制应用代码
 COPY src/ ./src/
@@ -47,4 +48,4 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8003/health || exit 1
 
 # 启动命令
-CMD ["uv", "run", "uvicorn", "src.rag.service.main:app", "--host", "0.0.0.0", "--port", "8003"]
+CMD ["python", "-m", "uvicorn", "src.rag.service.main:app", "--host", "0.0.0.0", "--port", "8003"]
