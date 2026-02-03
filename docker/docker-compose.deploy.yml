@@ -10,7 +10,7 @@ services:
     container_name: rural-brain-portal
     ports:
       - "3000:80"
-    restart: unless-stopped
+    restart: always
 
   # 乡村智慧大脑前端 (3001端口)
   frontend:
@@ -23,7 +23,7 @@ services:
       - BACKEND_URL=http://backend:8081
     depends_on:
       - backend
-    restart: unless-stopped
+    restart: always
 
   # 后端主服务 (8081端口)
   backend:
@@ -40,7 +40,7 @@ services:
     depends_on:
       - detection-gateway
       - planning-service
-    restart: unless-stopped
+    restart: always
 
   # 检测服务网关 (8001端口)
   detection-gateway:
@@ -48,7 +48,7 @@ services:
     container_name: rural-brain-detection-gateway
     ports:
       - "8001:8001"
-    restart: unless-stopped
+    restart: always
 
   # 规划服务 (8003端口)
   planning-service:
@@ -56,4 +56,4 @@ services:
     container_name: rural-brain-planning-service
     ports:
       - "8003:8003"
-    restart: unless-stopped
+    restart: always
