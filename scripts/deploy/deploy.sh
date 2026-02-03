@@ -129,7 +129,7 @@ cd ~/ruralbrain-deploy
 
 # 下载 docker-compose.yml
 echo "下载 docker-compose.yml..."
-curl -fsSL https://raw.githubusercontent.com/zhihongsheng/RuralBrain/main/docker/docker-compose.deploy.yml -o docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/Fangziyang0910/RuralBrain/main/docker/docker-compose.deploy.yml -o docker-compose.yml
 
 # 启动服务
 echo "启动所有服务..."
