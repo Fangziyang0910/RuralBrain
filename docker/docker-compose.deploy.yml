@@ -5,12 +5,13 @@ version: '3.8'
 
 services:
   # 门户页面 (3000端口) - 师兄给的总入口，有3个卡片
-  portal:
-    image: zhihongsheng/rural-brain-portal:latest
-    container_name: rural-brain-portal
-    ports:
-      - "3000:80"
-    restart: always
+  # 注意：新电脑上已有 portal 运行，此处已注释避免端口冲突
+  # portal:
+  #   image: zhihongsheng/rural-brain-portal:latest
+  #   container_name: rural-brain-portal
+  #   ports:
+  #     - "3000:80"
+  #   restart: always
 
   # 乡村智慧大脑前端 (3001端口)
   frontend:
