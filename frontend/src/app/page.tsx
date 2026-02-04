@@ -5,7 +5,8 @@ import React, { useState, useCallback, useRef, useEffect, FormEvent } from "reac
 import { ChatMessageBubble, type Message } from "@/components/ChatMessageBubble";
 import { Button } from "@/components/ui/button";
 import { ImagePreviewCard } from "@/components/ui/ImagePreviewCard";
-import { Upload, Send, Loader2 } from "lucide-react";
+import { Upload, Send, Loader2, Mic } from "lucide-react";
+import { useASR } from "@/hooks/useASR";
 
 const API_BASE = "/api";
 
@@ -22,6 +23,7 @@ export default function Home() {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -73,6 +75,29 @@ export default function Home() {
       )}px`;
     }
   }, [input]);
+
+  // 语音识别 Hook
+  const { isListening, isSupported, interimText, toggle } = useASR({
+    onResult: (text) => {
+      setInput(text);
+      setVoiceStatus("");
+    },
+    onInterim: (text) => {
+      setVoiceStatus(`识别中: ${text}`);
+    },
+    onError: (error) => {
+      let errorMsg = `语音识别出错: ${error}`;
+      if (error === 'network') {
+        errorMsg = '网络错误：请检查网络连接或稍后重试';
+      } else if (error === 'not-allowed') {
+        errorMsg = '未授权：请允许麦克风权限';
+      } else if (error === 'not-supported') {
+        errorMsg = '不支持：请使用 Chrome 或 Edge 浏览器';
+      }
+      setVoiceStatus(errorMsg);
+      setTimeout(() => setVoiceStatus(""), 5000);
+    }
+  });
 
   // 选择图片处理
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -570,6 +595,21 @@ export default function Home() {
                 <Upload className="w-5 h-5" />
               </Button>
 
+              {/* 麦克风按钮 */}
+              {isSupported ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={toggle}
+                  disabled={loading}
+                  className={`flex-none ${isListening ? 'voice-recording' : ''}`}
+                  title={isListening ? '停止录音' : '点击开始语音输入'}
+                >
+                  <Mic className="w-5 h-5" />
+                </Button>
+              ) : null}
+
               {/* 文本输入框 */}
               <textarea
                 ref={textareaRef}
@@ -601,7 +641,15 @@ export default function Home() {
             {/* 提示文字 */}
             <p className="text-xs text-stone-500 text-center">
               Enter 发送 · Shift+Enter 换行 · Ctrl+V 粘贴图片 · 拖拽图片到任意位置
+              {isSupported && " · 点击麦克风语音输入"}
             </p>
+
+            {/* 语音状态提示 */}
+            {voiceStatus && (
+              <div className="voice-status">
+                {isListening && '🎙️ '}{voiceStatus}
+              </div>
+            )}
           </form>
         </div>
       </footer>
