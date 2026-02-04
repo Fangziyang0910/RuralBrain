@@ -28,7 +28,7 @@ from ..config import DEFAULT_PROVIDER
 
 # 直接导入工具（避免通过子 Agent 调用）
 from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool
-from src.rag.core.tools import PLANNING_TOOLS
+from .tools.planning_service_tool import planning_consult
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -40,14 +40,14 @@ model = model_manager.get_chat_model()
 
 # ========== Orchestrator Agent 配置 ==========
 
-# 收集所有工具（检测工具 + RAG工具）
+# 收集所有工具（检测工具 + 规划咨询工具）
 orchestrator_tools = [
     # 检测工具
     pest_detection_tool,
     rice_detection_tool,
     cow_detection_tool,
-    # RAG 规划工具
-    *PLANNING_TOOLS,
+    # 规划咨询工具（通过 HTTP 调用独立 RAG 服务）
+    planning_consult,
 ]
 
 # 系统提示词（简化版，避免重复）

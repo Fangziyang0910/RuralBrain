@@ -34,6 +34,7 @@ services:
       - "8081:8081"
     environment:
       - ENVIRONMENT=production
+      - AGENT_VERSION=v2
       - PLANNING_SERVICE_URL=http://planning-service:8003
       - PEST_DETECTION_API_URL=http://detection-gateway:8001/detection/pest/detect
       - RICE_DETECTION_API_URL=http://detection-gateway:8001/detection/rice/predict

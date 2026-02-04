@@ -24,7 +24,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from ..utils import ModelManager
 from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool, pricing_tool, marketing_tool, farm_inspection_tool, disease_prediction_tool
-from src.rag.core.tools import PLANNING_TOOLS
+from .tools.planning_service_tool import planning_consult
 from .skills.detection_skills import create_all_detection_skills
 from .skills.planning_skills import create_all_planning_skills
 from .skills.pricing_skills import create_all_pricing_skills
@@ -52,11 +52,9 @@ detection_skills = create_all_detection_skills(
     cow_tool=cow_detection_tool,
 )
 
-# 创建规划技能（使用 knowledge_search_tool 作为代表工具）
-from src.rag.core.tools import knowledge_search_tool
-
+# 创建规划技能（使用 HTTP 客户端工具调用独立 RAG 服务）
 planning_skills = create_all_planning_skills(
-    consult_tool=knowledge_search_tool,
+    consult_tool=planning_consult,
 )
 
 # 创建定价技能
@@ -88,7 +86,7 @@ all_skills: List[Skill] = detection_skills + planning_skills + pricing_skills + 
 
 # ========== 工具收集 ==========
 
-# 收集所有工具（检测3 + 定价1 + 营销1 + 巡检1 + 疾病预测1 + RAG 6 = 13个工具）
+# 收集所有工具（检测3 + 定价1 + 营销1 + 巡检1 + 疾病预测1 + 规划1 = 8个工具）
 orchestrator_tools = [
     # 检测工具
     pest_detection_tool,
@@ -101,8 +99,8 @@ orchestrator_tools = [
     farm_inspection_tool,
     # 疾病预测工具
     disease_prediction_tool,
-    # RAG 规划工具（所有 6 个）
-    *PLANNING_TOOLS,
+    # 规划咨询工具（通过 HTTP 调用独立 RAG 服务）
+    planning_consult,
 ]
 
 

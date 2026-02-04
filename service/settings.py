@@ -46,7 +46,7 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 # ============================================
 # Agent 配置
 # ============================================
-# Agent 版本选择
-AGENT_VERSION = os.getenv("AGENT_VERSION", "v1").lower()
+# Agent 版本选择（默认使用 V2 Skills 架构）
+AGENT_VERSION = os.getenv("AGENT_VERSION", "v2").lower()
 # V2 Agent 失败时是否自动回退到 V1
 AGENT_AUTO_FALLBACK = os.getenv("AGENT_AUTO_FALLBACK", "true").lower() == "true"
