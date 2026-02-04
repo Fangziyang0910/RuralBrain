@@ -7,6 +7,14 @@ const nextConfig = {
   // standalone 模式用于生产环境 Docker 部署
   // 开发环境 (npm run dev) 不受此配置影响
   output: 'standalone',
+  // 配置 webpack 忽略路径大小写警告
+  webpack: (config, { isServer }) => {
+    config.infrastructureLogging = {
+      ...config.infrastructureLogging,
+      level: 'error',
+    };
+    return config;
+  },
   async rewrites() {
     return [
       // /api 路由现在由 Route Handler 处理（支持流式响应）
