@@ -4,6 +4,13 @@ RuralBrain 统一算法服务 API 网关
 这是唯一的 FastAPI 应用，所有算法服务在此注册路由。
 算法代码保持纯粹，不依赖 FastAPI。
 """
+import sys
+from pathlib import Path
+
+# 添加 src 到 Python 路径，支持绝对导入
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
@@ -54,7 +61,7 @@ app.add_middleware(
 )
 
 # 导入检测算法的路由
-from api.routes.detection import router as detection_router
+from algorithms.api.routes.detection import router as detection_router
 
 # 注册路由，添加前缀
 app.include_router(detection_router, prefix="/detection", tags=["检测服务"])
