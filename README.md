@@ -124,22 +124,40 @@ uv sync
 
 # 配置环境变量
 cp .env.example .env
-# 编辑 .env 文件，填入你的 API 密钥
+# 编辑 .env 文件，填入你的 API 密钥（MODEL_PROVIDER 和 API_KEY）
 ```
 
 #### 运行服务
+
+RuralBrain 采用微服务架构，需要启动 **4 个服务**：
+
+**方式 A：手动启动（需要 4 个终端）**
+
 ```bash
-# 启动后端服务
+# 终端 1：检测服务网关（端口 8001）
+uv run python src/algorithms/api/main.py
+
+# 终端 2：规划咨询服务（端口 8003）
+uv run python src/rag/service/main.py
+
+# 终端 3：后端主服务（端口 8081）
 uv run python run_server.py
 
-# 在另一个终端启动前端服务（推荐方式）
+# 终端 4：前端（端口 3001）
 uv run python run_frontend.py
-
-# 或者手动启动前端
-cd frontend
-npm install
-npm run dev
 ```
+
+**方式 B：一键启动脚本**
+
+```bash
+# Windows
+.\scripts\dev\start_all_dev.ps1
+
+# macOS / Linux
+bash scripts/dev/start_all_services.sh
+```
+
+> 📖 **详细部署指南**：查看 [本地开发部署指南](LOCAL_DEV_GUIDE.md) 获取完整说明、故障排查和开发技巧。
 
 ## 📊 服务端口分配
 
