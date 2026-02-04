@@ -44,8 +44,8 @@ COPY --from=builder /install /usr/local
 # 复制应用代码
 COPY src/ ./src/
 
-# 创建知识库目录（通过卷挂载提供）
-RUN mkdir -p ./knowledge_base
+# 复制知识库数据(包含 ChromaDB)
+COPY knowledge_base ./knowledge_base
 
 # 创建非 root 用户
 RUN useradd --create-home --shell /bin/bash appuser && \

@@ -40,36 +40,35 @@ def planning_consult(query: str, mode: str = "auto") -> str:
     - 基于知识库的专业建议
     """
     try:
-        url = f"{PLANNING_SERVICE_URL}/api/chat/planning"
+        url = f"{PLANNING_SERVICE_URL}/api/v1/chat/planning"
 
-        with httpx.Timeout(30.0):
-            with httpx.Client() as client:
-                response = client.post(
-                    url,
-                    json={
-                        "message": query,
-                        "mode": mode,
-                        "thread_id": None  # 简单场景不需要会话保持
-                    },
-                    headers={"Content-Type": "application/json"}
-                )
-                response.raise_for_status()
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(
+                url,
+                json={
+                    "message": query,
+                    "mode": mode,
+                    "thread_id": None  # 简单场景不需要会话保持
+                },
+                headers={"Content-Type": "application/json"}
+            )
+            response.raise_for_status()
 
-                # 解析 SSE 流式响应
-                full_content = ""
-                for line in response.iter_lines():
-                    if line.startswith("data: "):
-                        import json
-                        try:
-                            data = json.loads(line[6:])  # 去掉 "data: " 前缀
-                            if data.get("type") == "content":
-                                full_content += data.get("content", "")
-                            elif data.get("type") == "end":
-                                break
-                        except json.JSONDecodeError:
-                            continue
+            # 解析 SSE 流式响应
+            full_content = ""
+            for line in response.iter_lines():
+                if line.startswith("data: "):
+                    import json
+                    try:
+                        data = json.loads(line[6:])  # 去掉 "data: " 前缀
+                        if data.get("type") == "content":
+                            full_content += data.get("content", "")
+                        elif data.get("type") == "end":
+                            break
+                    except json.JSONDecodeError:
+                        continue
 
-                return full_content or "抱歉，未能获取到回答。"
+            return full_content or "抱歉，未能获取到回答。"
 
     except httpx.HTTPError as e:
         logger.error(f"规划服务调用失败: {e}")
