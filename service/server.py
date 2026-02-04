@@ -431,6 +431,8 @@ async def chat_stream(request: ChatRequest):
             message_content = f"{request.message}\n\n{paths_text}"
 
         logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}")
+        # 调试：打印完整的消息内容
+        logger.info(f"发送给 Agent 的消息内容: {message_content[:500]}...")
 
         async def event_generator() -> AsyncGenerator[str, None]:
             """SSE 事件生成器"""
@@ -469,6 +471,7 @@ async def chat_stream(request: ChatRequest):
                     # 处理工具调用结束事件
                     elif kind == "on_tool_end":
                         tool_name = event["name"]
+                        logger.info(f"工具调用完成: {tool_name}")
 
                         # 查找对应的结果图片路径（仅检测工具）
                         result_image = None
