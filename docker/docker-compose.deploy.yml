@@ -1,5 +1,16 @@
 # RuralBrain 部署配置 - 使用 Docker Hub 镜像
 # 适用于新电脑部署
+#
+# ⚠️ 使用前必读：
+# 1. 需要在同目录下创建 .env 文件，设置以下 API 密钥之一：
+#    DEEPSEEK_API_KEY=你的密钥
+#    或
+#    ZHIPUAI_API_KEY=你的密钥
+# 2. .env 文件示例：
+#    DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# 3. 获取 API 密钥：
+#    - DeepSeek: https://platform.deepseek.com/api_keys
+#    - 智谱AI: https://open.bigmodel.cn/usercenter/apikeys
 
 version: '3.8'
 
@@ -13,18 +24,21 @@ services:
   #     - "3000:80"
   #   restart: always
 
-  # 乡村智慧大脑前端 (3001端口)
+  # 乡村智慧大脑前端 (3001端口) - 包含ASR语音识别功能
   frontend:
-    image: zhihongsheng/rural-brain-frontend:latest
+    image: panzhaobin/rural-brain-frontend:latest
     container_name: rural-brain-frontend
     ports:
-      - "3001:3000"
+      - "3001:3001"
     environment:
       - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
       - BACKEND_URL=http://backend:8081
     depends_on:
       - backend
-    restart: always
+    restart: unless-stopped
+    networks:
+      - ruralbrain-network
 
   # 后端主服务 (8081端口)
   backend:
@@ -33,16 +47,24 @@ services:
     ports:
       - "8081:8081"
     environment:
+      - PYTHONUNBUFFERED=1
       - ENVIRONMENT=production
+      - MODEL_PROVIDER=deepseek
+      # API 密钥：需要在同目录下创建 .env 文件，设置 DEEPSEEK_API_KEY 或 ZHIPUAI_API_KEY
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - ZHIPUAI_API_KEY=${ZHIPUAI_API_KEY}
       - AGENT_VERSION=v2
       - PLANNING_SERVICE_URL=http://planning-service:8003
       - PEST_DETECTION_API_URL=http://detection-gateway:8001/detection/pest/detect
       - RICE_DETECTION_API_URL=http://detection-gateway:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-gateway:8001/detection/cow/detect
+      - MAX_CACHE_SIZE=400
     depends_on:
       - detection-gateway
       - planning-service
-    restart: always
+    restart: unless-stopped
+    networks:
+      - ruralbrain-network
 
   # 检测服务网关 (8001端口)
   detection-gateway:
@@ -50,7 +72,12 @@ services:
     container_name: rural-brain-detection-gateway
     ports:
       - "8001:8001"
-    restart: always
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONPATH=/app/algorithms
+    restart: unless-stopped
+    networks:
+      - ruralbrain-network
 
   # 规划服务 (8003端口)
   planning-service:
@@ -58,4 +85,19 @@ services:
     container_name: rural-brain-planning-service
     ports:
       - "8003:8003"
-    restart: always
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=production
+      - SERVICE_PORT=8003
+      - SERVICE_HOST=0.0.0.0
+      - MODEL_PROVIDER=deepseek
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - ZHIPUAI_API_KEY=${ZHIPUAI_API_KEY}
+    restart: unless-stopped
+    networks:
+      - ruralbrain-network
+
+networks:
+  ruralbrain-network:
+    driver: bridge
+    name: ruralbrain-network
