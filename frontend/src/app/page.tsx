@@ -493,39 +493,12 @@ export default function Home() {
               <h2 className="text-2xl font-bold text-stone-900 mb-2">
                 你好！我是 RuralBrain
               </h2>
-              <p className="text-stone-600 mb-8">
+              <p className="text-stone-600 mb-3">
                 乡村智慧大脑，为你提供专业的智能服务
               </p>
-
-              {/* 功能卡片网格 - 简约设计 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl mb-8">
-                {/* 卡片 1 */}
-                <div className="card p-5 cursor-pointer floating-card">
-                  <div className="text-3xl mb-3">🖼️</div>
-                  <h3 className="font-semibold text-stone-900 mb-1">图像识别</h3>
-                  <p className="text-sm text-stone-600">
-                    病虫害、农作物、牛只智能检测
-                  </p>
-                </div>
-
-                {/* 卡片 2 */}
-                <div className="card p-5 cursor-pointer floating-card">
-                  <div className="text-3xl mb-3">🏘️</div>
-                  <h3 className="font-semibold text-stone-900 mb-1">规划咨询</h3>
-                  <p className="text-sm text-stone-600">
-                    旅游、产业、政策发展建议
-                  </p>
-                </div>
-
-                {/* 卡片 3 */}
-                <div className="card p-5 cursor-pointer floating-card">
-                  <div className="text-3xl mb-3">📊</div>
-                  <h3 className="font-semibold text-stone-900 mb-1">科学方案</h3>
-                  <p className="text-sm text-stone-600">
-                    防治方案和定价分析
-                  </p>
-                </div>
-              </div>
+              <p className="text-stone-500 text-sm mb-8">
+                支持图像识别、规划咨询、科学方案等功能
+              </p>
 
               {/* 提示文字 */}
               <p className="text-stone-500 text-sm">
