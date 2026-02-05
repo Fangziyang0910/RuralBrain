@@ -14,12 +14,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # 安装系统依赖（YOLOv8 需要的依赖，带重试机制）
 # 注意：opencv-python 通过 uv 安装，不需要 apt 安装 python3-opencv
+# 添加 libgl1 等 OpenCV 运行时需要的库
 RUN for i in 1 2 3; do \
     apt-get update -o Acquire::Retries=10 -o Acquire::http::Timeout=600 && \
     apt-get install -y --no-install-recommends --fix-missing \
     build-essential \
     cmake \
     pkg-config \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
     curl \
     && rm -rf /var/lib/apt/lists/* && exit 0; \
     echo "Retry $i failed, trying again..."; \
