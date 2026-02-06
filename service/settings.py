@@ -25,6 +25,10 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 DETECTION_RESULTS_DIR = TEMP_DIR / "detection_results"
 DETECTION_RESULTS_DIR.mkdir(exist_ok=True)
 
+# 创建所有检测类型的子目录（确保静态文件挂载能正常工作）
+for detection_type in ["pest", "cow", "rice"]:
+    (DETECTION_RESULTS_DIR / detection_type).mkdir(exist_ok=True)
+
 # 缓存容量限制（默认 500MB）
 MAX_CACHE_SIZE = int(os.getenv("MAX_CACHE_SIZE", "500")) * 1024 * 1024
 

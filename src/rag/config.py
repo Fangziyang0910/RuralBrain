@@ -10,7 +10,8 @@ from typing import Literal
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SRC_DIR = PROJECT_ROOT / "src"
 DATA_DIR = SRC_DIR / "data"
-KNOWLEDGE_BASE_DIR = PROJECT_ROOT / "knowledge_base"
+# 支持通过环境变量自定义知识库路径
+KNOWLEDGE_BASE_DIR = Path(os.getenv("KNOWLEDGE_BASE_DIR", PROJECT_ROOT / "knowledge_base"))
 
 # ==================== 向量数据库配置 ====================
 # 支持的环境变量

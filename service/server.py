@@ -480,7 +480,7 @@ async def chat_stream(request: ChatRequest):
                             from service.settings import DETECTION_RESULTS_DIR
                             result_dir = DETECTION_RESULTS_DIR / "pest"
                             if result_dir.exists():
-                                images = sorted(result_dir.glob("pest_detection_*.jpg"),
+                                images = sorted(result_dir.glob("pest_detection_result_*.jpg"),
                                               key=lambda p: p.stat().st_mtime, reverse=True)
                                 if images:
                                     result_image = f"/pest_results/{images[0].name}"
@@ -490,7 +490,7 @@ async def chat_stream(request: ChatRequest):
                             from service.settings import DETECTION_RESULTS_DIR
                             result_dir = DETECTION_RESULTS_DIR / "rice"
                             if result_dir.exists():
-                                images = sorted(result_dir.glob("rice_detection_*.jpg"),
+                                images = sorted(result_dir.glob("rice_detection_result_*.jpg"),
                                               key=lambda p: p.stat().st_mtime, reverse=True)
                                 if images:
                                     result_image = f"/rice_results/{images[0].name}"
@@ -500,17 +500,18 @@ async def chat_stream(request: ChatRequest):
                             from service.settings import DETECTION_RESULTS_DIR
                             result_dir = DETECTION_RESULTS_DIR / "cow"
                             if result_dir.exists():
-                                images = sorted(result_dir.glob("cow_detection_*.jpg"),
+                                images = sorted(result_dir.glob("cow_detection_result_*.jpg"),
                                               key=lambda p: p.stat().st_mtime, reverse=True)
                                 if images:
                                     result_image = f"/cow_results/{images[0].name}"
 
                         # 发送工具调用完成事件
+                        # 添加完整的基础 URL（前端通过前端 API 路由访问）
                         tool_event = {
                             "type": "tool_call",
                             "tool_name": tool_name,
                             "status": "已完成",
-                            "result_image": result_image,
+                            "result_image": result_image,  # 相对路径，前端会通过代理访问
                         }
                         yield f"data: {json.dumps(tool_event, ensure_ascii=False)}\n\n"
 

@@ -350,10 +350,15 @@ export default function Home() {
                   console.log("工具调用:", data.tool_name, data.status);
                 } else if (data.type === "tool_call") {
                   // 图像检测的工具调用事件（兼容旧版本）
+                  // 将相对路径转换为完整的后端 URL
+                  const resultImageUrl = data.result_image
+                    ? `http://localhost:8081${data.result_image}`
+                    : undefined;
+
                   const toolCall = {
                     name: data.tool_name,
                     status: data.status as "运行中" | "已完成",
-                    resultImage: data.result_image,
+                    resultImage: resultImageUrl,
                   };
                   setMessages((prev) =>
                     prev.map((msg) =>
@@ -365,7 +370,7 @@ export default function Home() {
                         : msg
                     )
                   );
-                  console.log("工具调用:", data.tool_name, "结果图片:", data.result_image);
+                  console.log("工具调用:", data.tool_name, "结果图片:", resultImageUrl);
                 } else if (data.type === "sources") {
                   // 处理知识库来源事件
                   setMessages((prev) =>
