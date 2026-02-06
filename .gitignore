@@ -85,3 +85,4 @@ temp_test_images/
 *.tar.gz
 *.zip
 DEPLOY_PROGRESS.md
+backups/

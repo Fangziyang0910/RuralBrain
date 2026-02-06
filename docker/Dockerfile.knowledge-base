@@ -1,0 +1,28 @@
+# RuralBrain Knowledge Base 数据镜像
+# 用于打包 ChromaDB 向量数据库数据
+
+FROM busybox:latest
+
+LABEL maintainer="zhihongsheng"
+LABEL description="RuralBrain Knowledge Base - ChromaDB vector database for rural planning"
+LABEL version="1.0.0"
+
+# 创建 planning-service 期望的路径
+WORKDIR /app/knowledge_base
+
+# 复制知识库数据到正确路径
+COPY knowledge_base/chroma_db/ ./chroma_db/
+
+# 设置目录权限
+RUN chmod -R 755 ./chroma_db
+
+# 注意：不使用 VOLUME 指令，因为会覆盖镜像中打包的数据
+# 数据通过 volumes_from 直接共享给 planning-service
+
+# 镜像信息
+LABEL info.chroma_db_version="0.5.0"
+LABEL info.embedding_model="BAAI/bge-small-zh-v1.5"
+LABEL info.vector_dimension="1024"
+
+# 保持容器运行（数据容器模式）
+CMD ["tail", "-f", "/dev/null"]

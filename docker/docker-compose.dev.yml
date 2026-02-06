@@ -49,7 +49,7 @@ services:
     # 使用 tmpfs 存储临时文件（内存存储，容器重启自动清空）
     tmpfs:
       - /tmp/ruralbrain:size=500M,mode=0777
-    command: ["uv", "run", "python", "run_server.py"]
+    command: ["uv", "run", "uvicorn", "service.server:app", "--host", "0.0.0.0", "--port", "8081", "--reload"]
     depends_on:
       - detection-service
       - planning-service

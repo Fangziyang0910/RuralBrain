@@ -55,21 +55,21 @@ services:
       - ZHIPUAI_API_KEY=${ZHIPUAI_API_KEY}
       - AGENT_VERSION=v2
       - PLANNING_SERVICE_URL=http://planning-service:8003
-      - PEST_DETECTION_API_URL=http://detection-gateway:8001/detection/pest/detect
-      - RICE_DETECTION_API_URL=http://detection-gateway:8001/detection/rice/predict
-      - COW_DETECTION_API_URL=http://detection-gateway:8001/detection/cow/detect
+      - PEST_DETECTION_API_URL=http://detection-service:8001/detection/pest/detect
+      - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
+      - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
       - MAX_CACHE_SIZE=400
     depends_on:
-      - detection-gateway
+      - detection-service
       - planning-service
     restart: unless-stopped
     networks:
       - ruralbrain-network
 
   # 检测服务网关 (8001端口)
-  detection-gateway:
+  detection-service:
     image: zhihongsheng/rural-brain-pest-detector:latest
-    container_name: rural-brain-detection-gateway
+    container_name: rural-brain-detection-service
     ports:
       - "8001:8001"
     environment:
