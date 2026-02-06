@@ -4,15 +4,10 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# 安装系统依赖（YOLOv8 需要的依赖）
-# 注意：opencv-python 通过 uv 安装，不需要 apt 安装 python3-opencv
-# 不使用 cache mount 避免缓存损坏的数据
+# 安装运行时依赖（YOLOv8 和 OpenCV 需要的库）
+# 注意：仅安装运行时依赖，不安装构建工具和开发库
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
-    pkg-config \
-    libopencv-dev \
     libgl1 \
     libglib2.0-0 \
     libsm6 \

@@ -279,51 +279,52 @@ uv run pytest                       # 运行测试
 
 ### 服务启动
 
-#### 方式一：使用启动脚本（推荐）
+#### 开发环境（强制使用 Docker）
 
-```bash
-# 启动后端（端口 8081）
-uv run python run_server.py
-
-# 启动前端（端口 3000）
-uv run python run_frontend.py
-```
-
-#### 方式二：手动启动
-
-```bash
-# 启动后端主服务
-uv run python service/server.py
-
-# 启动检测服务网关（端口 8001）
-uv run python src/algorithms/api/main.py
-
-# 启动规划服务（端口 8003）
-uv run python src/rag/service/main.py
-
-# 启动前端
-cd frontend && npm run dev
-```
-
-#### 方式三：一键启动所有服务
-
-```bash
-bash scripts/dev/start_all_services.sh
-```
-
-### Docker 部署
+**所有开发工作必须使用 Docker 热重载模式进行**
 
 ```bash
 cd docker
 
-# 生产环境
-docker-compose up -d
-
-# 开发环境（热重载）
+# 构建并启动所有服务（支持热重载）
 docker-compose -f docker-compose.dev.yml up -d
+
+# 查看服务状态
+docker-compose -f docker-compose.dev.yml ps
+
+# 查看日志
+docker-compose -f docker-compose.dev.yml logs -f
+
+# 停止服务
+docker-compose -f docker-compose.dev.yml down
 ```
 
-### 知识库构建
+**热重载工作流程**：
+1. 启动服务后，修改本地代码文件
+2. 容器自动检测变更并重启服务（1-3秒）
+3. 通过浏览器或 API 测试更改
+
+详细说明请参阅：[Docker 使用指南](docker/README.md)
+
+#### 生产环境部署
+
+```bash
+cd docker
+
+# 启动生产环境
+docker-compose up -d
+
+# 查看服务状态
+docker-compose ps
+
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+```
+
+#### 知识库构建
 
 ```bash
 # 构建或更新 RAG 知识库

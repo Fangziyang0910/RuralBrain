@@ -11,15 +11,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     YOLO_CONFIG_DIR=/app/ultralytics \
     UV_CACHE_DIR=/tmp/uv-cache
 
-# 安装系统依赖（YOLOv8 需要的依赖，带重试机制）
-# 注意：opencv-python 通过 uv 安装，不需要 apt 安装 python3-opencv
-# 添加 libgl1 等 OpenCV 运行时需要的库
-RUN for i in 1 2 3; do \
-    apt-get update && \
-    apt-get install -y --no-install-recommends --fix-missing \
-    build-essential \
-    cmake \
-    pkg-config \
+# 安装运行时依赖（YOLOv8 和 OpenCV 需要的库）
+# 注意：仅安装运行时依赖，不安装构建工具
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
@@ -27,13 +22,11 @@ RUN for i in 1 2 3; do \
     libxrender1 \
     libgomp1 \
     curl \
-    && rm -rf /var/lib/apt/lists/* && exit 0; \
-    echo "Retry $i failed, trying again..."; \
-    sleep 5; \
-    done; exit 1
+    && rm -rf /var/lib/apt/lists/*
 
-# 安装 uv 包管理器
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# 统一 uv 安装方式
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv
 
 # 复制项目依赖配置文件
 COPY pyproject.toml uv.lock ./

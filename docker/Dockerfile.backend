@@ -1,15 +1,16 @@
 # RuralBrain Backend Production Dockerfile
-# 生产环境镜像 - 精简依赖，仅包含后端服务必需组件
+# 生产环境镜像 - 使用统一的 pyproject.toml 依赖管理
 FROM python:3.13-slim
 
 WORKDIR /app
 
-# 安装系统依赖（只安装运行时需要的，去掉 build-essential）
-RUN apt-get update -o Acquire::Retries=10 && \
-    apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+# 安装运行时依赖
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# 安装 uv 包管理器
+# 统一 uv 安装方式
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv
 
@@ -17,33 +18,22 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app \
+    UV_CACHE_DIR=/tmp/uv-cache \
     PATH="/app/.venv/bin:$PATH"
 
-# 后端服务精简依赖（只包含 Agent 编排需要的核心库）
-# 不包含：torch、ultralytics、opencv、chromadb 等（这些由独立的检测/RAG服务提供）
-# RAG 功能通过 HTTP 调用独立服务实现，不需要本地依赖
-RUN uv pip install --system \
-    python-dotenv>=1.0.0 \
-    langchain>=1.1.0 \
-    langchain-deepseek>=1.0.0 \
-    langgraph>=1.0.4 \
-    langsmith>=0.4.38 \
-    requests>=2.31.0 \
-    httpx>=0.24.0 \
-    fastapi>=0.104.1 \
-    uvicorn[standard]>=0.24.0 \
-    pydantic>=2.4.2 \
-    pydantic-settings>=2.0.3 \
-    python-multipart>=0.0.6 \
-    aiohttp>=3.9.0
+# 复制项目依赖配置文件
+COPY pyproject.toml uv.lock ./
 
-# 复制项目源代码（只复制后端需要的）
-# 注意：RAG 功能通过 HTTP 调用独立服务实现，不需要复制 src/rag
+# 安装 Python 依赖
+# 后端服务不需要 torch、ultralytics、chromadb 等重量级依赖
+# 这些由独立的检测服务、规划服务提供
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --python 3.13
+
+# 复制应用代码
 COPY run_server.py ./
 COPY service ./service
-COPY src/agents ./src/agents
-COPY src/utils ./src/utils
-COPY src/config.py ./src/
+COPY src ./src
 
 # 创建临时文件目录
 RUN mkdir -p /tmp/ruralbrain
@@ -51,5 +41,9 @@ RUN mkdir -p /tmp/ruralbrain
 # 暴露端口
 EXPOSE 8081
 
-# 启动命令（生产环境，不使用 reload）
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8081/docs || exit 1
+
+# 启动命令（生产环境）
 CMD ["python", "run_server.py"]

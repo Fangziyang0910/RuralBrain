@@ -4,11 +4,9 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# 安装系统依赖
-# 不使用 cache mount 避免缓存损坏的数据
+# 安装运行时依赖
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,9 +27,6 @@ COPY pyproject.toml uv.lock ./
 # 显式使用 Python 3.13
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --python 3.13
-
-# 创建知识库目录
-RUN mkdir -p knowledge_base
 
 # 暴露端口
 EXPOSE 8003
