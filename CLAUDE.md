@@ -284,19 +284,24 @@ uv run pytest                       # 运行测试
 **所有开发工作必须使用 Docker 热重载模式进行**
 
 ```bash
+# 使用启动脚本（推荐）
+bash scripts/dev/start_all_services.sh -d      # 启动所有服务
+bash scripts/dev/stop_all_services.sh           # 停止所有服务
+
+# 或直接使用 Docker Compose
 cd docker
 
 # 构建并启动所有服务（支持热重载）
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # 查看服务状态
-docker-compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml ps
 
 # 查看日志
-docker-compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.dev.yml logs -f
 
 # 停止服务
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down
 ```
 
 **热重载工作流程**：
@@ -304,7 +309,37 @@ docker-compose -f docker-compose.dev.yml down
 2. 容器自动检测变更并重启服务（1-3秒）
 3. 通过浏览器或 API 测试更改
 
-详细说明请参阅：[Docker 使用指南](docker/README.md)
+详细说明请参阅：[Docker 使用指南](docker/README.md) 或 [开发工作流指南](docs/guides/development-workflow.md)
+
+#### 服务健康检查和测试
+
+```bash
+# 健康检查
+bash scripts/dev/health_check.sh                 # 完整健康检查
+bash scripts/dev/health_check.sh --quick         # 快速检查
+bash scripts/dev/health_check.sh --service backend  # 检查单个服务
+
+# 功能测试（分级）
+bash scripts/dev/test_services.sh --fast         # 快速测试 (< 30秒)
+bash scripts/dev/test_services.sh --normal       # 正常测试 (< 2分钟)
+bash scripts/dev/test_services.sh --full         # 完整测试 (< 5分钟)
+
+# 服务状态检查
+bash scripts/dev/check_services.sh               # 检查所有服务状态
+```
+
+#### 环境切换
+
+```bash
+# 切换到生产模式
+bash scripts/dev/switch_to_production.sh
+
+# 切换回开发模式
+bash scripts/dev/switch_to_development.sh
+
+# 生产环境测试
+bash scripts/dev/test_production.sh
+```
 
 #### 生产环境部署
 
@@ -386,6 +421,42 @@ pip install package
 
 - **充分利用** playwright mcp 工具进行错误排查和效果获取
 - 使用 playwright 进行页面截图、控制台日志检查、元素交互验证
+
+### 8. 开发测试验证 ⭐⭐⭐
+
+**重要**：每次代码更改后必须进行测试验证
+
+```
+代码更改 → 热重载（1-3秒） → 健康检查 → 功能测试
+```
+
+**验证流程**：
+```bash
+# 1. 等待热重载完成（自动，1-3秒）
+
+# 2. 快速健康检查
+bash scripts/dev/health_check.sh --quick
+
+# 3. 运行相关功能测试
+bash scripts/dev/test_services.sh --fast
+
+# 4. 如果测试通过，继续开发
+#    如果测试失败，修复问题
+```
+
+**部署前验证**：
+```bash
+# 1. 完整功能测试
+bash scripts/dev/test_services.sh --full
+
+# 2. 切换到生产模式
+bash scripts/dev/switch_to_production.sh
+
+# 3. 生产环境测试
+bash scripts/dev/test_production.sh
+
+# 4. 如果所有测试通过，可以部署
+```
 
 ---
 
@@ -498,6 +569,28 @@ pip install package
 
 ## 开发最佳实践
 
+### 日常开发流程
+
+```
+1. 启动开发环境
+   bash scripts/dev/start_all_services.sh -d
+
+2. 验证服务健康
+   bash scripts/dev/health_check.sh
+
+3. 开发代码（自动热重载）
+   - 修改文件
+   - Docker 自动检测变更并重启服务（1-3秒）
+
+4. 快速验证
+   bash scripts/dev/health_check.sh --quick
+
+5. 完整测试（重要功能完成后）
+   bash scripts/dev/test_services.sh --normal
+```
+
+详细工作流说明请参阅：[开发工作流指南](docs/guides/development-workflow.md)
+
 ### 添加新功能时
 
 1. **确定功能类型**：
@@ -600,10 +693,22 @@ curl -X POST "http://localhost:8001/detection/pest/predict" \
 
 ## 更新日志
 
-**最后更新**: 2026-01-31
-**版本**: v2.0
+**最后更新**: 2026-02-07
+**版本**: v2.1
 
 **主要变更**：
+- **新增**：开发工作流优化脚本
+  - `scripts/dev/health_check.sh` - 服务健康检查脚本
+  - `scripts/dev/test_services.sh` - 分级功能测试脚本（--fast/--normal/--full）
+  - `scripts/dev/test_production.sh` - 生产环境测试脚本
+  - `scripts/dev/switch_to_production.sh` - 切换到生产模式
+  - `scripts/dev/switch_to_development.sh` - 切换到开发模式
+- **修复**：`scripts/dev/check_services.sh` 端口配置错误（移除废弃的 8002 端口，添加 8003 规划服务）
+- **新增**：[开发工作流指南](docs/guides/development-workflow.md) 文档
+- **更新**：添加测试验证要求和流程规范
+- **更新**：常用命令部分，添加新脚本使用说明
+
+**v2.0 变更**：
 - 更新为 V2 Agent Skills 架构说明
 - 修正端口分配（后端 8081，检测网关 8001，规划 8003）
 - 更新目录结构（反映最新的代码组织）
