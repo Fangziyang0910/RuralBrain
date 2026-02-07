@@ -24,7 +24,7 @@ class DetectionConfig:
     # 模型路径
     @property
     def PEST_MODEL_PATH(self) -> str:
-        return str(self.MODELS_DIR / "pest" / "best.pt")
+        return str(self.MODELS_DIR / "pest" / "best.onnx")
 
     @property
     def PEST_CLASSES_PATH(self) -> str:
@@ -32,11 +32,11 @@ class DetectionConfig:
 
     @property
     def RICE_MODEL_PATH(self) -> str:
-        return str(self.MODELS_DIR / "rice" / "weights_fl" / "best.pt")
+        return str(self.MODELS_DIR / "rice" / "weights_fl" / "best.onnx")
 
     @property
     def COW_MODEL_PATH(self) -> str:
-        return str(self.MODELS_DIR / "cow" / "yolov8n.pt")
+        return str(self.MODELS_DIR / "cow" / "yolov8n.onnx")
 
     @property
     def COW_CLASSES_PATH(self) -> str:

@@ -20,7 +20,8 @@ dependencies = [
     # 图像处理和深度学习依赖
     "opencv-python>=4.8.0",
     "numpy>=1.24.0",
-    "torch>=2.0.1",
+    "onnxruntime>=1.20.0",
+    # ultralytics 用于加载 ONNX 模型进行推理（不依赖 torch）
     "ultralytics>=8.0.0",
     # RAG 知识库依赖
     "langchain-chroma>=0.1.0",
