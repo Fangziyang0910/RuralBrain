@@ -1,6 +1,6 @@
 """
 大米品种识别服务
-从原始的 rice_detection 服务移植
+使用 ONNX Runtime，无需 PyTorch 和 ultralytics
 """
 import os
 import base64
@@ -9,11 +9,7 @@ from typing import Dict, List, Any
 import numpy as np
 import cv2
 
-try:
-    from ultralytics import YOLO
-except Exception:
-    YOLO = None
-
+from algorithms.detection.services.onnx_yolo import ONNXYOLODetector
 from algorithms.detection.config import config
 
 
@@ -24,7 +20,7 @@ class RiceService:
 
     def __init__(self):
         self.weights_path = config.RICE_MODEL_PATH
-        self._model = None
+        self._detector = None
         self._initialized = False
         self._init_lock = threading.Lock()
         self.name_map = {
@@ -44,20 +40,27 @@ class RiceService:
             if self._initialized:
                 return
 
-            if YOLO is None:
-                raise RuntimeError('ultralytics YOLO 未安装或无法导入')
             if not os.path.exists(self.weights_path):
                 raise FileNotFoundError(f'Model weights not found at {self.weights_path}')
 
-            self._model = YOLO(self.weights_path)
+            # 定义类别名称
+            class_names = list(self.name_map.values())
+
+            # 创建 ONNX YOLO 检测器
+            self._detector = ONNXYOLODetector(
+                model_path=self.weights_path,
+                class_names=class_names,
+                conf_threshold=0.3
+            )
+
             self._initialized = True
             print(f"[Rice] 模型加载成功: {self.weights_path}")
 
     @property
-    def model(self):
-        """获取模型实例（惰性加载）"""
+    def detector(self):
+        """获取检测器实例（惰性加载）"""
         self._load_model()
-        return self._model
+        return self._detector
 
     def _decode_base64_image(self, b64: str):
         try:
@@ -70,40 +73,27 @@ class RiceService:
         except Exception as e:
             raise ValueError(f'图片解码失败: {e}')
 
-    def _parse_results(self, results) -> List[Dict[str, Any]]:
-        if results is None or len(results) == 0:
-            return []
-        res = results[0]
-
-        if res.boxes is None or len(res.boxes) == 0:
+    def _parse_results(self, detections: List[Dict]) -> List[Dict[str, Any]]:
+        """解析检测结果"""
+        if not detections:
             return []
 
-        model_names = getattr(res, 'names', {})
         class_counts = {}
-
-        for box in res.boxes:
-            cls_id = int(box.cls[0].cpu().numpy())
-
-            if cls_id in model_names:
-                raw_name = model_names[cls_id]
+        for det in detections:
+            class_name = det['class_name']
+            if class_name in class_counts:
+                class_counts[class_name] += 1
             else:
-                raw_name = str(cls_id)
+                class_counts[class_name] = 1
 
-            display_name = self.name_map.get(str(raw_name), raw_name)
-
-            if display_name in class_counts:
-                class_counts[display_name] += 1
-            else:
-                class_counts[display_name] = 1
-
-        detections = []
+        result = []
         for name, count in class_counts.items():
-            detections.append({
+            result.append({
                 'name': name,
                 'count': count
             })
 
-        return detections
+        return result
 
     def predict(self, image_base64: str) -> Dict[str, Any]:
         try:
@@ -112,18 +102,16 @@ class RiceService:
             return {'success': False, 'message': str(e), 'detections': []}
 
         try:
-            results = self.model(img, verbose=False)
+            detections, annotated_image = self.detector.infer(img)
         except Exception as e:
             return {'success': False, 'message': f'模型推理失败: {e}', 'detections': []}
 
-        detections = self._parse_results(results)
+        parsed_detections = self._parse_results(detections)
 
         # 生成标注图片
         result_image_b64 = None
         try:
-            first_result = results[0]
-            plot_img = first_result.plot()
-            success, buffer = cv2.imencode('.jpg', plot_img)
+            success, buffer = cv2.imencode('.jpg', annotated_image)
 
             if success:
                 result_image_b64 = base64.b64encode(buffer).decode('utf-8')
@@ -134,7 +122,7 @@ class RiceService:
 
         return {
             'success': True,
-            'detections': detections,
+            'detections': parsed_detections,
             'result_image': result_image_b64
         }
 
