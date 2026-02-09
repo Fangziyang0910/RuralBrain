@@ -98,6 +98,8 @@ services:
       - PYTHONPATH=/app
     volumes:
       - ../src/rag:/app/src/rag                    # RAG 源代码
+      - ../src/utils:/app/src/utils                # 工具模块（新增）
+      - ../src/config.py:/app/src/config.py        # 配置文件（新增）
       - ../knowledge_base:/app/knowledge_base      # 知识库
       - ../pyproject.toml:/app/pyproject.toml      # 依赖配置
       - ../uv.lock:/app/uv.lock                    # 依赖锁文件
