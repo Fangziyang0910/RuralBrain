@@ -1,6 +1,6 @@
 """
 奶牛检测服务
-从原始的 cow_detection 服务移植
+使用 ONNX Runtime，无需 PyTorch 和 ultralytics
 """
 import cv2
 import numpy as np
@@ -8,8 +8,8 @@ import base64
 import os
 import threading
 from typing import Dict, List, Tuple, Optional
-from ultralytics import YOLO
 
+from algorithms.detection.services.onnx_yolo import ONNXYOLODetector
 from algorithms.detection.config import config
 
 
@@ -21,7 +21,7 @@ class CowModelService:
 
     def __init__(self):
         """初始化模型服务，但不立即加载模型"""
-        self._model: Optional[YOLO] = None
+        self._detector: Optional[ONNXYOLODetector] = None
         self._class_names: List[str] = []
         self._initialized: bool = False
         self._init_lock = threading.Lock()
@@ -42,26 +42,27 @@ class CowModelService:
                 if not os.path.exists(model_path):
                     raise FileNotFoundError(f"模型文件不存在: {model_path}")
 
-                # 加载模型
-                self._model = YOLO(model_path)
+                # 定义类别名称
+                class_names = ["荷斯坦牛", "娟姗牛", "西门塔尔牛"]
 
-                # 获取模型自带的类别名称
-                if hasattr(self._model, 'names') and self._model.names:
-                    self._class_names = list(self._model.names.values())
-                else:
-                    self._class_names = [f"class_{i}" for i in range(10)]
+                # 创建 ONNX YOLO 检测器
+                self._detector = ONNXYOLODetector(
+                    model_path=model_path,
+                    class_names=class_names,
+                    conf_threshold=0.5
+                )
 
-                self._class_names = tuple(self._class_names)
-                print(f"[Cow] 已加载 {len(self._class_names)} 个类别")
+                self._class_names = tuple(class_names)
+                print(f"[Cow] 已加载 {len(class_names)} 个类别")
                 self._initialized = True
             except Exception as e:
                 raise RuntimeError(f"奶牛检测模型初始化失败: {str(e)}")
 
     @property
-    def model(self) -> YOLO:
-        """获取模型实例"""
+    def detector(self) -> ONNXYOLODetector:
+        """获取检测器实例"""
         self._initialize()
-        return self._model
+        return self._detector
 
     @property
     def class_names(self) -> Tuple[str, ...]:
@@ -107,64 +108,57 @@ class CowModelService:
         # 使用线程锁保护推理过程
         with self._inference_lock:
             # 进行预测
-            results = self._model(result_image, conf=confidence_threshold, verbose=False)
+            detections, annotated_image = self._detector.infer(result_image)
 
-            # 解析检测结果并绘制边界框
-            detections = []
+            # 绘制检测结果（如果 detector 没有绘制）
+            if len(detections) > 0:
+                # 使用已标注的图像
+                result_image = annotated_image
+            else:
+                result_image = result_image
+
+            # 解析检测结果
+            api_detections = []
             class_counts = {}
             detailed_detections = []
 
-            for result in results:
-                if result.boxes is not None:
-                    for box in result.boxes:
-                        confidence = float(box.conf[0])
-                        class_id = int(box.cls[0])
-                        x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            for det in detections:
+                class_name = det['class_name']
+                confidence = det['confidence']
+                box = det.get('box', [0, 0, 0, 0])
 
-                        # 计算牛只大小和中心点
-                        cow_width = float(x2 - x1)
-                        cow_height = float(y2 - y1)
-                        center_x = float((x1 + x2) / 2)
-                        center_y = float((y1 + y2) / 2)
+                x1, y1, x2, y2 = box
 
-                        # 获取类别名称
-                        class_names = self._class_names
-                        if class_id < len(class_names):
-                            class_name = class_names[class_id]
-                        else:
-                            class_name = f"未知类别_{class_id}"
+                # 计算牛只大小和中心点
+                cow_width = float(x2 - x1)
+                cow_height = float(y2 - y1)
+                center_x = float((x1 + x2) / 2)
+                center_y = float((y1 + y2) / 2)
 
-                        # 绘制边界框和标签
-                        cv2.rectangle(result_image, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-                        label = f"{class_name}: {confidence:.2f}"
-                        cv2.putText(result_image, label, (int(x1), int(y1) - 10),
-                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                # 统计每个类别的数量
+                if class_name not in class_counts:
+                    class_counts[class_name] = 0
+                class_counts[class_name] += 1
 
-                        # 统计每个类别的数量
-                        if class_name not in class_counts:
-                            class_counts[class_name] = 0
-                        class_counts[class_name] += 1
-
-                        # 添加到详细检测结果
-                        detailed_detection = {
-                            "class_name": class_name,
-                            "confidence": confidence,
-                            "bbox": [float(x1), float(y1), float(x2), float(y2)],
-                            "center": [center_x, center_y],
-                            "size": {
-                                "width": cow_width,
-                                "height": cow_height,
-                                "area": cow_width * cow_height
-                            },
-                            "relative_position": {
-                                "x": center_x / width,
-                                "y": center_y / height
-                            }
-                        }
-                        detailed_detections.append(detailed_detection)
+                # 添加到详细检测结果
+                detailed_detection = {
+                    "class_name": class_name,
+                    "confidence": confidence,
+                    "bbox": [float(x1), float(y1), float(x2), float(y2)],
+                    "center": [center_x, center_y],
+                    "size": {
+                        "width": cow_width,
+                        "height": cow_height,
+                        "area": cow_width * cow_height
+                    },
+                    "relative_position": {
+                        "x": center_x / width if width > 0 else 0,
+                        "y": center_y / height if height > 0 else 0
+                    }
+                }
+                detailed_detections.append(detailed_detection)
 
             # 转换为API期望的格式
-            api_detections = []
             for class_name, count in class_counts.items():
                 api_detections.append({
                     "name": class_name,

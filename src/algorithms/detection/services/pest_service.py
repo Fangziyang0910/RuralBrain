@@ -1,6 +1,6 @@
 """
 病虫害检测服务
-从原始的 pest_detection 服务移植
+使用 ONNX Runtime，无需 PyTorch 和 ultralytics
 """
 import cv2
 import numpy as np
@@ -8,8 +8,8 @@ import base64
 import os
 import threading
 from typing import Dict, List, Tuple, Optional
-from ultralytics import YOLO
 
+from algorithms.detection.services.onnx_yolo import ONNXYOLODetector
 from algorithms.detection.config import config
 
 
@@ -21,7 +21,7 @@ class PestModelService:
 
     def __init__(self):
         """初始化模型服务，但不立即加载模型"""
-        self._model: Optional[YOLO] = None
+        self._detector: Optional[ONNXYOLODetector] = None
         self._class_names: List[str] = []
         self._initialized: bool = False
         self._init_lock = threading.Lock()
@@ -45,57 +45,68 @@ class PestModelService:
                 if not os.path.exists(classes_path):
                     raise FileNotFoundError(f"类别文件不存在: {classes_path}")
 
-                # 加载模型
-                self._model = YOLO(model_path)
+                # 加载类别名称
+                class_names = self._load_class_names(classes_path)
 
-                # 加载类别
-                class_names: List[str] = []
-                if os.path.exists(classes_path):
-                    encodings = ['utf-8', 'gbk', 'ansi']
-                    for encoding in encodings:
-                        try:
-                            class_names = []
-                            with open(classes_path, 'r', encoding=encoding) as f:
-                                for line in f.readlines():
-                                    line = line.strip()
-                                    if line:
-                                        parts = line.split()
-                                        if len(parts) >= 2:
-                                            # 查找中文字符
-                                            last_chinese_pos = -1
-                                            for i, char in enumerate(line):
-                                                if '\u4e00' <= char <= '\u9fff':
-                                                    last_chinese_pos = i
-                                                    break
-
-                                            if last_chinese_pos >= 0:
-                                                chinese_name = line[last_chinese_pos:].strip()
-                                                class_names.append(chinese_name)
-                                            else:
-                                                class_names.append(line)
-
-                            if any(class_names):
-                                print(f"[Pest] 使用编码 {encoding} 成功加载类别文件")
-                                break
-                        except UnicodeDecodeError:
-                            continue
-                    else:
-                        print(f"[Pest] 警告: 无法正确解码类别文件，使用默认类别")
-                        class_names = [f"class_{i}" for i in range(29)]
-                else:
-                    class_names = [f"class_{i}" for i in range(29)]
+                # 创建 ONNX YOLO 检测器
+                self._detector = ONNXYOLODetector(
+                    model_path=model_path,
+                    class_names=class_names,
+                    conf_threshold=0.3
+                )
 
                 self._class_names = tuple(class_names)
-                print(f"[Pest] 已加载 {len(self._class_names)} 个类别")
                 self._initialized = True
+                print(f"[Pest] 服务初始化完成，支持 {len(class_names)} 个类别")
             except Exception as e:
                 raise RuntimeError(f"病虫害检测模型初始化失败: {str(e)}")
 
+    def _load_class_names(self, classes_path: str) -> List[str]:
+        """加载类别名称文件"""
+        class_names: List[str] = []
+
+        if os.path.exists(classes_path):
+            encodings = ['utf-8', 'gbk', 'ansi']
+            for encoding in encodings:
+                try:
+                    class_names = []
+                    with open(classes_path, 'r', encoding=encoding) as f:
+                        for line in f.readlines():
+                            line = line.strip()
+                            if line:
+                                parts = line.split()
+                                if len(parts) >= 2:
+                                    # 查找中文字符
+                                    last_chinese_pos = -1
+                                    for i, char in enumerate(line):
+                                        if '\u4e00' <= char <= '\u9fff':
+                                            last_chinese_pos = i
+                                            break
+
+                                    if last_chinese_pos >= 0:
+                                        chinese_name = line[last_chinese_pos:].strip()
+                                        class_names.append(chinese_name)
+                                    else:
+                                        class_names.append(line)
+
+                    if any(class_names):
+                        print(f"[Pest] 使用编码 {encoding} 成功加载 {len(class_names)} 个类别")
+                        break
+                except UnicodeDecodeError:
+                    continue
+            else:
+                print(f"[Pest] 警告: 无法正确解码类别文件，使用默认类别")
+                class_names = [f"class_{i}" for i in range(29)]
+        else:
+            class_names = [f"class_{i}" for i in range(29)]
+
+        return class_names
+
     @property
-    def model(self) -> YOLO:
-        """获取模型实例"""
+    def detector(self) -> ONNXYOLODetector:
+        """获取检测器实例"""
         self._initialize()
-        return self._model
+        return self._detector
 
     @property
     def class_names(self) -> Tuple[str, ...]:
@@ -104,56 +115,32 @@ class PestModelService:
         return self._class_names
 
     def predict(self, image: np.ndarray) -> Tuple[List[Dict], np.ndarray]:
-        """使用YOLO模型进行预测（线程安全）"""
+        """使用模型进行预测（线程安全）"""
         self._initialize()
         image_copy = image.copy()
 
         try:
             with self._inference_lock:
-                results = self._model(image_copy, verbose=False)
-                annotated_image = results[0].plot()
-
-                local_detections = []
-                for result in results:
-                    if result.boxes is not None:
-                        for box in result.boxes:
-                            confidence = float(box.conf[0])
-                            if confidence < 0.3:
-                                continue
-
-                            class_id = int(box.cls[0])
-                            class_names = self._class_names
-                            if class_id < len(class_names):
-                                class_name = class_names[class_id]
-                                if not isinstance(class_name, str) or len(class_name.strip()) == 0:
-                                    class_name = f"未知类别_{class_id}"
-                            else:
-                                class_name = f"未知类别_{class_id}"
-
-                            local_detections.append({
-                                "class_id": class_id,
-                                "class_name": class_name,
-                                "confidence": confidence
-                            })
+                detections, annotated_image = self._detector.infer(image_copy)
 
             # 统计每种害虫的数量
             pest_counts: Dict[str, int] = {}
-            for det in local_detections:
+            for det in detections:
                 class_name = det["class_name"]
                 if class_name in pest_counts:
                     pest_counts[class_name] += 1
                 else:
                     pest_counts[class_name] = 1
 
-            detections = [
+            result = [
                 {"name": name, "count": count}
                 for name, count in pest_counts.items()
             ]
 
             total_count = sum(pest_counts.values())
-            print(f"[Pest] 检测到 {len(detections)} 种害虫，共 {total_count} 个目标")
+            print(f"[Pest] 检测到 {len(result)} 种害虫，共 {total_count} 个目标")
 
-            return detections, annotated_image
+            return result, annotated_image
         except Exception as e:
             print(f"[Pest] 预测过程中出错: {str(e)}")
             return [], image.copy()
