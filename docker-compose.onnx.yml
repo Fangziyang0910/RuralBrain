@@ -6,7 +6,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: ./docker/Dockerfile.frontend.onnx
+      dockerfile: ../docker/Dockerfile.frontend.onnx
     container_name: ruralbrain-frontend
     ports:
       - "3001:3001"

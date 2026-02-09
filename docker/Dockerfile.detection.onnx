@@ -29,10 +29,8 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # 安装最小依赖 - 仅包含推理所需的包
-# onnxruntime: CPU 版本（体积小，适合推理）
-# opencv-python: 图像处理
-# ultralytics: YOLO 推理（会自动安装，但我们使用 onnxruntime 后端）
-# 注意：不指定具体版本，让 pip 自动选择与 Python 3.13 兼容的最新版本
+# 使用 --no-deps 安装 ultralytics，避免自动安装 GPU 版本的 PyTorch
+# 然后手动安装推理所需的最小依赖（包括 CUDA 版本的 torch）
 RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     fastapi \
     uvicorn[standard] \
@@ -41,11 +39,15 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     python-multipart \
     opencv-python-headless \
     onnxruntime \
-    ultralytics \
+    numpy \
     python-dotenv \
     requests \
     rich \
-    --no-cache-dir
+    torch \
+    --no-cache-dir && \
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    ultralytics \
+    --no-deps
 
 # 创建模型目录
 RUN mkdir -p /app/algorithms/detection/models/{pest,cow,rice}
