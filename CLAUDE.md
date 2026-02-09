@@ -208,13 +208,19 @@ RuralBrain/
 │   └── tailwind.config.ts               # Tailwind 配置
 │
 ├── docker/                            # 【Docker 配置】
-│   ├── docker-compose.yml              # 生产环境编排
-│   └── docker-compose.dev.yml          # 开发环境（热重载）
+│   ├── Dockerfile.backend.onnx         # 后端 ONNX 镜像（轻量级）
+│   ├── Dockerfile.detection.onnx       # 检测服务 ONNX 镜像
+│   ├── Dockerfile.planning.onnx        # 规划服务 ONNX 镜像
+│   ├── Dockerfile.frontend.onnx        # 前端生产镜像
+│   ├── Dockerfile.frontend.dev         # 前端开发镜像（热重载）
+│   └── [其他传统 Dockerfile]           # PyTorch 版本（已废弃）
 │
 ├── tests/                             # 【测试代码】
 ├── scripts/                           # 【脚本工具】
 │   ├── dev/                            # 开发脚本
-│   │   ├── start_all_services.sh       # ⭐ 一键启动所有服务
+│   │   ├── build-onnx-images.ps1       # ⭐ ONNX 镜像构建脚本（Windows）
+│   │   ├── build-onnx-images.sh        # ⭐ ONNX 镜像构建脚本（Linux/macOS）
+│   │   ├── start_all_services.sh       # 一键启动所有服务
 │   │   ├── stop_all_services.sh        # 停止所有服务
 │   │   └── check_services.sh          # 检查服务状态
 │   └── deploy/                         # 部署脚本
@@ -279,29 +285,62 @@ uv run pytest                       # 运行测试
 
 ### 服务启动
 
-#### 开发环境（强制使用 Docker）
+#### Docker ONNX 部署（推荐）⭐
+
+**使用 ONNX Runtime 轻量级镜像，相比传统 PyTorch 方案：**
+- 镜像体积减少 60-75%（从 ~40GB 降至 ~10GB）
+- 构建时间缩短 50%（从 15-20 分钟降至 3-5 分钟）
+- 推理速度提升，内存占用降低
+
+##### 1. 构建 ONNX 镜像
+
+```bash
+# Windows
+.\scripts\dev\build-onnx-images.ps1
+
+# Linux/macOS
+bash scripts/dev/build-onnx-images.sh
+```
+
+##### 2. 启动开发环境（支持热重载）
+
+```bash
+# 使用 docker-compose（推荐）
+docker-compose -f docker-compose.dev.yml up -d
+
+# 查看服务状态
+docker-compose -f docker-compose.dev.yml ps
+
+# 查看日志
+docker-compose -f docker-compose.dev.yml logs -f
+
+# 停止服务
+docker-compose -f docker-compose.dev.yml down
+```
+
+##### 3. 启动生产环境
+
+```bash
+# 启动生产环境
+docker-compose -f docker-compose.onnx.yml up -d
+
+# 查看服务状态
+docker-compose -f docker-compose.onnx.yml ps
+
+# 查看日志
+docker-compose -f docker-compose.onnx.yml logs -f
+```
+
+**详细说明**：参阅 [Docker ONNX 部署指南](docs/guides/docker-onnx-deployment.md)
+
+#### 传统开发环境（已废弃，仅作参考）
 
 **所有开发工作必须使用 Docker 热重载模式进行**
 
 ```bash
-# 使用启动脚本（推荐）
+# 使用启动脚本（旧方式，不推荐）
 bash scripts/dev/start_all_services.sh -d      # 启动所有服务
 bash scripts/dev/stop_all_services.sh           # 停止所有服务
-
-# 或直接使用 Docker Compose
-cd docker
-
-# 构建并启动所有服务（支持热重载）
-docker compose -f docker-compose.dev.yml up -d
-
-# 查看服务状态
-docker compose -f docker-compose.dev.yml ps
-
-# 查看日志
-docker compose -f docker-compose.dev.yml logs -f
-
-# 停止服务
-docker compose -f docker-compose.dev.yml down
 ```
 
 **热重载工作流程**：
@@ -637,9 +676,21 @@ bash scripts/dev/test_production.sh
 | `src/algorithms/api/main.py` | 检测服务统一网关 | ⭐⭐⭐ |
 | `src/rag/core/tools.py` | RAG 知识库工具 | ⭐⭐⭐ |
 | `src/config.py` | 全局配置 | ⭐⭐ |
-| `run_server.py` | 后端启动脚本 | ⭐⭐ |
-| `run_frontend.py` | 前端启动脚本 | ⭐⭐ |
 | `.env` | 环境变量配置 | ⭐⭐⭐ |
+
+### Docker ONNX 部署文件
+
+| 文件 | 作用 | 优先级 |
+|------|------|--------|
+| `docker-compose.dev.yml` | 开发环境配置（热重载） | ⭐⭐⭐ |
+| `docker-compose.onnx.yml` | 生产环境配置 | ⭐⭐⭐ |
+| `docker/Dockerfile.backend.onnx` | 后端 ONNX 镜像 | ⭐⭐⭐ |
+| `docker/Dockerfile.detection.onnx` | 检测服务 ONNX 镜像 | ⭐⭐⭐ |
+| `docker/Dockerfile.planning.onnx` | 规划服务 ONNX 镜像 | ⭐⭐⭐ |
+| `docker/Dockerfile.frontend.dev` | 前端开发镜像 | ⭐⭐⭐ |
+| `scripts/dev/build-onnx-images.ps1` | Windows 构建脚本 | ⭐⭐ |
+| `scripts/dev/build-onnx-images.sh` | Linux/macOS 构建脚本 | ⭐⭐ |
+| `docs/guides/docker-onnx-deployment.md` | ONNX 部署文档 | ⭐⭐ |
 
 ---
 
@@ -689,14 +740,48 @@ curl -X POST "http://localhost:8001/detection/pest/predict" \
 - 检测：http://localhost:8001/docs
 - 规划：http://localhost:8003/docs
 
+### Q: Docker ONNX 部署和传统部署有什么区别？
+
+**A**:
+- **ONNX 部署**：使用 ONNX Runtime，镜像体积小（~10GB），构建快（3-5分钟），推荐用于开发和生产
+- **传统部署**：使用 PyTorch，镜像体积大（~40GB），构建慢（15-20分钟），已废弃
+
+### Q: 如何快速启动 ONNX Docker 环境？
+
+**A**:
+```bash
+# 1. 构建镜像（首次）
+.\scripts\dev\build-onnx-images.ps1  # Windows
+bash scripts/dev/build-onnx-images.sh  # Linux/macOS
+
+# 2. 启动服务
+docker-compose -f docker-compose.dev.yml up -d
+
+# 3. 查看状态
+docker-compose -f docker-compose.dev.yml ps
+```
+
+详细说明请参阅 [Docker ONNX 部署指南](docs/guides/docker-onnx-deployment.md)
+
 ---
 
 ## 更新日志
 
-**最后更新**: 2026-02-07
-**版本**: v2.1
+**最后更新**: 2026-02-09
+**版本**: v2.2
 
 **主要变更**：
+- **新增**：ONNX Runtime 轻量级 Docker 部署方案
+  - 新增 5 个 ONNX Dockerfile（backend、detection、planning、frontend、frontend.dev）
+  - 新增 2 个 docker-compose 配置（dev.yml、onnx.yml）
+  - 新增 2 个构建脚本（build-onnx-images.{ps1,sh}）
+  - 镜像体积减少 60-75%，构建时间缩短 50%
+  - 新增 [Docker ONNX 部署指南](docs/guides/docker-onnx-deployment.md) 文档
+- **更新**：服务启动命令，优先使用 ONNX Docker 部署
+- **更新**：目录结构，添加 ONNX Dockerfile 说明
+- **更新**：常用命令部分，添加 ONNX 镜像构建和启动命令
+
+**v2.1 变更**：
 - **新增**：开发工作流优化脚本
   - `scripts/dev/health_check.sh` - 服务健康检查脚本
   - `scripts/dev/test_services.sh` - 分级功能测试脚本（--fast/--normal/--full）

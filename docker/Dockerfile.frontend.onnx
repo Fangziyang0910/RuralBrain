@@ -1,0 +1,46 @@
+# RuralBrain Frontend - 轻量级生产版本
+# Next.js 前端应用
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# 设置 npm 镜像源（加速国内下载）
+RUN npm config set registry https://registry.npmmirror.com
+
+# 复制 package.json 和 package-lock.json
+COPY package*.json ./
+
+# 安装依赖
+RUN npm ci
+
+# 复制源代码
+COPY . .
+
+# 构建应用
+RUN npm run build
+
+# 生产镜像
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 设置环境变量
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1
+
+# 从构建阶段复制构建产物
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/src ./src
+
+# 暴露端口
+EXPOSE 3001
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3001 || exit 1
+
+# 启动命令
+CMD ["npm", "start"]

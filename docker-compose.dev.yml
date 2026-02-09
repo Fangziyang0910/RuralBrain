@@ -1,0 +1,98 @@
+# RuralBrain 开发环境 Docker Compose 配置
+# 使用 ONNX Runtime + 开发模式前端
+
+services:
+  # 前端服务 (Next.js 开发模式)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/Dockerfile.frontend.dev
+    container_name: ruralbrain-frontend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_PUBLIC_API_URL=http://localhost:8081
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - ruralbrain-network
+
+  # 后端主服务
+  backend:
+    image: ruralbrain-backend:onnx
+    container_name: ruralbrain-backend
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=development
+      - PLANNING_SERVICE_URL=http://planning-service:8003
+      - PEST_DETECTION_API_URL=http://detection-service:8001/detection/pest/detect
+      - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
+      - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
+    volumes:
+      - ./knowledge_base:/app/knowledge_base:ro
+      - ./service:/app/service
+      - ./src/agents:/app/src/agents
+      - ./src/utils:/app/src/utils
+      - ./src/config.py:/app/src/config.py
+    tmpfs:
+      - /tmp/ruralbrain:size=500M,mode=0777
+    depends_on:
+      - detection-service
+      - planning-service
+    restart: unless-stopped
+    networks:
+      - ruralbrain-network
+
+  # 检测服务
+  detection-service:
+    image: ruralbrain-detection-service:onnx
+    container_name: ruralbrain-detection-service
+    ports:
+      - "8001:8001"
+    environment:
+      - ENVIRONMENT=development
+      - PYTHONPATH=/app/algorithms
+    volumes:
+      - ./src/algorithms:/app/algorithms
+    restart: unless-stopped
+    networks:
+      - ruralbrain-network
+
+  # 规划咨询服务
+  planning-service:
+    image: ruralbrain-planning-service:onnx
+    container_name: ruralbrain-planning-service
+    ports:
+      - "8003:8003"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=development
+      - SERVICE_PORT=8003
+      - SERVICE_HOST=0.0.0.0
+    volumes:
+      - ./knowledge_base:/app/knowledge_base
+      - ./src/rag:/app/src/rag
+      - ./src/agents:/app/src/agents
+      - ./src/utils:/app/src/utils
+      - ./src/config.py:/app/src/config.py
+    restart: unless-stopped
+    networks:
+      - ruralbrain-network
+
+networks:
+  ruralbrain-network:
+    driver: bridge
+    name: ruralbrain-network

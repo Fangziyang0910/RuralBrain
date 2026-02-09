@@ -1,0 +1,61 @@
+# RuralBrain Planning Service - 轻量级版本
+# RAG 知识库服务，移除不必要的依赖
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# 配置 APT 镜像源（阿里云）
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# 升级 pip 并安装构建工具
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip && \
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple setuptools wheel
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 安装最小依赖 - 规划服务必需的包
+# LangChain 相关
+# 注意：不指定具体版本，让 pip 自动选择与 Python 3.13 兼容的最新版本
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    fastapi \
+    uvicorn[standard] \
+    pydantic \
+    pydantic-settings \
+    python-multipart \
+    python-dotenv \
+    requests \
+    rich \
+    langchain \
+    langchain-deepseek \
+    langgraph \
+    langsmith \
+    langchain-chroma \
+    sentence-transformers \
+    python-pptx \
+    pypdf \
+    python-docx \
+    filetype \
+    --no-cache-dir
+
+# 复制规划服务代码
+COPY src/rag /app/src/rag
+COPY src/config.py /app/src/
+COPY src/utils /app/src/utils
+
+# 暴露端口
+EXPOSE 8003
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8003/health || exit 1
+
+# 启动命令
+CMD ["python", "-m", "uvicorn", "src.rag.service.main:app", "--host", "0.0.0.0", "--port", "8003"]

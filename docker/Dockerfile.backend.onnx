@@ -1,0 +1,60 @@
+# RuralBrain Backend Service - 轻量级版本
+# FastAPI 后端服务，移除不必要的重量级依赖
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# 配置 APT 镜像源（阿里云）
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# 升级 pip 并安装构建工具
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip && \
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple setuptools wheel
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 安装最小依赖 - 后端服务必需的包
+# 不包含 torch、ultralytics、chromadb 等重量级依赖
+# 注意：不指定具体版本，让 pip 自动选择与 Python 3.13 兼容的最新版本
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    fastapi \
+    uvicorn[standard] \
+    pydantic \
+    pydantic-settings \
+    python-multipart \
+    python-dotenv \
+    requests \
+    langchain \
+    langchain-deepseek \
+    langgraph \
+    langsmith \
+    rich \
+    --no-cache-dir
+
+# 复制后端代码
+COPY run_server.py /app/
+COPY service /app/service
+COPY src/agents /app/src/agents
+COPY src/config.py /app/src/
+COPY src/utils /app/src/utils
+
+# 创建临时文件目录
+RUN mkdir -p /tmp/ruralbrain
+
+# 暴露端口
+EXPOSE 8081
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8081/docs || exit 1
+
+# 启动命令
+CMD ["python", "run_server.py"]
