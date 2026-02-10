@@ -1,0 +1,42 @@
+# RuralBrain Algorithm Service Development Dockerfile
+# 开发环境镜像 - 支持热重载的统一算法服务
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# 安装运行时依赖（YOLOv8 和 OpenCV 需要的库）
+# 注意：仅安装运行时依赖，不安装构建工具和开发库
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 uv 包管理器（使用官方安装脚本）
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    PYTHONPATH=/app/algorithms
+
+# 复制项目依赖配置文件
+COPY pyproject.toml uv.lock ./
+
+# 安装依赖（包含 YOLOv8 相关依赖）
+# 显式使用 Python 3.13，避免自动下载 3.14
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --python 3.13
+
+# 暴露统一服务端口
+EXPOSE 8001
+
+# 启动命令（使用 --reload 实现热重载）
+CMD ["uv", "run", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]

@@ -1,0 +1,67 @@
+# Planning Service Docker 忽略文件
+# 减小镜像体积，加快构建速度
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env*
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 测试和文档
+.pytest_cache/
+.coverage
+htmlcov/
+*.md
+docs/
+tests/
+*.test.py
+
+# 数据和模型（不需要打包进镜像）
+*.jpg
+*.png
+*.jpeg
+*.pdf
+*.docx
+*.pptx
+src/data/cases/
+src/data/policies/
+
+# 检测服务相关（不需要）
+src/algorithms/
+pest_detection_results/
+cow_detection_results/
+rice_detection_results/
+uploads/
+
+# 前端相关
+frontend/
+node_modules/
+
+# Docker
+Dockerfile*
+docker-compose*
+*.log
+
+# 其他
+.DS_Store
+Thumbs.db
+claude_code_env.sh

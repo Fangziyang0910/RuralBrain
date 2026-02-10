@@ -1,0 +1,49 @@
+# RuralBrain Backend Production Dockerfile
+# 生产环境镜像 - 使用统一的 pyproject.toml 依赖管理
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# 安装运行时依赖
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 统一 uv 安装方式
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/uv
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    UV_CACHE_DIR=/tmp/uv-cache \
+    PATH="/app/.venv/bin:$PATH"
+
+# 复制项目依赖配置文件
+COPY pyproject.toml uv.lock ./
+
+# 安装 Python 依赖
+# 后端服务不需要 torch、ultralytics、chromadb 等重量级依赖
+# 这些由独立的检测服务、规划服务提供
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --python 3.13
+
+# 复制应用代码
+COPY run_server.py ./
+COPY service ./service
+COPY src ./src
+
+# 创建临时文件目录
+RUN mkdir -p /tmp/ruralbrain
+
+# 暴露端口
+EXPOSE 8081
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8081/docs || exit 1
+
+# 启动命令（生产环境）
+CMD ["python", "run_server.py"]

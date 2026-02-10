@@ -1,0 +1,31 @@
+# 自动检测文本文件
+* text=auto
+
+# Python 源码始终使用 LF
+*.py text eol=lf
+
+# JavaScript/TypeScript 始终使用 LF
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.jsx text eol=lf
+
+# JSON/YAML 始终使用 LF
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Markdown 始终使用 LF
+*.md text eol=lf
+
+# Shell 脚本始终使用 LF
+*.sh text eol=lf
+*.bat text eol=crlf
+
+# Dockerfile 始终使用 LF
+Dockerfile* text eol=lf
+
+# 锁文件使用 LF（不转换）
+*.lock text eol=lf
+uv.lock text eol=lf
+package-lock.json text eol=lf

@@ -1,0 +1,40 @@
+# Planning Service 独立部署配置
+# 乡村规划咨询服务微服务
+version: '3.8'
+
+services:
+  # Planning Service
+  planning-service:
+    build:
+      context: ../..
+      dockerfile: src/rag/Dockerfile.service
+    container_name: planning-service
+    ports:
+      - "8003:8003"
+    env_file:
+      - ../../.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=production
+      - SERVICE_PORT=8003
+      - SERVICE_HOST=0.0.0.0
+      - MODEL_PROVIDER=${MODEL_PROVIDER:-deepseek}
+    volumes:
+      # 挂载知识库（只读）
+      - ../../knowledge_base:/app/knowledge_base:ro
+      # 挂载数据目录（只读，用于构建知识库）
+      - ../../src/data:/app/src/data:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - planning-network
+
+networks:
+  planning-network:
+    driver: bridge
+    name: planning-network

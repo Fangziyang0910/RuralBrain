@@ -1,0 +1,68 @@
+# RuralBrain Detection Service - ONNX 轻量级版本
+# 完全使用 ONNX Runtime 进行推理，移除 PyTorch 和 ultralytics 依赖
+# 镜像体积从 ~3GB 降至 ~1GB，构建时间从 20-30分钟降至 3-5分钟
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# 配置 APT 镜像源（阿里云）并安装运行时依赖
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 使用国内镜像源安装 pip 和构建工具
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip && \
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple setuptools wheel
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app/algorithms \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# 安装最小依赖 - 仅包含推理所需的包
+# 完全移除 PyTorch 和 ultralytics，直接使用 ONNX Runtime
+# 镜像从 ~3GB 降至 ~1GB，构建时间从 20-30分钟降至 3-5分钟
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    fastapi \
+    uvicorn[standard] \
+    pydantic \
+    pydantic-settings \
+    python-multipart \
+    opencv-python-headless \
+    onnxruntime \
+    numpy \
+    python-dotenv \
+    requests \
+    rich \
+    --no-cache-dir
+
+# 创建模型目录
+RUN mkdir -p /app/algorithms/detection/models/{pest,cow,rice}
+
+# 复制 ONNX 模型文件（仅复制 .onnx 文件，不包含 .pt 文件）
+COPY src/algorithms/detection/models/pest/*.onnx /app/algorithms/detection/models/pest/
+COPY src/algorithms/detection/models/cow/*.onnx /app/algorithms/detection/models/cow/
+COPY src/algorithms/detection/models/rice/**/*.onnx /app/algorithms/detection/models/rice/
+
+# 复制检测服务代码
+COPY src/algorithms /app/algorithms
+
+# 暴露端口
+EXPOSE 8001
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# 启动命令
+CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8001"]

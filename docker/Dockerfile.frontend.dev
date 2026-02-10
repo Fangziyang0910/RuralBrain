@@ -1,0 +1,23 @@
+# RuralBrain Frontend - Development Environment
+# Use development mode with hot reload
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Set npm mirror
+RUN npm config set registry https://registry.npmmirror.com
+
+# Copy package.json
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 3001
+
+# Start development server (supports hot reload)
+CMD ["npm", "run", "dev"]
