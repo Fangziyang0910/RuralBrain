@@ -50,20 +50,7 @@ AGENT_VERSION=v2
 
 ## 2. 启动开发环境
 
-### 2.1 使用启动脚本（推荐）
-
-```bash
-# 启动所有服务（热重载模式）
-bash scripts/dev/start_all_services.sh -d
-
-# 查看服务状态
-bash scripts/dev/check_services.sh
-
-# 查看日志
-cd docker && docker compose -f docker-compose.dev.yml logs -f
-```
-
-### 2.2 直接使用 Docker Compose
+### 2.1 使用 Docker Compose（推荐）
 
 ```bash
 cd docker
@@ -141,7 +128,7 @@ docker compose -f docker-compose.dev.yml up -d frontend
 
 ```
 1. 启动开发环境
-   $ bash scripts/dev/start_all_services.sh -d
+   $ cd docker && docker compose -f docker-compose.dev.yml up -d
 
 2. 验证服务健康
    $ bash scripts/dev/health_check.sh
@@ -429,10 +416,10 @@ echo "Pre-commit hook 已安装"
 
 ```bash
 # 启动服务
-bash scripts/dev/start_all_services.sh -d
+cd docker && docker compose -f docker-compose.dev.yml up -d
 
 # 停止服务
-bash scripts/dev/stop_all_services.sh
+cd docker && docker compose -f docker-compose.dev.yml down
 
 # 健康检查
 bash scripts/dev/health_check.sh [--quick] [--verbose] [--service <name>]

@@ -220,9 +220,12 @@ RuralBrain/
 │   ├── dev/                            # 开发脚本
 │   │   ├── build-onnx-images.ps1       # ⭐ ONNX 镜像构建脚本（Windows）
 │   │   ├── build-onnx-images.sh        # ⭐ ONNX 镜像构建脚本（Linux/macOS）
-│   │   ├── start_all_services.sh       # 一键启动所有服务
-│   │   ├── stop_all_services.sh        # 停止所有服务
-│   │   └── check_services.sh          # 检查服务状态
+│   │   ├── health_check.sh             # 健康检查脚本
+│   │   ├── test_services.sh            # 分级功能测试脚本
+│   │   ├── test_production.sh          # 生产环境测试脚本
+│   │   ├── switch_to_production.sh     # 切换到生产模式
+│   │   ├── switch_to_development.sh    # 切换到开发模式
+│   │   └── check_services.sh           # 检查服务状态
 │   └── deploy/                         # 部署脚本
 │
 └── docs/                              # 【项目文档】
@@ -333,15 +336,11 @@ docker-compose -f docker-compose.onnx.yml logs -f
 
 **详细说明**：参阅 [Docker ONNX 部署指南](docs/guides/docker-onnx-deployment.md)
 
-#### 传统开发环境（已废弃，仅作参考）
+**详细说明**：参阅 [Docker ONNX 部署指南](docs/guides/docker-onnx-deployment.md)
 
-**所有开发工作必须使用 Docker 热重载模式进行**
+#### 完整命令参考
 
-```bash
-# 使用启动脚本（旧方式，不推荐）
-bash scripts/dev/start_all_services.sh -d      # 启动所有服务
-bash scripts/dev/stop_all_services.sh           # 停止所有服务
-```
+所有命令的完整说明请参阅：[统一命令参考文档](docs/commands.md)
 
 **热重载工作流程**：
 1. 启动服务后，修改本地代码文件
@@ -612,7 +611,7 @@ bash scripts/dev/test_production.sh
 
 ```
 1. 启动开发环境
-   bash scripts/dev/start_all_services.sh -d
+   cd docker && docker compose -f docker-compose.dev.yml up -d
 
 2. 验证服务健康
    bash scripts/dev/health_check.sh

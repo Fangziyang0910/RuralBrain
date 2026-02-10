@@ -147,17 +147,26 @@ uv run python run_server.py
 uv run python run_frontend.py
 ```
 
-**方式 B：一键启动脚本**
+**方式 B：Docker Compose 启动（推荐，支持热重载）**
 
 ```bash
-# Windows
-.\scripts\dev\start_all_dev.ps1
+# 进入 docker 目录
+cd docker
 
-# macOS / Linux
-bash scripts/dev/start_all_services.sh
+# 启动所有服务（后台运行）
+docker compose -f docker-compose.dev.yml up -d
+
+# 查看服务状态
+docker compose -f docker-compose.dev.yml ps
+
+# 查看日志
+docker compose -f docker-compose.dev.yml logs -f
+
+# 停止服务
+docker compose -f docker-compose.dev.yml down
 ```
 
-> 📖 **详细部署指南**：查看 [本地开发部署指南](LOCAL_DEV_GUIDE.md) 获取完整说明、故障排查和开发技巧。
+> 📖 **详细部署指南**：查看 [统一命令参考](docs/commands.md) 获取完整说明、故障排查和开发技巧。
 
 ## 📊 服务端口分配
 
