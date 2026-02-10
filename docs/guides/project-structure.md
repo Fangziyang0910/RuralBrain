@@ -164,8 +164,13 @@ RuralBrain/
 │
 ├── 📁 scripts/               # 【脚本工具】
 │   ├── dev/                  # 开发脚本
-│   │   ├── start_all_services.sh   # 一键启动所有服务
-│   │   ├── stop_all_services.sh    # 停止所有服务
+│   │   ├── build-onnx-images.ps1   # ONNX 镜像构建（Windows）
+│   │   ├── build-onnx-images.sh    # ONNX 镜像构建（Linux/macOS）
+│   │   ├── health_check.sh         # 健康检查脚本
+│   │   ├── test_services.sh        # 分级功能测试脚本
+│   │   ├── test_production.sh      # 生产环境测试脚本
+│   │   ├── switch_to_production.sh # 切换到生产模式
+│   │   ├── switch_to_development.sh # 切换到开发模式
 │   │   ├── check_services.sh       # 检查服务状态
 │   │   └── build_kb_auto.py        # 自动构建知识库
 │   └── deploy/               # 部署脚本

@@ -9,6 +9,7 @@
 ### 新手入门
 - [项目概览](overview/PROJECT_OVERVIEW.md) - 了解 RuralBrain 是什么
 - [快速开始](#快速开始) - 5 分钟上手
+- [统一命令参考](commands.md) - 所有命令的权威文档
 
 ### 操作指南
 - [部署指南](guides/deployment.md) - Docker 和本地部署
@@ -89,6 +90,7 @@ npm run dev
 ```
 docs/
 ├── README.md                          # 📑 文档导航（本文件）
+├── commands.md                        # ⚡ 统一命令参考
 ├── CHANGELOG.md                       # 📜 项目变更日志
 │
 ├── guides/                            # 📚 操作指南

@@ -11,8 +11,6 @@ RuralBrain/
 ├── ruralbrain-images.tar.gz     (12GB) - Docker 镜像包
 ├── docker-compose.offline.yml    - 离线部署配置
 ├── scripts/deploy/offline_deploy.sh  - 部署脚本
-├── portal-static/static/         - 门户页静态文件
-├── docker/nginx.portal.conf      - 门户页 Nginx 配置
 └── knowledge_base/chroma_db/     - 知识库（可选）
 ```
 
@@ -54,7 +52,6 @@ bash scripts/deploy/offline_deploy.sh
 
 | 服务 | 端口 | 访问地址 |
 |------|------|----------|
-| 门户页 | 8080 | http://localhost:8080 |
 | 前端 | 3001 | http://localhost:3001 |
 | 后端 | 8081 | http://localhost:8081/docs |
 | 规划 | 8003 | http://localhost:8003/docs |

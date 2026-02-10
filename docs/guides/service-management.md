@@ -207,19 +207,27 @@ uv run python run_server.py
 uv run python run_frontend.py
 ```
 
-### 方式二：使用开发脚本
+### 方式二：使用 Docker Compose（推荐，支持热重载）
 
 **一键启动所有服务**：
 ```bash
-# 启动所有核心服务
-bash scripts/dev/start_all_services.sh
+# 进入 docker 目录
+cd docker
+
+# 启动所有核心服务（后台运行）
+docker compose -f docker-compose.dev.yml up -d
 
 # 查看服务状态
-bash scripts/dev/check_services.sh
+docker compose -f docker-compose.dev.yml ps
+
+# 查看日志
+docker compose -f docker-compose.dev.yml logs -f
 
 # 停止所有服务
-bash scripts/dev/stop_all_services.sh
+docker compose -f docker-compose.dev.yml down
 ```
+
+> 💡 **提示**：开发环境支持热重载，修改代码后会自动重启服务（1-3秒）。
 
 ### 方式三：手动启动（完整启动）
 
