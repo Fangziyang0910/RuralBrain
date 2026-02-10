@@ -39,3 +39,7 @@ src/algorithms/rice_detection/res/
 
 #rag
 src/data
+
+# Knowledge base (ChromaDB vector database)
+knowledge_base/
+temp_kb/
