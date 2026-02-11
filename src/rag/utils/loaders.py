@@ -4,6 +4,8 @@
 支持 Markdown、TXT、PPTX、PDF、DOCX、DOC 等多种格式。
 符合 LangChain 文档加载器接口规范，支持按类别（policies/cases）组织知识库。
 所有格式都会统一转换为 Markdown，并自动清理冗余信息。
+
+新增 markitdown 支持，统一文档解析流程。
 """
 import re
 import subprocess
@@ -12,6 +14,14 @@ from typing import Optional, Literal
 
 from langchain_core.documents import Document
 import filetype
+
+# markitdown - 微软开源的文档转 Markdown 工具
+try:
+    from markitdown import MarkItDown
+    MARKITDOWN_AVAILABLE = True
+except ImportError:
+    MARKITDOWN_AVAILABLE = False
+    MarkItDown = None
 
 # Optional imports for specific file formats
 try:
@@ -548,6 +558,101 @@ class MarkdownLoader(BaseDocumentLoader):
         return documents
 
 
+# ==================== markitdown 统一加载器 ====================
+
+class MarkItDownLoader(BaseDocumentLoader):
+    """
+    使用 markitdown 的统一文档加载器
+
+    支持所有 markitdown 支持的格式，统一输出 Markdown。
+    是推荐使用的加载器，优先级高于其他专用加载器。
+
+    支持格式: PDF, DOCX, PPTX, XLSX, HTML, 图片 (OCR) 等
+    """
+    def load(self) -> list[Document]:
+        """加载文档并转换为 Markdown"""
+        self._validate_file()
+
+        if not MARKITDOWN_AVAILABLE:
+            raise ImportError(
+                "markitdown 未安装，请运行: uv add markitdown\n"
+                "或安装对应格式的专用加载器"
+            )
+
+        print(f"📄 使用 markitdown 加载: {self.file_path} ...")
+
+        try:
+            md = MarkItDown()
+            result = md.convert(str(self.file_path))
+            markdown_content = result.text_content
+
+            # 清理 Markdown 内容
+            cleaned_content = self.cleaner.clean_text(markdown_content)
+
+            # 按标题分割文档
+            documents = self._split_by_headers(cleaned_content)
+
+            print(f"✅ markitdown 加载完成，共 {len(documents)} 个片段")
+            return documents
+
+        except Exception as e:
+            print(f"⚠️  markitdown 加载失败: {e}")
+            print(f"⚠️  将尝试使用专用加载器...")
+            raise
+
+    def _split_by_headers(self, content: str) -> list[Document]:
+        """按 Markdown 标题分割文档"""
+        documents = []
+        lines = content.split("\n")
+
+        current_section = []
+        current_header = "文档开始"
+        current_level = 0
+        section_idx = 0
+
+        for line in lines:
+            header_match = re.match(r'^(#{1,6})\s+(.+)$', line)
+
+            if header_match:
+                # 保存上一个章节
+                if current_section:
+                    section_content = "\n".join(current_section).strip()
+                    if self.cleaner.is_meaningful_content(section_content):
+                        doc = self._create_document(
+                            section_content,
+                            section=section_idx + 1,
+                            type="markdown",
+                            header=current_header,
+                            header_level=current_level,
+                        )
+                        if doc:
+                            documents.append(doc)
+                            section_idx += 1
+
+                # 开始新章节
+                current_level = len(header_match.group(1))
+                current_header = header_match.group(2).strip()
+                current_section = [line]
+            else:
+                current_section.append(line)
+
+        # 保存最后一个章节
+        if current_section:
+            section_content = "\n".join(current_section).strip()
+            if self.cleaner.is_meaningful_content(section_content):
+                doc = self._create_document(
+                    section_content,
+                    section=section_idx + 1,
+                    type="markdown",
+                    header=current_header,
+                    header_level=current_level,
+                )
+                if doc:
+                    documents.append(doc)
+
+        return documents
+
+
 # ==================== 文本文件加载器 ====================
 
 class TextFileLoader(BaseDocumentLoader):
@@ -631,7 +736,21 @@ def _create_loader(
     file_type: str,
     category: Optional[Literal["policies", "cases"]],
 ) -> Optional[BaseDocumentLoader]:
-    """根据文件类型创建对应的加载器"""
+    """
+    根据文件类型创建对应的加载器
+
+    优先级：
+    1. markitdown - 统一解析，推荐使用
+    2. 专用加载器 - 降级方案
+    """
+    # 优先使用 markitdown（如果可用且支持该格式）
+    if MARKITDOWN_AVAILABLE and file_type in ['pdf', 'docx', 'pptx', 'xlsx', 'html']:
+        try:
+            return MarkItDownLoader(file_path, category=category)
+        except ImportError:
+            pass  # 降级到专用加载器
+
+    # 专用加载器映射
     loader_map = {
         'pdf': PDFLoader,
         'doc': DOCLoader,

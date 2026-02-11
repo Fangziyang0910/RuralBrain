@@ -31,11 +31,29 @@ QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
 QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "rural_planning")
 
 # ==================== Embedding 模型配置 ====================
+# Embedding Provider: local（本地模型）, dashscope（千问）, openai
+EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "local")
+
+# 本地模型配置（降级方案）
 EMBEDDING_MODEL_NAME = os.getenv(
     "EMBEDDING_MODEL_NAME",
     "BAAI/bge-small-zh-v1.5"  # 中文 Embedding 模型
 )
 EMBEDDING_DEVICE = os.getenv("EMBEDDING_DEVICE", "cpu")  # 可选: cuda, mps
+
+# 千问 API 配置（推荐）
+DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
+DASHSCOPE_EMBEDDING_MODEL = os.getenv(
+    "DASHSCOPE_EMBEDDING_MODEL",
+    "text-embedding-v3"  # 千问 Embedding 模型
+)
+
+# OpenAI 配置（可选）
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_EMBEDDING_MODEL = os.getenv(
+    "OPENAI_EMBEDDING_MODEL",
+    "text-embedding-3-small"
+)
 
 # ==================== 文本分割配置 ====================
 # 针对 Planning Agent 优化：更大的 chunk_size 保留更多上下文
@@ -88,3 +106,82 @@ def validate_config() -> None:
 
 # 初始化时验证
 validate_config()
+
+
+# ==================== Embedding 工厂函数 ====================
+def get_embeddings():
+    """
+    获取 Embedding 实例（支持多种 Provider）
+
+    优先级：
+    1. 千问 API (dashscope) - 推荐，无需本地模型
+    2. OpenAI API - 备选方案
+    3. 本地模型 - 降级方案
+
+    Returns:
+        LangChain Embeddings 实例
+    """
+    provider = EMBEDDING_PROVIDER.lower()
+
+    # 千问 API（推荐）
+    if provider == "dashscope":
+        if not DASHSCOPE_API_KEY:
+            raise ValueError(
+                "使用千问 Embedding 需要配置 DASHSCOPE_API_KEY\n"
+                "请获取 API Key: https://help.aliyun.com/zh/dashscope/developer-reference/activate-dashscope\n"
+                "然后设置环境变量: export DASHSCOPE_API_KEY=your_key"
+            )
+        try:
+            from langchain_community.embeddings import DashScopeEmbeddings
+            return DashScopeEmbeddings(
+                model=DASHSCOPE_EMBEDDING_MODEL,
+                dashscope_api_key=DASHSCOPE_API_KEY
+            )
+        except ImportError:
+            raise ImportError(
+                "千问 Embedding 需要 langchain-community 依赖\n"
+                "请运行: uv add langchain-community"
+            )
+
+    # OpenAI API
+    elif provider == "openai":
+        if not OPENAI_API_KEY:
+            raise ValueError(
+                "使用 OpenAI Embedding 需要配置 OPENAI_API_KEY"
+            )
+        try:
+            from langchain_openai import OpenAIEmbeddings
+            return OpenAIEmbeddings(
+                model=OPENAI_EMBEDDING_MODEL,
+                openai_api_key=OPENAI_API_KEY
+            )
+        except ImportError:
+            raise ImportError(
+                "OpenAI Embedding 需要 langchain-openai 依赖\n"
+                "请运行: uv add langchain-openai"
+            )
+
+    # 本地模型（降级方案）
+    elif provider == "local":
+        try:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+            import logging
+            logging.info(f"使用本地 Embedding 模型: {EMBEDDING_MODEL_NAME}")
+            return HuggingFaceEmbeddings(
+                model_name=EMBEDDING_MODEL_NAME,
+                model_kwargs={'device': EMBEDDING_DEVICE},
+                encode_kwargs={
+                    'normalize_embeddings': True,  # 归一化向量
+                }
+            )
+        except ImportError:
+            raise ImportError(
+                "本地 Embedding 需要 langchain-community 和 sentence-transformers 依赖\n"
+                "请运行: uv add langchain-community sentence-transformers"
+            )
+
+    else:
+        raise ValueError(
+            f"不支持的 EMBEDDING_PROVIDER: {provider}\n"
+            f"可选值: local, dashscope, openai"
+        )

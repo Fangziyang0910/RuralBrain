@@ -5,6 +5,26 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
+# ==================== 知识库更新模型 ====================
+class KnowledgeUpdateRequest(BaseModel):
+    """知识库更新请求"""
+    source: Optional[str] = Field(None, description="新增文档路径（单文件）")
+    source_dir: Optional[str] = Field(None, description="新增文档目录（批量）")
+    force_rebuild: bool = Field(False, description="是否全量重建（默认增量更新）")
+    category: Optional[str] = Field(None, description="文档类别: policies/cases")
+
+
+class KnowledgeUpdateResponse(BaseModel):
+    """知识库更新响应"""
+    success: bool = Field(..., description="更新是否成功")
+    mode: str = Field(..., description="更新模式: incremental/full")
+    documents_added: int = Field(..., description="新增文档数")
+    chunks_added: int = Field(..., description="新增切片数")
+    documents_removed: int = Field(default=0, description="删除文档数（全量重建时）")
+    message: str = Field(..., description="操作消息")
+    duration: float = Field(..., description="耗时（秒）")
+
+
 # ==================== 请求模型 ====================
 class PlanningChatRequest(BaseModel):
     """规划咨询聊天请求"""
