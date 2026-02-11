@@ -231,9 +231,20 @@ RuralBrain/
 └── docs/                              # 【项目文档】
     ├── README.md                       # 文档导航中心
     ├── CHANGELOG.md                    # 项目变更日志
-    ├── overview/                       # 项目概览
-    ├── guides/                         # 操作指南
-    └── architecture/                   # 架构文档
+    ├── commands.md                     # ⭐ 统一命令参考
+    ├── architecture/                   # 架构设计文档
+    │   ├── system-design.md            # 系统架构设计理念
+    │   ├── v2-agent-architecture.md    # V2 Agent 架构设计
+    │   └── microservices.md            # 微服务架构设计
+    ├── decisions/                      # 重要决策记录
+    │   ├── detection-gateway.md        # 检测服务网关化
+    │   ├── agent-v2-migration.md       # Agent V2 迁移
+    │   └── port-unification.md         # 端口统一
+    └── guides/                         # 操作指南
+        ├── getting-started.md         # 快速开始
+        ├── development.md              # 开发工作流
+        ├── troubleshooting.md          # 故障排查
+        └── project-structure.md        # 项目结构规范
 ```
 
 ### 关键文件说明
@@ -334,9 +345,7 @@ docker-compose -f docker-compose.onnx.yml ps
 docker-compose -f docker-compose.onnx.yml logs -f
 ```
 
-**详细说明**：参阅 [Docker ONNX 部署指南](docs/guides/docker-onnx-deployment.md)
-
-**详细说明**：参阅 [Docker ONNX 部署指南](docs/guides/docker-onnx-deployment.md)
+**详细说明**：参阅 [快速开始指南](docs/guides/getting-started.md)
 
 #### 完整命令参考
 
@@ -347,7 +356,7 @@ docker-compose -f docker-compose.onnx.yml logs -f
 2. 容器自动检测变更并重启服务（1-3秒）
 3. 通过浏览器或 API 测试更改
 
-详细说明请参阅：[Docker 使用指南](docker/README.md) 或 [开发工作流指南](docs/guides/development-workflow.md)
+详细说明请参阅：[快速开始指南](docs/guides/getting-started.md) 或 [开发工作流指南](docs/guides/development.md)
 
 #### 服务健康检查和测试
 
@@ -627,7 +636,7 @@ bash scripts/dev/test_production.sh
    bash scripts/dev/test_services.sh --normal
 ```
 
-详细工作流说明请参阅：[开发工作流指南](docs/guides/development-workflow.md)
+详细工作流说明请参阅：[开发工作流指南](docs/guides/development.md)
 
 ### 添加新功能时
 
@@ -689,7 +698,7 @@ bash scripts/dev/test_production.sh
 | `docker/Dockerfile.frontend.dev` | 前端开发镜像 | ⭐⭐⭐ |
 | `scripts/dev/build-onnx-images.ps1` | Windows 构建脚本 | ⭐⭐ |
 | `scripts/dev/build-onnx-images.sh` | Linux/macOS 构建脚本 | ⭐⭐ |
-| `docs/guides/docker-onnx-deployment.md` | ONNX 部署文档 | ⭐⭐ |
+| `docs/guides/getting-started.md` | 快速开始指南 | ⭐⭐ |
 
 ---
 
@@ -760,7 +769,7 @@ docker-compose -f docker-compose.dev.yml up -d
 docker-compose -f docker-compose.dev.yml ps
 ```
 
-详细说明请参阅 [Docker ONNX 部署指南](docs/guides/docker-onnx-deployment.md)
+详细说明请参阅 [快速开始指南](docs/guides/getting-started.md)
 
 ---
 
