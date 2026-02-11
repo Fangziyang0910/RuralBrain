@@ -775,31 +775,42 @@ docker-compose -f docker-compose.dev.yml ps
 
 ## 更新日志
 
-**最后更新**: 2026-02-09
-**版本**: v2.2
+**最后更新**: 2026-02-11
+**版本**: v3.0
 
 **主要变更**：
+- **文档结构重构**：重新设计文档组织架构
+  - 新增 `docs/decisions/` 目录 - 存放重要决策记录
+  - 新增 `docs/architecture/system-design.md` - 系统架构设计思想
+  - 新增 `docs/architecture/microservices.md` - 微服务架构设计
+  - 新增 `docs/guides/getting-started.md` - 快速开始指南
+  - 新增 `docs/guides/troubleshooting.md` - 故障排查指南
+  - 重命名 `v2-agent-upgrade.md` → `v2-agent-architecture.md`
+  - 重命名 `development-workflow.md` → `development.md`
+  - 删除 8 个冗余/过时文档（PROJECT_OVERVIEW.md、SYSTEM_INTRODUCTION.md 等）
+  - 精简 `project-structure.md`（从 485 行减至 157 行，-68%）
+  - 精简 `README.md`（从 231 行减至 163 行）
+- **删除的高风险文档**：
+  - `src/rag/docs/SYSTEM_INTRODUCTION.md` - 端口配置严重过时（8000/8001/8002）
+  - `docs/overview/PROJECT_OVERVIEW.md` - 端口 8080 过时，与根 README 重叠
+- **命令统一维护**：所有命令统一在 `docs/commands.md` 维护，其他文档只引用
+- **文档定位明确**：
+  - `architecture/` - 架构设计思想（代码无法表达的内容）
+  - `decisions/` - 重要决策记录（变更链）
+  - `guides/` - 操作指南（精简实用）
+
+**v2.2 变更**：
 - **新增**：ONNX Runtime 轻量级 Docker 部署方案
   - 新增 5 个 ONNX Dockerfile（backend、detection、planning、frontend、frontend.dev）
   - 新增 2 个 docker-compose 配置（dev.yml、onnx.yml）
   - 新增 2 个构建脚本（build-onnx-images.{ps1,sh}）
   - 镜像体积减少 60-75%，构建时间缩短 50%
-  - 新增 [Docker ONNX 部署指南](docs/guides/docker-onnx-deployment.md) 文档
 - **更新**：服务启动命令，优先使用 ONNX Docker 部署
 - **更新**：目录结构，添加 ONNX Dockerfile 说明
-- **更新**：常用命令部分，添加 ONNX 镜像构建和启动命令
 
 **v2.1 变更**：
-- **新增**：开发工作流优化脚本
-  - `scripts/dev/health_check.sh` - 服务健康检查脚本
-  - `scripts/dev/test_services.sh` - 分级功能测试脚本（--fast/--normal/--full）
-  - `scripts/dev/test_production.sh` - 生产环境测试脚本
-  - `scripts/dev/switch_to_production.sh` - 切换到生产模式
-  - `scripts/dev/switch_to_development.sh` - 切换到开发模式
-- **修复**：`scripts/dev/check_services.sh` 端口配置错误（移除废弃的 8002 端口，添加 8003 规划服务）
-- **新增**：[开发工作流指南](docs/guides/development-workflow.md) 文档
-- **更新**：添加测试验证要求和流程规范
-- **更新**：常用命令部分，添加新脚本使用说明
+- **新增**：开发工作流优化脚本（health_check.sh、test_services.sh、switch_to_*.sh）
+- **修复**：端口配置错误（移除废弃的 8002 端口，添加 8003 规划服务）
 
 **v2.0 变更**：
 - 更新为 V2 Agent Skills 架构说明
