@@ -1,8 +1,8 @@
-# V2 Agent 架构升级
+# V2 Agent 架构设计
 
 ## 概述
 
-RuralBrain V2 Agent 基于 LangChain 官方 **Skills 模式**和**渐进式披露（Progressive Disclosure）**最佳实践，将传统固定提示词架构升级为模块化、可扩展的 Agent Skills 架构。
+RuralBrain V2 Agent 采用基于 LangChain 官方 **Skills 模式**和**渐进式披露（Progressive Disclosure）**的架构设计，将传统固定提示词架构升级为模块化、可扩展的 Agent Skills 架构。
 
 ### 核心改进
 
@@ -366,8 +366,15 @@ new_skill = Skill(
 - [AgentMiddleware 实现文档](https://docs.langchain.com/oss/python/langchain/middleware/custom)
 - [LangGraph StateGraph 文档](https://langchain-ai.github.io/langgraph/)
 
+## 相关文档
+
+- [系统架构设计](system-design.md) - 整体系统架构设计理念
+- [微服务架构设计](microservices.md) - 微服务拆分和通信设计
+- [Agent V2 迁移决策](../decisions/agent-v2-migration.md) - V2 迁移背景和效果
+
 ---
 
 **实现时间**：2026-01
 **当前状态**：✅ 已完成并集成到服务端
 **版本**：v2.0
+**最后更新**：2026-02-11
