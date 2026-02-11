@@ -75,7 +75,7 @@ class ONNXYOLODetector:
 
     def postprocess(self, outputs: List[np.ndarray], original_shape: Tuple[int, int]) -> Tuple[List[Dict], np.ndarray]:
         """
-        后处理模型输出
+        后处理模型输出（包含 NMS）
 
         Args:
             outputs: 模型输出列表
@@ -99,12 +99,6 @@ class ONNXYOLODetector:
         class_ids = np.argmax(scores, axis=1)
         confidences = np.max(scores, axis=1)
 
-        # 过滤低置信度
-        mask = confidences > self.conf_threshold
-        boxes = boxes[mask]
-        class_ids = class_ids[mask]
-        confidences = confidences[mask]
-
         # 转换边界框格式: [x_center, y_center, width, height] -> [x1, y1, x2, y2]
         x_center = boxes[:, 0]
         y_center = boxes[:, 1]
@@ -126,21 +120,35 @@ class ONNXYOLODetector:
         x2 = x2 * scale_x
         y2 = y2 * scale_y
 
-        # 组装结果
-        detections = []
-        for i in range(len(boxes)):
-            class_id = int(class_ids[i])
-            if class_id < len(self.class_names):
-                class_name = self.class_names[class_id]
-            else:
-                class_name = f"class_{class_id}"
+        # 应用 NMS 过滤重复检测
+        # 构造边界框列表: [[x1, y1, x2, y2], ...]
+        bbox_list = []
+        for i in range(len(x1)):
+            bbox_list.append([float(x1[i]), float(y1[i]), float(x2[i]), float(y2[i])])
 
-            detections.append({
-                "class_id": class_id,
-                "class_name": class_name,
-                "confidence": float(confidences[i]),
-                "box": [float(x1[i]), float(y1[i]), float(x2[i]), float(y2[i])]
-            })
+        indices = cv2.dnn.NMSBoxes(
+            bboxes=bbox_list,
+            scores=confidences.tolist(),
+            score_threshold=self.conf_threshold,
+            nms_threshold=0.45  # IOU 阈值
+        )
+
+        # 组装结果（使用 NMS 后的索引）
+        detections = []
+        if len(indices) > 0:
+            for i in indices.flatten():
+                class_id = int(class_ids[i])
+                if class_id < len(self.class_names):
+                    class_name = self.class_names[class_id]
+                else:
+                    class_name = f"class_{class_id}"
+
+                detections.append({
+                    "class_id": class_id,
+                    "class_name": class_name,
+                    "confidence": float(confidences[i]),
+                    "box": [float(x1[i]), float(y1[i]), float(x2[i]), float(y2[i])]
+                })
 
         return detections, boxes.shape if len(boxes) > 0 else np.array([])
 

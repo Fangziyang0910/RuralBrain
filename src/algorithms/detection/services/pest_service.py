@@ -48,7 +48,7 @@ class PestModelService:
                 # 加载类别名称
                 class_names = self._load_class_names(classes_path)
 
-                # 创建 ONNX YOLO 检测器
+                # 创建 ONNX YOLO 检测器（内置 NMS）
                 self._detector = ONNXYOLODetector(
                     model_path=model_path,
                     class_names=class_names,

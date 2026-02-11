@@ -1,1 +1,4 @@
-cow 牛
+cow
+holstein
+jersey
+simmental

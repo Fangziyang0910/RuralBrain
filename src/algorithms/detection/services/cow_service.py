@@ -45,11 +45,12 @@ class CowModelService:
                 # 定义类别名称
                 class_names = ["荷斯坦牛", "娟姗牛", "西门塔尔牛"]
 
-                # 创建 ONNX YOLO 检测器
+                # 创建 ONNX YOLO 检测器（内置 NMS）
+                # 降低置信度阈值提高召回率，但 NMS 会过滤重复检测
                 self._detector = ONNXYOLODetector(
                     model_path=model_path,
                     class_names=class_names,
-                    conf_threshold=0.5
+                    conf_threshold=0.35  # 平衡精度和召回率
                 )
 
                 self._class_names = tuple(class_names)
@@ -118,6 +119,7 @@ class CowModelService:
                 result_image = result_image
 
             # 解析检测结果
+            # detections已经经过NMS处理,直接使用其结果
             api_detections = []
             class_counts = {}
             detailed_detections = []
@@ -135,7 +137,7 @@ class CowModelService:
                 center_x = float((x1 + x2) / 2)
                 center_y = float((y1 + y2) / 2)
 
-                # 统计每个类别的数量
+                # 统计每个类别的数量（基于NMS后的结果）
                 if class_name not in class_counts:
                     class_counts[class_name] = 0
                 class_counts[class_name] += 1

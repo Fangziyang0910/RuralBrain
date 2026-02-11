@@ -91,7 +91,7 @@ class ONNXModel:
     def postprocess_detection(
         self,
         outputs: List[np.ndarray],
-        conf_threshold: float = 0.25,
+        conf_threshold: float = 0.25,  # 恢复默认值
         iou_threshold: float = 0.45
     ) -> Tuple[List[Dict], int]:
         """
@@ -120,13 +120,10 @@ class ONNXModel:
         class_ids = np.argmax(scores, axis=1)
         confidences = np.max(scores, axis=1)
 
-        # 过滤低置信度检测
-        mask = confidences > conf_threshold
-        boxes = boxes[mask]
-        class_ids = class_ids[mask]
-        confidences = confidences[mask]
+        # 不在此处过滤,让NMS处理所有检测
+        # NMS会基于score_threshold过滤低置信度检测
 
-        # 应用 NMS
+        # 应用NMS
         indices = cv2.dnn.NMSBoxes(
             bboxes=boxes.tolist(),
             scores=confidences.tolist(),
@@ -139,11 +136,16 @@ class ONNXModel:
 
         if len(indices) > 0:
             for i in indices.flatten():
+                # 使用NMS后的索引来获取正确的检测
                 class_id = int(class_ids[i])
                 confidence = float(confidences[i])
 
                 # 类别计数
-                class_name = f"class_{class_id}"
+                if class_id < len(self.class_names):
+                    class_name = self.class_names[class_id]
+                else:
+                    class_name = f"class_{class_id}"
+
                 class_counts[class_name] = class_counts.get(class_name, 0) + 1
 
         # 转换为 API 格式
