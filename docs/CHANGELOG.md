@@ -30,7 +30,7 @@
 - 三个检测技能（病虫害、大米、奶牛）
 - 新旧 Agent 共存，平滑迁移
 
-**文档**：[V2 Agent 架构详解](architecture/v2-agent-upgrade.md)
+**文档**：[V2 Agent 架构详解](architecture/v2-agent-architecture.md)
 
 ---
 
@@ -170,8 +170,7 @@
 
 ## 相关文档
 
-- [项目概览](overview/PROJECT_OVERVIEW.md)
-- [部署指南](guides/deployment.md)
-- [服务管理指南](guides/service-management.md)
-- [项目结构指南](guides/project-structure.md)
 - [CLAUDE.md](../CLAUDE.md) - 项目级配置
+- [系统架构设计](architecture/system-design.md) - 系统架构设计理念
+- [V2 Agent 架构设计](architecture/v2-agent-architecture.md) - Progressive Disclosure 设计
+- [快速开始](guides/getting-started.md) - Docker 和本地部署

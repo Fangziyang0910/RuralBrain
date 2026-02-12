@@ -62,7 +62,7 @@ docker-compose -f docker-compose.dev.yml up -d
 docker-compose -f docker-compose.dev.yml ps
 ```
 
-### 本地开发
+### 本地开发（受限模式）
 
 ```bash
 # 安装依赖
@@ -72,10 +72,12 @@ uv sync
 cp .env.example .env
 # 编辑 .env 文件，填入 API Keys
 
-# 启动服务（推荐使用启动脚本）
+# 启动核心服务
 uv run python run_server.py      # 后端
 uv run python run_frontend.py    # 前端
 ```
+
+> ⚠️ **注意**: 以上仅启动核心服务。完整功能（规划咨询、图像检测）需要额外启动检测服务（8001）和规划服务（8003）。详见 [快速开始指南](docs/guides/getting-started.md)。
 
 > 📖 **详细命令**：查看 [统一命令参考](docs/commands.md) 获取完整的部署、测试和故障排查命令。
 
