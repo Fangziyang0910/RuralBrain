@@ -16,7 +16,6 @@
 
 2. 查看容器日志（Docker 部署）
    ```bash
-   cd docker
    docker-compose -f docker-compose.dev.yml logs <service>
    ```
 

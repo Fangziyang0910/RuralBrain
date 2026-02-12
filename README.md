@@ -53,7 +53,7 @@
 ```bash
 # 克隆仓库
 git clone https://github.com/Fangziyang0910/RuralBrain.git
-cd RuralBrain/docker
+cd RuralBrain
 
 # 启动开发环境（支持热重载）
 docker-compose -f docker-compose.dev.yml up -d

@@ -91,7 +91,7 @@
 
 ### 第三阶段：Docker 配置更新
 
-1. 更新 `docker-compose.yml` 端口映射
+1. 更新 `docker-compose.onnx.yml` 端口映射
 2. 更新 `docker-compose.dev.yml` 端口映射
 3. 更新各 Dockerfile 的 EXPOSE 指令
 

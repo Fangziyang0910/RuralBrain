@@ -25,9 +25,6 @@
 ### 快速启动
 
 ```bash
-# 进入 docker 目录
-cd docker
-
 # 启动开发环境（支持热重载）
 docker-compose -f docker-compose.dev.yml up -d
 
@@ -51,7 +48,7 @@ docker-compose -f docker-compose.dev.yml logs -f
 ### 停止服务
 
 ```bash
-cd docker
+# 停止服务
 docker-compose -f docker-compose.dev.yml down
 ```
 
