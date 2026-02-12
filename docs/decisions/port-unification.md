@@ -152,9 +152,9 @@ PORT = 8081
 PORT = 8001
 ```
 
-**规划咨询服务** (`src/rag/service/config.py`)：
+**规划咨询服务** (`src/rag/service/core/config.py`)：
 ```python
-PORT = 8003
+SERVICE_PORT = 8003
 ```
 
 **前端应用** (`frontend/package.json`)：
@@ -179,7 +179,7 @@ PORT = 8003
 | 前端应用 | 3001 | `frontend/package.json` |
 | 后端主服务 | 8081 | `service/settings.py` + `.env` |
 | 检测服务网关 | 8001 | `src/algorithms/api/main.py` |
-| 规划咨询服务 | 8003 | `src/rag/service/config.py` |
+| 规划咨询服务 | 8003 | `src/rag/service/core/config.py` |
 
 ### 服务访问地址
 

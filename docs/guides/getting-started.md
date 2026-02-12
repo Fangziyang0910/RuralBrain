@@ -124,7 +124,7 @@ npm run dev
 规划咨询服务需要先构建知识库：
 
 ```bash
-uv run python scripts/dev/build_kb_auto.py
+uv run python src/rag/build.py
 ```
 
 ---
