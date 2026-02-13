@@ -29,7 +29,6 @@ from service.settings import (
     MAX_UPLOAD_SIZE,
     ALLOWED_EXTENSIONS,
     AGENT_VERSION,
-    AGENT_AUTO_FALLBACK,
 )
 from service.schemas import ChatRequest, UploadResponse
 
