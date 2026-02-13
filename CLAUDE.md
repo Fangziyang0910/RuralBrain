@@ -175,7 +175,8 @@ RuralBrain/
 │   │   │   └── farm_inspection_tool.py  # 农场检查
 │   │   └── middleware/                 # 中间件系统
 │   │       ├── skill_middleware.py      # 技能中间件
-│   │       └── tool_selector_middleware.py  # 工具选择中间件
+│   │       ├── tool_selector_middleware.py  # 工具选择中间件
+│   │       └── mode_aware_middleware.py   # 模式感知中间件
 │   │
 │   ├── algorithms/                    # 【检测算法服务】
 │   │   ├── api/                        # ⭐ 统一 API 网关（端口 8001）
@@ -265,7 +266,7 @@ RuralBrain/
 
 | 服务 | 端口 | 配置位置 | 说明 |
 |------|------|----------|------|
-| **前端** | 3000 | `frontend/package.json` | Next.js 应用 |
+| **前端** | 3001 | `frontend/package.json` | Next.js 应用 |
 | **后端主服务** | 8081 | `service/settings.py` + `.env` | FastAPI + Orchestrator Agent V2 |
 | **检测服务网关** | 8001 | `src/algorithms/api/main.py` | ⭐ 统一检测服务（所有检测类型） |
 | **规划咨询服务** | 8003 | `src/rag/service/main.py` | RAG 知识库服务 |
@@ -526,6 +527,7 @@ bash scripts/dev/test_production.sh
 - `pricing_tool` - 智能定价分析
 - `marketing_tool` - 营销策略
 - `farm_inspection_tool` - 农场检查
+- `disease_prediction_tool` - 疾病预测
 
 ### 技能系统
 
@@ -533,6 +535,9 @@ bash scripts/dev/test_production.sh
 - `detection_skills.py` - 检测技能
 - `planning_skills.py` - 规划技能
 - `pricing_skills.py` - 定价技能
+- `marketing_skills.py` - 营销技能
+- `farm_inspection_skills.py` - 农场检查技能
+- `disease_prediction_skills.py` - 疾病预测技能
 - `orchestration_skills.py` - 编排技能
 
 ---
