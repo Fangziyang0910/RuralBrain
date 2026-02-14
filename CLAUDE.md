@@ -19,7 +19,7 @@
 
 ---
 
-## 系统架构与逻辑关系
+## 系统架构
 
 ### 整体架构图
 
@@ -74,62 +74,13 @@
 
 ### 核心逻辑流程
 
-#### 1. 用户请求 → 前端
-- 用户输入文本 + 上传图片
-- 前端发送 POST 请求到后端 `/chat` 端点
-- 使用 SSE 流式接收响应
+**1. 用户请求 → 意图识别 → Agent 处理**
 
-#### 2. 后端 → 意图识别
-- 根据请求内容判断用户意图：
-  - **有图片** → 检测流程
-  - **规划关键词**（规划、发展、旅游等）→ 规划咨询流程
-  - **默认** → 通用对话
+- **有图片** → 检测流程（Agent 调用检测工具 → 网关 8001 → YOLO 推理）
+- **规划关键词** → 规划咨询流程（转发到 8003 → RAG 工具查询知识库）
+- **默认** → 通用对话（Agent 直接基于预训练知识回答，可能调用定价/营销工具）
 
-#### 3. Agent V2 处理流程
-
-**检测流程**（有图片）：
-```
-用户上传图片
-    ↓
-Orchestrator Agent V2 判断需要检测能力
-    ↓
-调用 load_skill("pest_detection") 获取完整指导
-    ↓
-调用 pest_detection_tool → 通过后端转发 → 检测服务网关 (8001)
-    ↓
-检测服务网关路由到具体检测服务
-    ↓
-YOLO 模型推理，返回检测结果
-    ↓
-Agent 基于结果生成专业建议（防治方案、危害分析等）
-```
-
-**规划咨询流程**（规划关键词）：
-```
-用户提出规划相关问题
-    ↓
-后端识别到规划关键词，转发到规划服务 (8003)
-    ↓
-Planning Agent 使用 RAG 工具查询知识库
-    ↓
-- 快速模式：摘要浏览 + 关键信息检索
-- 深度模式：全文阅读 + 综合分析
-    ↓
-返回基于知识库的专业建议
-```
-
-**通用对话流程**（默认）：
-```
-用户提出一般性问题
-    ↓
-Orchestrator Agent V2 直接基于预训练知识回答
-    ↓
-可能调用定价工具、营销工具等辅助分析
-    ↓
-返回智能回复
-```
-
-#### 4. 工具调用链路
+**2. 工具调用链路**
 
 ```
 Agent 调用工具
@@ -139,155 +90,70 @@ src/agents/tools/<tool>.py
 HTTP 请求到外部服务
     ↓
 - 检测工具 → http://localhost:8001/detection/<type>/predict
-- 定价工具 → 内置逻辑，不依赖外部服务
-- 营销工具 → 内置逻辑，不依赖外部服务
+- 定价工具 → 内置逻辑
+- 营销工具 → 内置逻辑
 ```
 
 ---
 
-## 目录结构（最新）
+## 服务端口与 API 文档
 
-### 核心代码组织
+| 服务 | 端口 | 配置位置 | API 文档 |
+|------|------|----------|----------|
+| **前端** | 3001 | `frontend/package.json` | http://localhost:3001 |
+| **后端主服务** | 8081 | `service/settings.py` + `.env` | http://localhost:8081/docs |
+| **检测服务网关** | 8001 | `src/algorithms/api/main.py` | http://localhost:8001/docs |
+| **规划咨询服务** | 8003 | `src/rag/service/main.py` | http://localhost:8003/docs |
+
+### 检测服务路由（统一网关 8001）
+
+```
+/detection/pest/predict    # 病虫害检测
+/detection/rice/predict    # 大米品种识别
+/detection/cow/predict     # 奶牛检测
+/health                     # 健康检查
+```
+
+---
+
+## 目录结构
 
 ```
 RuralBrain/
 │
-├── service/                          # 【主服务】FastAPI 后端
-│   ├── server.py                     # 主服务器入口（Agent 编排）
-│   ├── settings.py                   # 服务配置（端口、CORS 等）
-│   └── schemas.py                    # 请求/响应数据模型
+├── service/                     # FastAPI 后端主服务
+│   ├── server.py              # 主服务器入口（Agent 编排）
+│   ├── settings.py            # 服务配置
+│   └── schemas.py             # 数据模型
 │
-├── src/                              # 【核心业务逻辑】
+├── src/                        # 核心业务逻辑
+│   ├── agents/                 # Agent 系统（V2 Skills 架构）
+│   │   ├── orchestrator_agent_v2.py   # ⭐ 统一编排 Agent
+│   │   ├── skills/            # Skills 架构模块
+│   │   ├── tools/             # Agent 工具集
+│   │   └── middleware/        # 中间件系统
 │   │
-│   ├── agents/                        # Agent 系统（V2 Skills 架构）
-│   │   ├── orchestrator_agent_v2.py  # ⭐ 统一编排 Agent
-│   │   ├── skills/                    # Skills 架构模块
-│   │   │   ├── detection_skills.py     # 检测技能
-│   │   │   ├── planning_skills.py      # 规划技能
-│   │   │   ├── pricing_skills.py       # 定价技能
-│   │   │   └── orchestration_skills.py  # 编排技能
-│   │   ├── tools/                     # Agent 工具集
-│   │   │   ├── pest_detection_tool.py   # 病虫害检测
-│   │   │   ├── rice_detection_tool.py   # 大米识别
-│   │   │   ├── cow_detection_tool.py    # 奶牛检测
-│   │   │   ├── pricing_tool.py          # 智能定价
-│   │   │   ├── marketing_tool.py        # 营销策略
-│   │   │   └── farm_inspection_tool.py  # 农场检查
-│   │   └── middleware/                 # 中间件系统
-│   │       ├── skill_middleware.py      # 技能中间件
-│   │       ├── tool_selector_middleware.py  # 工具选择中间件
-│   │       └── mode_aware_middleware.py   # 模式感知中间件
+│   ├── algorithms/            # 检测算法服务
+│   │   ├── api/               # ⭐ 统一 API 网关（端口 8001）
+│   │   └── detection/        # 检测算法实现 + YOLO 模型
 │   │
-│   ├── algorithms/                    # 【检测算法服务】
-│   │   ├── api/                        # ⭐ 统一 API 网关（端口 8001）
-│   │   │   └── main.py                 # FastAPI 检测服务网关
-│   │   └── detection/                 # 检测算法实现
-│   │       ├── pest_service.py          # 病虫害检测服务
-│   │       ├── rice_service.py          # 大米品种识别服务
-│   │       ├── cow_service.py           # 奶牛检测服务
-│   │       └── models/                  # YOLO 模型文件
+│   ├── rag/                   # RAG 知识库系统
+│   │   ├── core/              # 7 个核心检索工具
+│   │   └── service/           # FastAPI 服务入口（端口 8003）
 │   │
-│   ├── rag/                           # 【RAG 知识库系统】
-│   │   ├── core/                       # RAG 核心功能
-│   │   │   ├── tools.py                # ⭐ 7 个核心检索工具
-│   │   │   ├── context_manager.py      # 上下文管理
-│   │   │   ├── cache.py                # 向量缓存
-│   │   │   └── summarization.py        # 文档摘要
-│   │   └── service/                    # RAG 服务实现
-│   │       ├── main.py                 # FastAPI 服务入口（端口 8003）
-│   │       └── config.py               # 服务配置
-│   │
-│   └── config.py                       # 全局配置（模型管理等）
+│   └── config.py              # 全局配置
 │
-├── frontend/                         # 【前端应用】Next.js
-│   ├── src/
-│   │   ├── app/                         # Next.js App Router
-│   │   │   ├── api/                     # API 路由
-│   │   │   └── page.tsx                 # 主页面
-│   │   └── components/                  # React 组件
-│   ├── package.json                     # 前端依赖
-│   └── tailwind.config.ts               # Tailwind 配置
-│
-├── docker/                            # 【Docker 配置】
-│   ├── Dockerfile.backend.onnx         # 后端 ONNX 镜像（轻量级）
-│   ├── Dockerfile.detection.onnx       # 检测服务 ONNX 镜像
-│   ├── Dockerfile.planning.onnx        # 规划服务 ONNX 镜像
-│   ├── Dockerfile.frontend.onnx        # 前端生产镜像
-│   ├── Dockerfile.frontend.dev         # 前端开发镜像（热重载）
-│   └── [其他传统 Dockerfile]           # PyTorch 版本（已废弃）
-│
-├── tests/                             # 【测试代码】
-├── scripts/                           # 【脚本工具】
-│   ├── dev/                            # 开发脚本
-│   │   ├── build-onnx-images.ps1       # ⭐ ONNX 镜像构建脚本（Windows）
-│   │   ├── build-onnx-images.sh        # ⭐ ONNX 镜像构建脚本（Linux/macOS）
-│   │   ├── health_check.sh             # 健康检查脚本
-│   │   ├── test_services.sh            # 分级功能测试脚本
-│   │   ├── test_production.sh          # 生产环境测试脚本
-│   │   ├── switch_to_production.sh     # 切换到生产模式
-│   │   ├── switch_to_development.sh    # 切换到开发模式
-│   │   └── check_services.sh           # 检查服务状态
-│   └── deploy/                         # 部署脚本
-│
-└── docs/                              # 【项目文档】
-    ├── README.md                       # 文档导航中心
-    ├── CHANGELOG.md                    # 项目变更日志
-    ├── commands.md                     # ⭐ 统一命令参考
-    ├── architecture/                   # 架构设计文档
-    │   ├── system-design.md            # 系统架构设计理念
-    │   ├── v2-agent-architecture.md    # V2 Agent 架构设计
-    │   └── microservices.md            # 微服务架构设计
-    ├── decisions/                      # 重要决策记录
-    │   ├── detection-gateway.md        # 检测服务网关化
-    │   ├── agent-v2-migration.md       # Agent V2 迁移
-    │   └── port-unification.md         # 端口统一
-    └── guides/                         # 操作指南
-        ├── getting-started.md         # 快速开始
-        ├── development.md              # 开发工作流
-        ├── troubleshooting.md          # 故障排查
-        └── project-structure.md        # 项目结构规范
+├── frontend/                  # Next.js 前端应用
+├── docker/                   # Docker 配置（ONNX 轻量级镜像）
+├── tests/                    # 测试代码
+├── scripts/                  # 脚本工具
+│   └── dev/                  # 开发脚本（健康检查、测试、环境切换）
+└── docs/                     # 项目文档
 ```
-
-### 关键文件说明
-
-| 文件 | 作用 | 重要性 |
-|------|------|--------|
-| `service/server.py` | 后端主服务入口，Agent 编排 | ⭐⭐⭐ |
-| `src/agents/orchestrator_agent_v2.py` | V2 统一编排 Agent（Skills 架构） | ⭐⭐⭐ |
-| `src/algorithms/api/main.py` | 检测服务统一网关 | ⭐⭐⭐ |
-| `src/rag/core/tools.py` | RAG 知识库的 7 个检索工具 | ⭐⭐⭐ |
-| `src/config.py` | 全局配置（模型管理等） | ⭐⭐ |
-| `run_server.py` | 后端启动脚本 | ⭐⭐ |
-| `run_frontend.py` | 前端启动脚本 | ⭐⭐ |
 
 ---
 
-## 服务端口分配（最新）
-
-| 服务 | 端口 | 配置位置 | 说明 |
-|------|------|----------|------|
-| **前端** | 3001 | `frontend/package.json` | Next.js 应用 |
-| **后端主服务** | 8081 | `service/settings.py` + `.env` | FastAPI + Orchestrator Agent V2 |
-| **检测服务网关** | 8001 | `src/algorithms/api/main.py` | ⭐ 统一检测服务（所有检测类型） |
-| **规划咨询服务** | 8003 | `src/rag/service/main.py` | RAG 知识库服务 |
-
-### 检测服务路由
-
-所有检测服务整合在统一网关（8001）：
-
-```
-http://localhost:8001
-├── /detection/pest/predict    # 病虫害检测
-├── /detection/rice/predict    # 大米品种识别
-├── /detection/cow/predict     # 奶牛检测
-└── /health                     # 健康检查
-```
-
-**重要**：检测服务不再有独立端口，全部通过网关 8001 访问。
-
----
-
-## 常用命令（最新）
+## 常用命令
 
 ### 环境管理
 
@@ -298,121 +164,50 @@ uv run python <script>              # 运行脚本
 uv run pytest                       # 运行测试
 ```
 
-### 服务启动
+### Docker ONNX 部署（推荐）⭐
 
-#### Docker ONNX 部署（推荐）⭐
-
-**使用 ONNX Runtime 轻量级镜像，相比传统 PyTorch 方案：**
-- 镜像体积减少 60-75%（从 ~40GB 降至 ~10GB）
-- 构建时间缩短 50%（从 15-20 分钟降至 3-5 分钟）
-- 推理速度提升，内存占用降低
-
-##### 1. 构建 ONNX 镜像
+**优势**：镜像体积减少 60-75%（~10GB），构建时间缩短 50%（3-5分钟）
 
 ```bash
-# Windows
-.\scripts\dev\build-onnx-images.ps1
+# 1. 构建镜像（首次）
+.\scripts\dev\build-onnx-images.ps1       # Windows
+bash scripts/dev/build-onnx-images.sh    # Linux/macOS
 
-# Linux/macOS
-bash scripts/dev/build-onnx-images.sh
-```
-
-##### 2. 启动开发环境（支持热重载）
-
-```bash
-# 使用 docker-compose（推荐）
+# 2. 启动开发环境（支持热重载）
 docker-compose -f docker-compose.dev.yml up -d
 
-# 查看服务状态
+# 3. 查看状态/日志
 docker-compose -f docker-compose.dev.yml ps
-
-# 查看日志
 docker-compose -f docker-compose.dev.yml logs -f
-
-# 停止服务
-docker-compose -f docker-compose.dev.yml down
 ```
 
-##### 3. 启动生产环境
+### 服务启动（非 Docker）
 
 ```bash
-# 启动生产环境
-docker-compose -f docker-compose.onnx.yml up -d
-
-# 查看服务状态
-docker-compose -f docker-compose.onnx.yml ps
-
-# 查看日志
-docker-compose -f docker-compose.onnx.yml logs -f
+uv run python run_server.py      # 后端
+uv run python run_frontend.py    # 前端
 ```
 
-**详细说明**：参阅 [快速开始指南](docs/guides/getting-started.md)
-
-#### 完整命令参考
-
-所有命令的完整说明请参阅：[统一命令参考文档](docs/commands.md)
-
-**热重载工作流程**：
-1. 启动服务后，修改本地代码文件
-2. 容器自动检测变更并重启服务（1-3秒）
-3. 通过浏览器或 API 测试更改
-
-详细说明请参阅：[快速开始指南](docs/guides/getting-started.md) 或 [开发工作流指南](docs/guides/development.md)
-
-#### 服务健康检查和测试
+### 健康检查与测试
 
 ```bash
 # 健康检查
-bash scripts/dev/health_check.sh                 # 完整健康检查
+bash scripts/dev/health_check.sh                 # 完整检查
 bash scripts/dev/health_check.sh --quick         # 快速检查
-bash scripts/dev/health_check.sh --service backend  # 检查单个服务
 
 # 功能测试（分级）
 bash scripts/dev/test_services.sh --fast         # 快速测试 (< 30秒)
 bash scripts/dev/test_services.sh --normal       # 正常测试 (< 2分钟)
 bash scripts/dev/test_services.sh --full         # 完整测试 (< 5分钟)
-
-# 服务状态检查
-bash scripts/dev/check_services.sh               # 检查所有服务状态
 ```
 
-#### 环境切换
+### 知识库构建
 
 ```bash
-# 切换到生产模式
-bash scripts/dev/switch_to_production.sh
-
-# 切换回开发模式
-bash scripts/dev/switch_to_development.sh
-
-# 生产环境测试
-bash scripts/dev/test_production.sh
-```
-
-#### 生产环境部署
-
-```bash
-cd docker
-
-# 启动生产环境
-docker-compose up -d
-
-# 查看服务状态
-docker-compose ps
-
-# 查看日志
-docker-compose logs -f
-
-# 停止服务
-docker-compose down
-```
-
-#### 知识库构建
-
-```bash
-# 构建或更新 RAG 知识库
 uv run python scripts/dev/build_kb_auto.py
 ```
+
+**详细命令参考**：[docs/commands.md](docs/commands.md) | **快速开始**：[docs/guides/getting-started.md](docs/guides/getting-started.md)
 
 ---
 
@@ -508,17 +303,17 @@ bash scripts/dev/test_production.sh
 
 ---
 
-## Agent 系统（V2 Skills 架构）
+## Agent V2 系统（Skills 架构）
 
 ### 架构特点
 
-- **渐进式披露（Progressive Disclosure）**：初始只提供技能描述，按需加载完整内容
+- **渐进式披露**：初始只提供技能描述，按需加载完整内容
 - **模块化技能配置**：每个技能专注一个特定领域
 - **中间件系统**：SkillMiddleware、ToolSelectorMiddleware
 
 ### 工具系统
 
-**检测工具**（通过网关调用）：
+**检测工具**（通过网关 8001）：
 - `pest_detection_tool` - 病虫害检测
 - `rice_detection_tool` - 大米品种识别
 - `cow_detection_tool` - 奶牛检测
@@ -529,24 +324,25 @@ bash scripts/dev/test_production.sh
 - `farm_inspection_tool` - 农场检查
 - `disease_prediction_tool` - 疾病预测
 
-### 技能系统
+### 技能文件
 
 位于 `src/agents/skills/`：
 - `detection_skills.py` - 检测技能
 - `planning_skills.py` - 规划技能
 - `pricing_skills.py` - 定价技能
 - `marketing_skills.py` - 营销技能
-- `farm_inspection_skills.py` - 农场检查技能
-- `disease_prediction_skills.py` - 疾病预测技能
 - `orchestration_skills.py` - 编排技能
 
 ---
 
 ## RAG 知识库系统
 
-### 核心组件
+- **端口**：8003
+- **向量数据库**：ChromaDB
+- **嵌入模型**：sentence-transformers
+- **知识库位置**：`knowledge_base/chroma_db/`
 
-**7 个检索工具**（`src/rag/core/tools.py`）：
+**7 个检索工具**（[src/rag/core/tools.py](src/rag/core/tools.py)）：
 1. `list_documents` - 列出可用文档
 2. `get_document_overview` - 获取文档摘要
 3. `get_chapter_content` - 获取章节内容
@@ -554,36 +350,6 @@ bash scripts/dev/test_production.sh
 5. `search_knowledge` - 全文检索
 6. `get_document_full` - 获取完整文档
 7. `load_skill` - 加载技能（V2 特有）
-
-### 服务配置
-
-- **端口**：8003
-- **向量数据库**：ChromaDB
-- **嵌入模型**：sentence-transformers
-- **知识库位置**：`knowledge_base/chroma_db/`
-
----
-
-## 检测服务架构
-
-### 统一网关模式
-
-**重要**：所有检测服务已整合到统一网关 `src/algorithms/api/main.py`（端口 8001）
-
-**服务路由**：
-- `/detection/pest/*` - 病虫害检测
-- `/detection/rice/*` - 大米品种识别
-- `/detection/cow/*` - 奶牛检测
-
-**检测算法实现**：
-- `pest_service.py` - 病虫害检测服务
-- `rice_service.py` - 大米品种识别服务
-- `cow_service.py` - 奶牛检测服务
-
-**模型文件**：
-- `models/pest/` - 病虫害检测模型
-- `models/rice/` - 大米识别模型
-- `models/cow/` - 奶牛检测模型
 
 ---
 
@@ -608,40 +374,7 @@ bash scripts/dev/test_production.sh
 
 ---
 
-## API 文档地址
-
-| 服务 | 地址 | 说明 |
-|------|------|------|
-| **后端 API** | http://localhost:8081/docs | FastAPI 主服务文档 |
-| **检测服务网关** | http://localhost:8001/docs | 统一检测服务文档 |
-| **规划咨询服务** | http://localhost:8003/docs | RAG 服务文档 |
-| **前端界面** | http://localhost:3001 | Next.js 应用 |
-
----
-
 ## 开发最佳实践
-
-### 日常开发流程
-
-```
-1. 启动开发环境
-   cd docker && docker compose -f docker-compose.dev.yml up -d
-
-2. 验证服务健康
-   bash scripts/dev/health_check.sh
-
-3. 开发代码（自动热重载）
-   - 修改文件
-   - Docker 自动检测变更并重启服务（1-3秒）
-
-4. 快速验证
-   bash scripts/dev/health_check.sh --quick
-
-5. 完整测试（重要功能完成后）
-   bash scripts/dev/test_services.sh --normal
-```
-
-详细工作流说明请参阅：[开发工作流指南](docs/guides/development.md)
 
 ### 添加新功能时
 
@@ -652,8 +385,7 @@ bash scripts/dev/test_production.sh
 
 2. **遵循现有模式**：
    - 查看同类功能的实现方式
-   - 遵循相同的代码组织结构
-   - 使用相同的命名规范
+   - 遵循相同的代码组织结构和命名规范
 
 3. **添加测试**：
    - 单元测试 → `tests/unit/`
@@ -662,14 +394,13 @@ bash scripts/dev/test_production.sh
 4. **更新文档**：
    - API 变更 → 更新 API 文档
    - 架构变更 → 更新架构文档
-   - 新功能 → 添加操作指南
 
 ### 修改 Agent 时
 
-1. **优先修改 Skills 定义**：`src/agents/skills/`
-2. **更新工具注册**：在 `orchestrator_agent_v2.py` 中注册
-3. **测试工具调用**：确保工具能正常调用
-4. **更新文档**：同步更新相关文档
+1. 优先修改 Skills 定义：`src/agents/skills/`
+2. 更新工具注册：在 `orchestrator_agent_v2.py` 中注册
+3. 测试工具调用
+4. 同步更新相关文档
 
 ### 添加新检测服务时
 
@@ -684,142 +415,47 @@ bash scripts/dev/test_production.sh
 
 | 文件 | 作用 | 优先级 |
 |------|------|--------|
-| `service/server.py` | 后端主服务入口，Agent 编排 | ⭐⭐⭐ |
-| `src/agents/orchestrator_agent_v2.py` | V2 统一编排 Agent | ⭐⭐⭐ |
-| `src/algorithms/api/main.py` | 检测服务统一网关 | ⭐⭐⭐ |
-| `src/rag/core/tools.py` | RAG 知识库工具 | ⭐⭐⭐ |
-| `src/config.py` | 全局配置 | ⭐⭐ |
-| `.env` | 环境变量配置 | ⭐⭐⭐ |
-
-### Docker ONNX 部署文件
-
-| 文件 | 作用 | 优先级 |
-|------|------|--------|
-| `docker-compose.dev.yml` | 开发环境配置（热重载） | ⭐⭐⭐ |
-| `docker-compose.onnx.yml` | 生产环境配置 | ⭐⭐⭐ |
-| `docker/Dockerfile.backend.onnx` | 后端 ONNX 镜像 | ⭐⭐⭐ |
-| `docker/Dockerfile.detection.onnx` | 检测服务 ONNX 镜像 | ⭐⭐⭐ |
-| `docker/Dockerfile.planning.onnx` | 规划服务 ONNX 镜像 | ⭐⭐⭐ |
-| `docker/Dockerfile.frontend.dev` | 前端开发镜像 | ⭐⭐⭐ |
-| `scripts/dev/build-onnx-images.ps1` | Windows 构建脚本 | ⭐⭐ |
-| `scripts/dev/build-onnx-images.sh` | Linux/macOS 构建脚本 | ⭐⭐ |
-| `docs/guides/getting-started.md` | 快速开始指南 | ⭐⭐ |
+| [service/server.py](service/server.py) | 后端主服务入口，Agent 编排 | ⭐⭐⭐ |
+| [src/agents/orchestrator_agent_v2.py](src/agents/orchestrator_agent_v2.py) | V2 统一编排 Agent | ⭐⭐⭐ |
+| [src/algorithms/api/main.py](src/algorithms/api/main.py) | 检测服务统一网关 | ⭐⭐⭐ |
+| [src/rag/core/tools.py](src/rag/core/tools.py) | RAG 知识库的 7 个检索工具 | ⭐⭐⭐ |
+| [src/config.py](src/config.py) | 全局配置（模型管理等） | ⭐⭐ |
+| [.env](.env) | 环境变量配置 | ⭐⭐⭐ |
 
 ---
 
-## 常见问题速查
+## 常见问题速查（快速索引）
 
-### Q: 如何启动项目？
-
-**A**:
-```bash
-# 快速启动
-uv run python run_server.py      # 后端
-uv run python run_frontend.py    # 前端
-```
-
-### Q: 检测服务在哪个端口？
-
-**A**: 统一网关端口 **8001**
-
-### Q: 如何切换 Agent 版本？
-
-**A**: 编辑 `.env` 文件：`AGENT_VERSION=v2`
-
-### Q: RAG 服务如何启动？
-
-**A**:
-```bash
-# 1. 构建知识库
-uv run python scripts/dev/build_kb_auto.py
-
-# 2. 启动服务
-uv run python src/rag/service/main.py
-```
-
-### Q: 检测服务如何调用？
-
-**A**: 通过统一网关：
-```bash
-# 病虫害检测
-curl -X POST "http://localhost:8001/detection/pest/predict" \
-  -F "file=@image.jpg"
-```
-
-### Q: 如何查看 API 文档？
-
-**A**:
-- 后端：http://localhost:8081/docs
-- 检测：http://localhost:8001/docs
-- 规划：http://localhost:8003/docs
-
-### Q: Docker ONNX 部署和传统部署有什么区别？
-
-**A**:
-- **ONNX 部署**：使用 ONNX Runtime，镜像体积小（~10GB），构建快（3-5分钟），推荐用于开发和生产
-- **传统部署**：使用 PyTorch，镜像体积大（~40GB），构建慢（15-20分钟），已废弃
-
-### Q: 如何快速启动 ONNX Docker 环境？
-
-**A**:
-```bash
-# 1. 构建镜像（首次）
-.\scripts\dev\build-onnx-images.ps1  # Windows
-bash scripts/dev/build-onnx-images.sh  # Linux/macOS
-
-# 2. 启动服务
-docker-compose -f docker-compose.dev.yml up -d
-
-# 3. 查看状态
-docker-compose -f docker-compose.dev.yml ps
-```
-
-详细说明请参阅 [快速开始指南](docs/guides/getting-started.md)
+| 问题 | 答案位置 |
+|------|----------|
+| 如何启动项目？ | [常用命令 › 服务启动](#常用命令) |
+| 检测服务在哪个端口？ | [服务端口与 API 文档](#服务端口与-api-文档) |
+| 如何切换 Agent 版本？ | [模型管理 › Agent 版本切换](#模型管理) |
+| RAG 服务如何启动？ | [常用命令 › 知识库构建](#常用命令) |
+| 检测服务如何调用？ | [服务端口与 API 文档 › 检测服务路由](#服务端口与-api-文档) |
+| Docker ONNX 部署说明 | [常用命令 › Docker ONNX 部署](#常用命令) |
+| 日常开发流程？ | [开发最佳实践](#开发最佳实践) |
 
 ---
 
 ## 更新日志
 
-**最后更新**: 2026-02-11
-**版本**: v3.0
+**最后更新**: 2026-02-14 | **版本**: v3.1
 
-**主要变更**：
-- **文档结构重构**：重新设计文档组织架构
-  - 新增 `docs/decisions/` 目录 - 存放重要决策记录
-  - 新增 `docs/architecture/system-design.md` - 系统架构设计思想
-  - 新增 `docs/architecture/microservices.md` - 微服务架构设计
-  - 新增 `docs/guides/getting-started.md` - 快速开始指南
-  - 新增 `docs/guides/troubleshooting.md` - 故障排查指南
-  - 重命名 `v2-agent-upgrade.md` → `v2-agent-architecture.md`
-  - 重命名 `development-workflow.md` → `development.md`
-  - 删除 8 个冗余/过时文档（PROJECT_OVERVIEW.md、SYSTEM_INTRODUCTION.md 等）
-  - 精简 `project-structure.md`（从 485 行减至 157 行，-68%）
-  - 精简 `README.md`（从 231 行减至 163 行）
-- **删除的高风险文档**：
-  - `src/rag/docs/SYSTEM_INTRODUCTION.md` - 端口配置严重过时（8000/8001/8002）
-  - `docs/overview/PROJECT_OVERVIEW.md` - 端口 8080 过时，与根 README 重叠
-- **命令统一维护**：所有命令统一在 `docs/commands.md` 维护，其他文档只引用
-- **文档定位明确**：
-  - `architecture/` - 架构设计思想（代码无法表达的内容）
-  - `decisions/` - 重要决策记录（变更链）
-  - `guides/` - 操作指南（精简实用）
+**v3.1 主要变更**（本次精简）：
+- 删除重复的端口信息说明（统一到"服务端口与 API 文档"）
+- 删除重复的命令说明（合并到"常用命令"）
+- 删除独立的"检测服务架构"和"RAG 知识库系统"章节（已在系统架构中说明）
+- 简化"常见问题"为快速索引风格
+- 文档从 ~500 行精简至 ~350 行（-30%）
+
+**v3.0 主要变更**：
+- 文档结构重构：新增 `docs/decisions/`、`docs/architecture/`、`docs/guides/`
+- 删除 8 个冗余/过时文档
 
 **v2.2 变更**：
-- **新增**：ONNX Runtime 轻量级 Docker 部署方案
-  - 新增 5 个 ONNX Dockerfile（backend、detection、planning、frontend、frontend.dev）
-  - 新增 2 个 docker-compose 配置（dev.yml、onnx.yml）
-  - 新增 2 个构建脚本（build-onnx-images.{ps1,sh}）
-  - 镜像体积减少 60-75%，构建时间缩短 50%
-- **更新**：服务启动命令，优先使用 ONNX Docker 部署
-- **更新**：目录结构，添加 ONNX Dockerfile 说明
+- 新增 ONNX Runtime 轻量级 Docker 部署方案
 
-**v2.1 变更**：
-- **新增**：开发工作流优化脚本（health_check.sh、test_services.sh、switch_to_*.sh）
-- **修复**：端口配置错误（移除废弃的 8002 端口，添加 8003 规划服务）
+---
 
-**v2.0 变更**：
-- 更新为 V2 Agent Skills 架构说明
-- 修正端口分配（后端 8081，检测网关 8001，规划 8003）
-- 更新目录结构（反映最新的代码组织）
-- 修正服务启动命令
-- 添加各部分逻辑关系的详细说明
+**相关文档**：[docs/README.md](docs/README.md) | [docs/commands.md](docs/commands.md)
