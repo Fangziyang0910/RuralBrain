@@ -106,20 +106,7 @@ def get_agent():
 
         except Exception as e:
             logger.error(f"✗ Agent V{version} 加载失败: {e}")
-
-            # 如果 V2 加载失败且启用了自动回退
-            if version == "v2" and AGENT_AUTO_FALLBACK:
-                logger.info("尝试回退到 V1 Agent...")
-                try:
-                    from src.agents.orchestrator_agent import agent as orchestrator_agent_v1
-                    _agent = orchestrator_agent_v1
-                    _agent_version = "orchestrator_v1 (回退)"
-                    logger.info("✓ 回退到 V1 Agent 成功")
-                except Exception as fallback_error:
-                    logger.error(f"✗ V1 回退也失败: {fallback_error}")
-                    raise
-            else:
-                raise
+            raise
 
     return _agent
 
