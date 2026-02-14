@@ -376,6 +376,31 @@ bash scripts/dev/test_production.sh
 
 ## 开发最佳实践
 
+### ⭐⭐⭐ 日常开发工作流（必读）
+
+**重要**：所有开发都应该遵循 Docker 热重载开发工作流。
+
+**日常开发指南**：[docs/guides/development.md](docs/guides/development.md)
+
+**核心原则**：
+1. **所有开发使用 Docker 热重载模式** - 不推荐本地直接运行
+2. **每次代码更改后必须验证** - 健康检查 + 功能测试
+3. **重要功能完成后切换到生产模式测试** - 确保生产环境可用
+4. **验证通过后才能提交代码** - 保持代码库健康
+
+**快速启动**：
+```bash
+# 启动开发环境（热重载模式）
+docker-compose -f docker-compose.dev.yml up -d
+
+# 验证服务健康
+bash scripts/dev/health_check.sh --quick
+
+# 每次代码修改后
+bash scripts/dev/health_check.sh --quick
+bash scripts/dev/test_services.sh --fast
+```
+
 ### 添加新功能时
 
 1. **确定功能类型**：
@@ -429,20 +454,27 @@ bash scripts/dev/test_production.sh
 | 问题 | 答案位置 |
 |------|----------|
 | 如何启动项目？ | [常用命令 › 服务启动](#常用命令) |
+| **日常开发流程？** | **[开发最佳实践](#开发最佳实践)** ⭐ |
+| **Docker 热重载开发？** | **[docs/guides/development.md](docs/guides/development.md)** ⭐ |
 | 检测服务在哪个端口？ | [服务端口与 API 文档](#服务端口与-api-文档) |
 | 如何切换 Agent 版本？ | [模型管理 › Agent 版本切换](#模型管理) |
 | RAG 服务如何启动？ | [常用命令 › 知识库构建](#常用命令) |
 | 检测服务如何调用？ | [服务端口与 API 文档 › 检测服务路由](#服务端口与-api-文档) |
 | Docker ONNX 部署说明 | [常用命令 › Docker ONNX 部署](#常用命令) |
-| 日常开发流程？ | [开发最佳实践](#开发最佳实践) |
 
 ---
 
 ## 更新日志
 
-**最后更新**: 2026-02-14 | **版本**: v3.1
+**最后更新**: 2026-02-14 | **版本**: v3.2
 
-**v3.1 主要变更**（本次精简）：
+**v3.2 主要变更**（本次更新）：
+- 强调 Docker 热重载开发工作流为标准开发方式
+- 更新 [docs/guides/development.md](docs/guides/development.md) - 清晰的代码更改验证流程
+- 更新 [docs/guides/getting-started.md](docs/guides/getting-started.md) - 强调 Docker 开发模式
+- 新增"日常开发工作流"章节指向详细开发文档
+
+**v3.1 主要变更**：
 - 删除重复的端口信息说明（统一到"服务端口与 API 文档"）
 - 删除重复的命令说明（合并到"常用命令"）
 - 删除独立的"检测服务架构"和"RAG 知识库系统"章节（已在系统架构中说明）

@@ -1,5 +1,11 @@
 # RuralBrain 快速开始
 
+## 首页阅读建议
+
+> **新用户必读**：如果你是第一次接触本项目，请按顺序阅读本文档。日常开发请参考 [开发工作流指南](development.md)。
+
+---
+
 ## 环境要求
 
 ### 硬件要求
@@ -9,20 +15,48 @@
 
 ### 软件要求
 
-#### Docker 部署（推荐）
+#### Docker 部署（推荐）⭐
 - **Docker**: 20.10 或更高版本
 - **Docker Compose**: 1.29 或更高版本
 
-#### 本地开发
+> **为什么推荐 Docker**：
+> - 环境隔离，避免依赖冲突
+> - 热重载开发，代码修改自动生效
+> - 一键启动所有服务
+> - 轻量级 ONNX 镜像（~10GB）
+
+#### 本地开发（不推荐）
 - **Python**: 3.13+
 - **Node.js**: 20+
 - **uv**: Python 包管理器
 
 ---
 
-## Docker 部署（推荐）
+## Docker 部署（推荐）⭐
 
-### 快速启动
+### 第一步：构建镜像
+
+```bash
+# Windows
+.\scripts\dev\build-onnx-images.ps1
+
+# Linux/macOS
+bash scripts/dev/build-onnx-images.sh
+```
+
+### 第二步：配置环境变量
+
+```bash
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑 .env 文件，设置必要的配置
+# MODEL_PROVIDER=deepseek
+# DEEPSEEK_API_KEY=your_api_key_here
+# AGENT_VERSION=v2
+```
+
+### 第三步：启动开发环境
 
 ```bash
 # 启动开发环境（支持热重载）
@@ -35,7 +69,17 @@ docker-compose -f docker-compose.dev.yml ps
 docker-compose -f docker-compose.dev.yml logs -f
 ```
 
-### 服务访问
+### 第四步：验证服务
+
+```bash
+# 快速健康检查
+bash scripts/dev/health_check.sh --quick
+
+# 快速功能测试
+bash scripts/dev/test_services.sh --fast
+```
+
+### 服务访问地址
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
@@ -54,7 +98,21 @@ docker-compose -f docker-compose.dev.yml down
 
 ---
 
-## 本地开发
+## 下一步
+
+现在你已经成功启动了 RuralBrain 开发环境，接下来请阅读：
+
+1. **[开发工作流指南](development.md)** - 了解热重载开发和代码验证流程
+2. **[统一命令参考](../commands.md)** - 查看完整的命令列表
+3. **[项目结构指南](project-structure.md)** - 了解项目的目录结构
+
+---
+
+## 本地开发（不推荐）
+
+> **注意**：本地开发需要手动管理多个服务和依赖，容易出现环境问题。强烈建议使用 Docker 部署。
+
+如果你确实需要本地开发，请参考 [开发工作流指南](development.md) 中的详细说明。
 
 ### 1. 安装依赖
 
@@ -116,39 +174,16 @@ npm run dev
 
 ---
 
-## 知识库构建
+## 知识库构建（可选）
 
 规划咨询服务需要先构建知识库：
 
 ```bash
+# Docker 环境下构建
+docker exec ruralbrain-planning-service python /app/src/rag/build.py
+
+# 或使用 uv 运行（如果本地有 uv）
 uv run python src/rag/build.py
-```
-
----
-
-## 验证部署
-
-### 健康检查
-
-```bash
-# 后端服务
-curl http://localhost:8081/health
-
-# 检测服务网关
-curl http://localhost:8001/health
-
-# 规划咨询服务
-curl http://localhost:8003/health
-```
-
-### 功能测试
-
-```bash
-# 快速测试
-bash scripts/dev/test_services.sh --fast
-
-# 正常测试
-bash scripts/dev/test_services.sh --normal
 ```
 
 ---
@@ -161,10 +196,10 @@ bash scripts/dev/test_services.sh --normal
 
 ## 相关文档
 
-- [开发工作流](development.md) - 热重载和测试流程
+- **[开发工作流](development.md)** ⭐ - 日常开发必读，了解热重载和测试流程
 - [统一命令参考](../commands.md) - 完整命令列表
 - [故障排查](troubleshooting.md) - 常见问题解决
 
 ---
 
-**最后更新**: 2026-02-11
+**最后更新**: 2026-02-14
