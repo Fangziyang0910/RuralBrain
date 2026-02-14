@@ -34,6 +34,7 @@ from .skills.disease_prediction_skills import create_all_disease_prediction_skil
 from .skills.orchestration_skills import create_all_orchestration_skills
 from .skills.base import Skill
 from .middleware.skill_middleware import SkillMiddleware
+from langchain.agents.middleware import SummarizationMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -189,8 +190,18 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 # 技能中间件：实现 Progressive Disclosure
 skill_middleware = SkillMiddleware(skills=all_skills)
 
+# 总结中间件：长对话历史自动总结（LangChain 官方推荐最佳实践）
+summarization_middleware = SummarizationMiddleware(
+    # 使用与主模型一致的配置进行总结
+    model=model_manager.get_chat_model(),
+    # 触发条件: 当对话超过 8000 tokens 时自动触发
+    trigger=("tokens", 8000),
+    # 保留策略: 保留最近的 15 条消息,对更早的消息进行总结
+    keep=("messages", 15),
+)
+
 # 中间件列表
-middleware = [skill_middleware]
+middleware = [skill_middleware, summarization_middleware]
 
 
 # ========== 创建 Agent ==========
