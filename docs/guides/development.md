@@ -74,7 +74,7 @@ cp .env.example .env
 # 编辑 .env 文件，设置 API 密钥
 
 # 3. 启动开发环境
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # 4. 验证服务
 bash scripts/dev/health_check.sh --quick
@@ -84,7 +84,7 @@ bash scripts/dev/health_check.sh --quick
 
 ```bash
 # 1. 启动开发环境（热重载模式）
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # 2. 等待服务启动（约 10-20 秒）
 
@@ -107,16 +107,16 @@ bash scripts/dev/health_check.sh --quick
 
 ```bash
 # 查看服务状态
-docker-compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml ps
 
 # 查看日志（实时）
-docker-compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.dev.yml logs -f
 
 # 停止服务
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down
 
 # 重启单个服务
-docker-compose -f docker-compose.dev.yml restart backend
+docker compose -f docker-compose.dev.yml restart backend
 ```
 
 ### 1.6 启动单个服务
@@ -165,7 +165,7 @@ docker compose -f docker-compose.dev.yml up -d frontend
 1. 修改代码文件
 2. 查看容器日志确认重启：
    ```bash
-   docker-compose -f docker-compose.dev.yml logs -f backend
+   docker compose -f docker-compose.dev.yml logs -f backend
    ```
 3. 看到类似输出表示重启成功：
    ```
@@ -178,7 +178,7 @@ docker compose -f docker-compose.dev.yml up -d frontend
 如果热重载不工作：
 
 1. 检查卷挂载是否正确
-2. 重启容器：`docker-compose -f docker-compose.dev.yml restart <service>`
+2. 重启容器：`docker compose -f docker-compose.dev.yml restart <service>`
 3. 查看日志排查错误
 4. Windows 用户：检查 Docker Desktop 文件共享权限
 
@@ -192,7 +192,7 @@ docker compose -f docker-compose.dev.yml up -d frontend
 
 ```
 1. 启动开发环境
-   $ docker-compose -f docker-compose.dev.yml up -d
+   $ docker compose -f docker-compose.dev.yml up -d
 
 2. 验证服务健康
    $ bash scripts/dev/health_check.sh --quick
@@ -330,7 +330,7 @@ bash scripts/dev/switch_to_development.sh
 
 1. 查看容器日志：
    ```bash
-   docker-compose -f docker-compose.dev.yml logs -f backend
+   docker compose -f docker-compose.dev.yml logs -f backend
    ```
 
 2. 检查卷挂载：
@@ -340,7 +340,7 @@ bash scripts/dev/switch_to_development.sh
 
 3. 重启容器：
    ```bash
-   docker-compose -f docker-compose.dev.yml restart <service>
+   docker compose -f docker-compose.dev.yml restart <service>
    ```
 
 4. Windows 用户：检查 Docker Desktop 文件共享权限
@@ -358,7 +358,7 @@ bash scripts/dev/switch_to_development.sh
 
 2. 查看服务日志：
    ```bash
-   docker-compose -f docker-compose.dev.yml logs -f <service>
+   docker compose -f docker-compose.dev.yml logs -f <service>
    ```
 
 3. 检查 API 文档：http://localhost:8081/docs
@@ -376,12 +376,12 @@ bash scripts/dev/switch_to_development.sh
 
 1. 查看容器状态：
    ```bash
-   docker-compose -f docker-compose.dev.yml ps
+   docker compose -f docker-compose.dev.yml ps
    ```
 
 2. 查看容器日志：
    ```bash
-   docker-compose -f docker-compose.dev.yml logs <service>
+   docker compose -f docker-compose.dev.yml logs <service>
    ```
 
 3. 常见原因：
@@ -477,10 +477,10 @@ echo "Pre-commit hook 已安装"
 
 ```bash
 # 启动开发环境（热重载）
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # 停止服务
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down
 
 # 健康检查
 bash scripts/dev/health_check.sh [--quick] [--verbose] [--service <name>]
@@ -496,10 +496,10 @@ bash scripts/dev/switch_to_production.sh
 bash scripts/dev/switch_to_development.sh
 
 # 查看日志
-docker-compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.dev.yml logs -f
 
 # 查看服务状态
-docker-compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml ps
 ```
 
 ### API 文档地址

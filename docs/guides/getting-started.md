@@ -34,7 +34,31 @@
 
 ## Docker 部署（推荐）⭐
 
-### 第一步：构建镜像
+> **协作者注意**：如果你是项目协作者，请直接拉取 Docker Hub 上的镜像，无需本地构建。详见 [Docker Hub 镜像使用指南](docker-hub.md)。
+
+### 第一步：获取镜像
+
+#### 方式一：拉取镜像（协作者推荐）⭐
+
+```bash
+# 拉取后端服务
+docker pull zwxdockerbeginner/ruralbrain:backend-onnx
+
+# 拉取检测服务
+docker pull zwxdockerbeginner/ruralbrain:detection-onnx
+
+# 拉取规划服务
+docker pull zwxdockerbeginner/ruralbrain:planning-onnx
+
+# 拉取前端开发版
+docker pull zwxdockerbeginner/ruralbrain:frontend-dev
+```
+
+> **详细说明**：参阅 [Docker Hub 镜像使用指南](docker-hub.md)
+
+#### 方式二：本地构建（仅限镜像维护者）
+
+如果你需要本地构建镜像（仅限镜像维护者）：
 
 ```bash
 # Windows
@@ -60,13 +84,13 @@ cp .env.example .env
 
 ```bash
 # 启动开发环境（支持热重载）
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # 查看服务状态
-docker-compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml ps
 
 # 查看日志
-docker-compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.dev.yml logs -f
 ```
 
 ### 第四步：验证服务
@@ -93,7 +117,7 @@ bash scripts/dev/test_services.sh --fast
 
 ```bash
 # 停止服务
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down
 ```
 
 ---
@@ -196,6 +220,7 @@ uv run python src/rag/build.py
 
 ## 相关文档
 
+- **[Docker Hub 镜像使用指南](docker-hub.md)** - 镜像拉取、版本管理、协作者规范
 - **[开发工作流](development.md)** ⭐ - 日常开发必读，了解热重载和测试流程
 - [统一命令参考](../commands.md) - 完整命令列表
 - [故障排查](troubleshooting.md) - 常见问题解决
