@@ -31,17 +31,22 @@ QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
 QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "rural_planning")
 
 # ==================== Embedding 模型配置 ====================
-# Embedding Provider: local（本地模型）, dashscope（千问）, openai
+# Embedding Provider: local（本地模型，默认）, deepseek（暂不支持 Embedding）, dashscope（千问）, openai
+# ⚠️ 注意：DeepSeek 目前没有官方 Embedding API，使用本地模型或千问/OpenAI
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "local")
 
-# 本地模型配置（降级方案）
+# DeepSeek API 配置（仅用于 LLM，不支持 Embedding）
+# DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+# ⚠️ DeepSeek 目前没有官方 Embedding API，需要使用其他 Provider
+
+# 本地模型配置（默认）
 EMBEDDING_MODEL_NAME = os.getenv(
     "EMBEDDING_MODEL_NAME",
     "BAAI/bge-small-zh-v1.5"  # 中文 Embedding 模型
 )
 EMBEDDING_DEVICE = os.getenv("EMBEDDING_DEVICE", "cpu")  # 可选: cuda, mps
 
-# 千问 API 配置（推荐）
+# 千问 API 配置（备选）
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 DASHSCOPE_EMBEDDING_MODEL = os.getenv(
     "DASHSCOPE_EMBEDDING_MODEL",
@@ -114,16 +119,16 @@ def get_embeddings():
     获取 Embedding 实例（支持多种 Provider）
 
     优先级：
-    1. 千问 API (dashscope) - 推荐，无需本地模型
+    1. 千问 API (dashscope) - 备选方案
     2. OpenAI API - 备选方案
-    3. 本地模型 - 降级方案
+    3. 本地模型 - 默认方案
 
     Returns:
         LangChain Embeddings 实例
     """
     provider = EMBEDDING_PROVIDER.lower()
 
-    # 千问 API（推荐）
+    # 千问 API（备选）
     if provider == "dashscope":
         if not DASHSCOPE_API_KEY:
             raise ValueError(
