@@ -16,7 +16,7 @@
 
 2. 查看容器日志（Docker 部署）
    ```bash
-   docker-compose -f docker-compose.dev.yml logs <service>
+   docker compose -f docker-compose.dev.yml logs <service>
    ```
 
 3. 常见原因：
@@ -92,7 +92,7 @@
 
 2. 重启容器
    ```bash
-   docker-compose -f docker-compose.dev.yml restart <service>
+   docker compose -f docker-compose.dev.yml restart <service>
    ```
 
 3. Windows 用户：确保 Docker Desktop 有访问项目目录的权限

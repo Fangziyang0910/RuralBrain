@@ -89,7 +89,7 @@
 
 1. **安装 Docker**
    - Windows: 下载 [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-   - Linux: `sudo apt-get install docker.io docker-compose`
+   - Linux: `sudo apt-get install docker.io docker-compose-plugin`
    - macOS: 下载 [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 2. **配置环境变量**
@@ -133,31 +133,31 @@ docker pull zwxdockerbeginner/ruralbrain:latest
 **开发环境**（热重载）：
 ```bash
 # 拉取最新镜像（可选）
-docker-compose -f docker-compose.dev.yml pull
+docker compose -f docker-compose.dev.yml pull
 
 # 启动开发环境
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # 查看日志
-docker-compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.dev.yml logs -f
 
 # 停止服务
-docker-compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml down
 ```
 
 **生产环境**（标准部署）：
 ```bash
 # 拉取最新镜像（可选）
-docker-compose -f docker-compose.onnx.yml pull
+docker compose -f docker-compose.onnx.yml pull
 
 # 启动生产环境
-docker-compose -f docker-compose.onnx.yml up -d
+docker compose -f docker-compose.onnx.yml up -d
 
 # 查看日志
-docker-compose -f docker-compose.onnx.yml logs -f
+docker compose -f docker-compose.onnx.yml logs -f
 
 # 停止服务
-docker-compose -f docker-compose.onnx.yml down
+docker compose -f docker-compose.onnx.yml down
 ```
 
 #### 方式二：手动启动单个容器
@@ -230,7 +230,7 @@ docker pull zwxdockerbeginner/ruralbrain:planning-onnx
 docker pull zwxdockerbeginner/ruralbrain:frontend-onnx
 
 # 4. 启动服务
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 
 # 5. 访问应用
 open http://localhost:3001
@@ -269,8 +269,8 @@ docker pull zwxdockerbeginner/ruralbrain:frontend-onnx
 docker rmi $(docker images zwxdockerbeginner/ruralbrain -q | grep '<none>') 2>/dev/null
 
 # 4. 重启服务
-docker-compose -f docker-compose.dev.yml down
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml down
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 ---
@@ -458,13 +458,13 @@ services:
 
 ```bash
 # 查看所有服务日志
-docker-compose -f docker-compose.dev.yml logs -f
+docker compose -f docker-compose.dev.yml logs -f
 
 # 查看特定服务日志
-docker-compose -f docker-compose.dev.yml logs -f backend
-docker-compose -f docker-compose.dev.yml logs -f detection-service
-docker-compose -f docker-compose.dev.yml logs -f planning-service
-docker-compose -f docker-compose.dev.yml logs -f frontend
+docker compose -f docker-compose.dev.yml logs -f backend
+docker compose -f docker-compose.dev.yml logs -f detection-service
+docker compose -f docker-compose.dev.yml logs -f planning-service
+docker compose -f docker-compose.dev.yml logs -f frontend
 
 # 或使用容器名称
 docker logs -f ruralbrain-backend
