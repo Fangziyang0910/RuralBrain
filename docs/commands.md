@@ -245,17 +245,39 @@ lsof -i :8003  # 规划服务
 
 ## 5. 知识库管理
 
-### 5.1 构建知识库
-
-```bash
-# 自动构建（推荐）
-uv run python scripts/dev/build_kb_auto.py
-```
-
-### 5.2 知识库位置
+### 5.1 知识库位置
 
 - **向量数据库**: `knowledge_base/chroma_db/`
-- **原始文档**: `knowledge_base/documents/`
+- **原始文档**: `knowledge_base/documents/`（需要您手动放置调研文档）
+
+### 5.2 构建知识库
+
+> **注意**：知识库构建脚本已被 Docker Compose 工作流替代。规划服务启动时会自动检测并加载已存在的知识库。
+
+**首次使用时**，如果 `knowledge_base/chroma_db/` 目录为空：
+
+```bash
+# 使用现有的构建脚本（硬编码特定文件）
+uv run python src/rag/build.py
+```
+
+**Docker 部署时**，知识库通过卷挂载自动持久化：
+
+```yaml
+# docker-compose.dev.yml
+planning-service:
+  volumes:
+    - ./knowledge_base:/app/knowledge_base  # 自动挂载
+```
+
+### 5.3 支持的文档格式
+
+- PDF（`.pdf`）
+- Word（`.docx`, `.doc`）
+- PowerPoint（`.pptx`）
+- 文本（`.txt`, `.md`）
+
+文档加载器位于：[src/rag/utils/loaders.py](../src/rag/utils/loaders.py)
 
 ---
 
