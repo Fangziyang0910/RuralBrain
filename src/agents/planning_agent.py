@@ -9,38 +9,24 @@ from langgraph.checkpoint.memory import InMemorySaver
 from src.rag.core.tools import (
     list_available_documents as list_documents,
     get_document_overview,
-    get_chapter_content,
     search_key_points,
     search_knowledge,
-    get_full_document as get_document_full,
 )
 
 # --- 核心组件设置 ---
-# V2 架构: 加载所有规划相关工具
+# 4 个核心规划工具
 tools = [
     list_documents,
     get_document_overview,
-    get_chapter_content,
     search_key_points,
     search_knowledge,
-    get_document_full,
 ]
 
 llm = ChatDeepSeek(model="deepseek-chat", temperature=0)
 memory = InMemorySaver()
 
-
-def build_system_prompt_with_mode(mode: str) -> str:
-    """
-    根据模式构建系统提示词
-
-    Args:
-        mode: 工作模式 (fast/deep/auto)
-
-    Returns:
-        系统提示词字符串
-    """
-    base_prompt = """<role>
+# 系统提示词
+SYSTEM_PROMPT = """<role>
 你是一位资深的乡村振兴规划咨询专家，专门服务于"博罗古城-长宁镇-罗浮山"区域的融合高质量发展战略。你熟悉该区域的总体规划、产业布局、文化背景及政策方针。你的职责是基于知识库中的文档，准确回答用户的咨询。
 </role>
 
@@ -49,9 +35,7 @@ def build_system_prompt_with_mode(mode: str) -> str:
 - list_documents: 列出所有可用文档
 - get_document_overview: 获取文档概览和摘要
 - search_key_points: 搜索关键要点
-- search_knowledge: 检索知识库
-- get_chapter_content: 获取章节详细内容
-- get_document_full: 获取完整文档
+- search_knowledge: 检索知识库（支持 minimal/standard/expanded 模式）
 </tools>
 
 <task>
@@ -72,50 +56,35 @@ def build_system_prompt_with_mode(mode: str) -> str:
 </constraints>
 """
 
-    # 根据模式添加额外指导
-    mode_instructions = {
-        "fast": "\n\n<mode_guide>当前为快速模式：最多调用 2 次工具，优先使用 list_documents、get_document_overview 和 search_key_points。</mode_guide>",
-        "deep": "\n\n<mode_guide>当前为深度模式：最多调用 5 次工具，可以使用所有工具包括 get_chapter_content 和 get_document_full 进行深度分析。</mode_guide>",
-        "auto": "\n\n<mode_guide>当前为自动模式：根据问题复杂度自主选择工具和工作模式。</mode_guide>",
-    }
-
-    instruction = mode_instructions.get(mode, mode_instructions["auto"])
-    return base_prompt + instruction
-
 
 # 为了向后兼容,保留旧的 agent 变量
 agent = None  # 将在调用时动态创建
 
 
-def get_planning_agent(mode: str = "auto"):
+def get_planning_agent():
     """
     获取 Planning Agent 实例
-
-    Args:
-        mode: 工作模式 (fast/deep/auto)
 
     Returns:
         配置好的 Agent 实例
     """
-    system_prompt = build_system_prompt_with_mode(mode)
-
     return create_agent(
         model=llm,
         tools=tools,
         checkpointer=memory,
-        system_prompt=system_prompt,
+        system_prompt=SYSTEM_PROMPT,
     )
 
 
 # 导出供 routes.py 使用
-__all__ = ["tools", "llm", "memory", "build_system_prompt_with_mode", "get_planning_agent"]
+__all__ = ["tools", "llm", "memory", "get_planning_agent"]
 
 
 if __name__ == "__main__":
     import uuid
 
     # 使用新的 get_planning_agent 函数
-    agent = get_planning_agent("auto")
+    agent = get_planning_agent()
 
     # 创建一个随机线程ID，模拟不同用户
     thread_id = str(uuid.uuid4())

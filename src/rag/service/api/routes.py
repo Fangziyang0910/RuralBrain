@@ -39,13 +39,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# 模式指令
-MODE_INSTRUCTIONS = {
-    "fast": "⚡ 当前为快速模式：最多调用 2 次工具，优先使用 get_document_overview 和 search_key_points，避免使用 get_chapter_content 和 get_document_full。",
-    "deep": "🔍 当前为深度模式：最多调用 5 次工具，可以使用所有工具包括 get_chapter_content 和 get_document_full 进行深度分析。",
-    "auto": "🤖 当前为自动模式：根据问题复杂度自主选择工作模式和工具。",
-}
-
 
 # ==================== 辅助函数 ====================
 
@@ -74,46 +67,25 @@ def extract_knowledge_sources(tool_output: str) -> list[dict]:
 
 # ==================== 延迟加载 Agent ====================
 
-# Agent 缓存字典（按 mode 缓存）
-_agent_cache = {}
+_agent_cache = None
 
 
-def get_agent(mode: str = "auto"):
+def get_agent():
     """
-    获取 Planning Agent（支持模式配置，带缓存）
-
-    根据模式动态创建 Agent，使用缓存避免重复创建。
-
-    Args:
-        mode: 工作模式（fast/deep/auto）
+    获取 Planning Agent（单例模式）
 
     Returns:
         配置好的 Agent 实例
     """
-    # 使用缓存避免重复创建
-    if mode not in _agent_cache:
-        logger.info(f"正在创建 {mode} 模式的 Planning Agent...")
-        from src.agents.planning_agent import (
-            tools,
-            llm,
-            memory,
-            build_system_prompt_with_mode
-        )
-        from langchain.agents import create_agent
+    global _agent_cache
+    if _agent_cache is None:
+        logger.info("正在创建 Planning Agent...")
+        from src.agents.planning_agent import get_planning_agent
 
-        # 根据模式动态创建 Agent
-        system_prompt = build_system_prompt_with_mode(mode)
+        _agent_cache = get_planning_agent()
+        logger.info("Planning Agent 创建完成")
 
-        _agent_cache[mode] = create_agent(
-            model=llm,
-            tools=tools,
-            checkpointer=memory,
-            system_prompt=system_prompt,
-        )
-
-        logger.info(f"{mode} 模式 Planning Agent 创建完成")
-
-    return _agent_cache[mode]
+    return _agent_cache
 
 
 # ==================== 核心端点 ====================
@@ -145,12 +117,11 @@ async def health_check():
 async def planning_chat(request: PlanningChatRequest):
     """规划咨询对话接口（流式）"""
     try:
-        # 传入 mode 参数动态创建对应的 Agent
-        agent = get_agent(request.mode)
+        agent = get_agent()
         thread_id = request.thread_id or str(uuid.uuid4())
         config = {"configurable": {"thread_id": thread_id}}
 
-        logger.info(f"收到规划咨询请求 [thread_id={thread_id}, mode={request.mode}]: {request.message}")
+        logger.info(f"收到规划咨询请求 [thread_id={thread_id}]: {request.message}")
 
         return StreamingResponse(
             _event_generator(agent, request, thread_id, config),
@@ -185,15 +156,10 @@ async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, 
 
     try:
         # 发送开始事件
-        yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id, 'mode': request.mode}, ensure_ascii=False)}\n\n"
-
-        # 构建增强消息
-        mode_prefix = MODE_INSTRUCTIONS.get(request.mode, MODE_INSTRUCTIONS["auto"])
-        enhanced_message = f"{mode_prefix}\n\n用户问题：{request.message}"
+        yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id}, ensure_ascii=False)}\n\n"
 
         input_data = {
-            "messages": [HumanMessage(content=enhanced_message)],
-            "mode": request.mode,
+            "messages": [HumanMessage(content=request.message)],
         }
 
         # 流式处理 agent 响应
@@ -259,9 +225,8 @@ async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, 
             "tools_used": tools_used,
             "tool_call_count": tool_call_count,
             "total_time": round(total_time, 2),
-            "mode": request.mode,
         }
-        logger.info(f"请求完成 [thread_id={thread_id}, mode={request.mode}, tools={len(tools_used)}, calls={tool_call_count}, time={total_time:.2f}s]")
+        logger.info(f"请求完成 [thread_id={thread_id}, tools={len(tools_used)}, calls={tool_call_count}, time={total_time:.2f}s]")
         yield f"data: {json.dumps(end_data, ensure_ascii=False)}\n\n"
 
     except Exception as e:

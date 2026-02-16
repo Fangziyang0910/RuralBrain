@@ -30,11 +30,6 @@ class PlanningChatRequest(BaseModel):
     """规划咨询聊天请求"""
     message: str = Field(..., description="用户问题", min_length=1)
     thread_id: Optional[str] = Field(None, description="对话线程ID")
-    mode: str = Field(
-        "auto",
-        description="工作模式: auto(自动选择)/fast(快速浏览)/deep(深度分析)",
-        pattern="^(auto|fast|deep)$"
-    )
 
 
 class DocumentListRequest(BaseModel):
@@ -53,7 +48,6 @@ class PlanningChatResponse(BaseModel):
     """规划咨询聊天响应（非流式）"""
     response: str = Field(..., description="AI 回复内容")
     tools_used: List[str] = Field(default_factory=list, description="使用的工具列表")
-    actual_mode: str = Field(..., description="实际使用的工作模式")
     thread_id: str = Field(..., description="对话线程ID")
     sources_count: int = Field(default=0, description="引用的文档数量")
 
