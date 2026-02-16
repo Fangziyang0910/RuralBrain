@@ -4,9 +4,7 @@
 services:
   # 前端服务 (Next.js 开发模式)
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: ../docker/Dockerfile.frontend.dev
+    image: zwxdockerbeginner/ruralbrain:frontend-dev
     container_name: ruralbrain-frontend
     ports:
       - "3001:3001"
@@ -27,7 +25,7 @@ services:
 
   # 后端主服务
   backend:
-    image: ruralbrain-backend:onnx
+    image: zwxdockerbeginner/ruralbrain:backend-onnx
     container_name: ruralbrain-backend
     ports:
       - "8081:8081"
@@ -57,7 +55,7 @@ services:
 
   # 检测服务
   detection-service:
-    image: ruralbrain-detection-service:onnx
+    image: zwxdockerbeginner/ruralbrain:detection-onnx
     container_name: ruralbrain-detection-service
     ports:
       - "8001:8001"
@@ -75,7 +73,7 @@ services:
 
   # 规划咨询服务
   planning-service:
-    image: ruralbrain-planning-service:onnx
+    image: zwxdockerbeginner/ruralbrain:planning-onnx
     container_name: ruralbrain-planning-service
     ports:
       - "8003:8003"

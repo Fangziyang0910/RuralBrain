@@ -4,9 +4,7 @@
 services:
   # 前端服务 (Next.js)
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: ../docker/Dockerfile.frontend.onnx
+    image: zwxdockerbeginner/ruralbrain:frontend-onnx
     container_name: ruralbrain-frontend
     ports:
       - "3001:3001"
@@ -22,9 +20,7 @@ services:
 
   # 后端主服务 (FastAPI + Agents)
   backend:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile.backend.onnx
+    image: zwxdockerbeginner/ruralbrain:backend-onnx
     container_name: ruralbrain-backend
     ports:
       - "8081:8081"
@@ -53,9 +49,7 @@ services:
   # 检测服务（整合病虫害、大米、奶牛等多种检测算法）
   # 使用 ONNX Runtime 进行推理，无需 PyTorch
   detection-service:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile.detection.onnx
+    image: zwxdockerbeginner/ruralbrain:detection-onnx
     container_name: ruralbrain-detection-service
     ports:
       - "8001:8001"  # 检测服务端口
@@ -77,9 +71,7 @@ services:
 
   # 规划咨询服务 (Planning Service)
   planning-service:
-    build:
-      context: .
-      dockerfile: ./docker/Dockerfile.planning.onnx
+    image: zwxdockerbeginner/ruralbrain:planning-onnx
     container_name: ruralbrain-planning-service
     ports:
       - "8003:8003"
