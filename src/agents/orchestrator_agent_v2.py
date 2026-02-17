@@ -25,14 +25,8 @@ from langgraph.checkpoint.memory import InMemorySaver
 from ..utils import ModelManager
 from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool, pricing_tool, marketing_tool, farm_inspection_tool, disease_prediction_tool
 from .tools.planning_service_tool import planning_consult
-from .skills.detection_skills import create_all_detection_skills
-from .skills.planning_skills import create_all_planning_skills
-from .skills.pricing_skills import create_all_pricing_skills
-from .skills.marketing_skills import create_all_marketing_skills
-from .skills.farm_inspection_skills import create_all_farm_inspection_skills
-from .skills.disease_prediction_skills import create_all_disease_prediction_skills
-from .skills.orchestration_skills import create_all_orchestration_skills
 from .skills.base import Skill
+from .skills.registry import get_registry
 from .middleware.skill_middleware import SkillMiddleware
 from langchain.agents.middleware import SummarizationMiddleware
 
@@ -46,43 +40,23 @@ model = model_manager.get_chat_model()
 
 # ========== 技能组织 ==========
 
-# 创建检测技能
-detection_skills = create_all_detection_skills(
-    pest_tool=pest_detection_tool,
-    rice_tool=rice_detection_tool,
-    cow_tool=cow_detection_tool,
-)
+# 获取技能注册中心
+registry = get_registry()
 
-# 创建规划技能（使用 HTTP 客户端工具调用独立 RAG 服务）
-planning_skills = create_all_planning_skills(
-    consult_tool=planning_consult,
-)
+# 构建工具映射（工具名 -> 工具对象）
+tools_map = {
+    "pest_detection_tool": pest_detection_tool,
+    "rice_detection_tool": rice_detection_tool,
+    "cow_detection_tool": cow_detection_tool,
+    "pricing_tool": pricing_tool,
+    "marketing_tool": marketing_tool,
+    "farm_inspection_tool": farm_inspection_tool,
+    "disease_prediction_tool": disease_prediction_tool,
+    "planning_consult": planning_consult,
+}
 
-# 创建定价技能
-pricing_skills = create_all_pricing_skills(
-    pricing_tool=pricing_tool,
-)
-
-# 创建营销技能
-marketing_skills = create_all_marketing_skills(
-    marketing_tool=marketing_tool,
-)
-
-# 创建农场巡检技能
-farm_inspection_skills = create_all_farm_inspection_skills(
-    farm_inspection_tool=farm_inspection_tool,
-)
-
-# 创建疾病预测技能
-disease_prediction_skills = create_all_disease_prediction_skills(
-    disease_prediction_tool=disease_prediction_tool,
-)
-
-# 创建编排技能
-orchestration_skills = create_all_orchestration_skills()
-
-# 合并所有技能（检测3 + 规划1 + 定价1 + 营销1 + 巡检1 + 疾病预测1 + 编排2 = 10）
-all_skills: List[Skill] = detection_skills + planning_skills + pricing_skills + marketing_skills + farm_inspection_skills + disease_prediction_skills + orchestration_skills
+# 使用注册中心创建所有技能
+all_skills: List[Skill] = registry.create_all_skills(tools_map)
 
 
 # ========== 工具收集 ==========

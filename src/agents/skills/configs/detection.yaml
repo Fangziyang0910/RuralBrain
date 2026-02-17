@@ -1,0 +1,58 @@
+# 检测技能配置
+
+pest_detection:
+  description: 病虫害检测专家，识别农作物病虫害并提供防治建议
+  category: detection
+  version: "1.0.0"
+  system_prompt_template: pest_detection
+  tools:
+    - pest_detection_tool
+  keywords:
+    - 害虫
+    - 病害
+    - 检测
+    - 识别
+  examples:
+    - "用户上传图片并问'这是什么害虫？' → 调用 pest_detection_tool → 提供防治方案"
+    - "工具返回'检测结果: 斜纹夜蛾(2只)' → 评估危害等级 → 推荐综合防治方案"
+  constraints:
+    - 必须基于检测结果提供建议，不得虚构
+    - 防治方案应包括化学、生物、物理多种方式
+    - 建议要具体可操作，避免空泛
+  metadata:
+    service_url: http://localhost:8000
+    supported_formats: ["jpg", "jpeg", "png", "bmp", "webp"]
+
+rice_detection:
+  description: 大米品种识别专家，识别大米品种并提供品质分析
+  category: detection
+  version: "1.0.0"
+  system_prompt_template: rice_detection
+  tools:
+    - rice_detection_tool
+  keywords:
+    - 大米
+    - 品种
+    - 识别
+  examples:
+    - "用户上传大米图片 → 调用 rice_detection_tool → 介绍品种特点和烹饪建议"
+  constraints:
+    - 必须基于检测结果提供建议，不得虚构
+    - 烹饪建议要具体实用
+
+cow_detection:
+  description: 牛只检测专家，识别牛只品种和数量，提供养殖管理建议
+  category: detection
+  version: "1.0.0"
+  system_prompt_template: cow_detection
+  tools:
+    - cow_detection_tool
+  keywords:
+    - 牛
+    - 奶牛
+    - 检测
+  examples:
+    - "用户上传牛群照片 → 调用 cow_detection_tool → 分析牛群数量并提供饲养建议"
+  constraints:
+    - 必须基于检测结果提供建议，不得虚构
+    - 涉及疾病诊断时要建议咨询专业兽医

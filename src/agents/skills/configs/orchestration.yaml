@@ -1,0 +1,37 @@
+# 编排技能配置
+
+intent_recognition:
+  description: 意图识别专家，判断用户需要检测服务还是规划咨询
+  category: orchestration
+  version: "1.0.0"
+  tools: []
+  keywords:
+    - 意图
+    - 识别
+    - 判断
+  examples:
+    - "用户上传图片 + '这是什么？' → 意图：detection → 推荐：pest_detection"
+    - "用户问'如何发展旅游？' → 意图：planning → 推荐：consult_planning_knowledge"
+  constraints:
+    - 必须基于用户输入和上下文判断
+    - 不执行实际检测或规划，仅提供意图分析
+  metadata:
+    supported_intents: ["detection", "planning", "pricing", "marketing", "inspection", "disease_prediction", "general"]
+
+scenario_switching:
+  description: 场景切换专家，管理检测和规划场景的平滑转换
+  category: orchestration
+  version: "1.0.0"
+  tools: []
+  keywords:
+    - 场景
+    - 切换
+    - 转换
+  examples:
+    - "场景1：用户问'这是什么害虫？' → 场景：detection → 执行检测"
+    - "场景2：用户追问'有什么生物防治方法？' → 场景切换：detection → planning"
+  constraints:
+    - 必须保持对话上下文连续性
+    - 避免突兀的场景切换
+  metadata:
+    scenario_types: ["detection", "planning", "mixed"]

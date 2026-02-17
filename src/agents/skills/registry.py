@@ -1,0 +1,190 @@
+"""
+技能注册中心
+
+集中管理所有技能配置，提供统一的技能创建和加载接口。
+"""
+from pathlib import Path
+from typing import Dict, List, Optional
+from dataclasses import dataclass, field
+import yaml
+
+from .base import Skill
+
+
+@dataclass
+class SkillConfigData:
+    """技能配置数据（从 YAML 加载）"""
+    name: str
+    description: str
+    category: str
+    version: str = "1.0.0"
+    system_prompt_template: Optional[str] = None  # 引用模板文件
+    tools: List[str] = field(default_factory=list)
+    keywords: List[str] = field(default_factory=list)
+    examples: List[str] = field(default_factory=list)
+    constraints: List[str] = field(default_factory=list)
+    metadata: Dict = field(default_factory=dict)
+
+
+class SkillRegistry:
+    """技能注册中心 - 统一管理所有技能"""
+
+    def __init__(self, config_dir: Optional[Path] = None):
+        """
+        初始化技能注册中心
+
+        Args:
+            config_dir: YAML 配置文件目录，默认为 src/agents/skills/configs/
+        """
+        if config_dir is None:
+            config_dir = Path(__file__).parent / "configs"
+        self.config_dir = config_dir
+        self.template_dir = config_dir.parent / "templates"
+        self._configs: Dict[str, SkillConfigData] = {}
+        self._load_all_configs()
+
+    def _load_all_configs(self):
+        """从 YAML 文件加载所有技能配置"""
+        if not self.config_dir.exists():
+            # 如果配置目录不存在，不加载任何配置
+            return
+
+        for yaml_file in self.config_dir.glob("*.yaml"):
+            try:
+                with open(yaml_file, 'r', encoding='utf-8') as f:
+                    data = yaml.safe_load(f)
+                    if data:
+                        for skill_name, skill_data in data.items():
+                            skill_data["name"] = skill_name
+                            self._configs[skill_name] = SkillConfigData(**skill_data)
+            except Exception as e:
+                print(f"警告：加载配置文件 {yaml_file} 失败: {e}")
+
+    def get_config(self, skill_name: str) -> Optional[SkillConfigData]:
+        """获取技能配置"""
+        return self._configs.get(skill_name)
+
+    def get_all_configs(self) -> Dict[str, SkillConfigData]:
+        """获取所有技能配置"""
+        return self._configs.copy()
+
+    def get_skill_descriptions(self) -> str:
+        """
+        获取所有技能的简短描述
+
+        用于 Progressive Disclosure，注入到系统提示词中。
+        """
+        return "\n".join(
+            f"- **{config.name}**: {config.description}"
+            for config in self._configs.values()
+        )
+
+    def load_system_prompt(self, skill_name: str) -> str:
+        """
+        加载技能的完整 system_prompt
+
+        从模板文件加载，或使用配置中的内联内容。
+        """
+        config = self.get_config(skill_name)
+        if not config:
+            raise ValueError(f"技能 '{skill_name}' 未找到")
+
+        # 如果配置中指定了模板文件，从模板加载
+        if config.system_prompt_template:
+            template_path = self.template_dir / f"{config.system_prompt_template}.md"
+            if template_path.exists():
+                return template_path.read_text(encoding='utf-8')
+
+        # 否则返回空（描述已在 Progressive Disclosure 中提供）
+        return f"# {config.name}\n\n{config.description}"
+
+    def create_skill(
+        self,
+        skill_name: str,
+        tools_map: Dict[str, object],
+    ) -> Skill:
+        """
+        根据配置创建技能对象
+
+        Args:
+            skill_name: 技能名称
+            tools_map: 工具名称到工具对象的映射
+
+        Returns:
+            Skill 对象
+        """
+        config = self.get_config(skill_name)
+        if not config:
+            raise ValueError(f"技能 '{skill_name}' 未找到")
+
+        # 解析工具
+        tools = [tools_map[name] for name in config.tools if name in tools_map]
+
+        # 加载 system_prompt
+        system_prompt = self.load_system_prompt(skill_name)
+
+        return Skill(
+            name=config.name,
+            description=config.description,
+            category=config.category,
+            version=config.version,
+            system_prompt=system_prompt,
+            tools=tools,
+            examples=config.examples,
+            constraints=config.constraints,
+            metadata=config.metadata,
+        )
+
+    def create_skills_by_category(
+        self,
+        category: str,
+        tools_map: Dict[str, object],
+    ) -> List[Skill]:
+        """
+        按类别批量创建技能
+
+        Args:
+            category: 技能类别（如 "detection", "planning"）
+            tools_map: 工具名称到工具对象的映射
+
+        Returns:
+            技能列表
+        """
+        return [
+            self.create_skill(name, tools_map)
+            for name, config in self._configs.items()
+            if config.category == category
+        ]
+
+    def create_all_skills(self, tools_map: Dict[str, object]) -> List[Skill]:
+        """
+        创建所有技能
+
+        Args:
+            tools_map: 工具名称到工具对象的映射
+
+        Returns:
+            所有技能的列表
+        """
+        return [
+            self.create_skill(name, tools_map)
+            for name in self._configs.keys()
+        ]
+
+
+# 全局单例
+_global_registry: Optional[SkillRegistry] = None
+
+
+def get_registry() -> SkillRegistry:
+    """获取全局技能注册中心单例"""
+    global _global_registry
+    if _global_registry is None:
+        _global_registry = SkillRegistry()
+    return _global_registry
+
+
+def reset_registry():
+    """重置全局注册中心（主要用于测试）"""
+    global _global_registry
+    _global_registry = None

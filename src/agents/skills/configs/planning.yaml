@@ -1,0 +1,26 @@
+# 规划咨询技能配置
+
+consult_planning_knowledge:
+  description: 规划咨询专家，查询乡村发展、政策、产业规划等知识库信息
+  category: planning
+  version: "1.0.0"
+  system_prompt_template: planning
+  tools:
+    - planning_consult
+  keywords:
+    - 规划
+    - 发展
+    - 政策
+    - 策略
+    - 建议
+  examples:
+    - "用户问'如何发展乡村旅游业？' → 调用 planning_consult → 提供旅游产业发展路径"
+    - "用户问'一村一品政策如何申请？' → 调用 planning_consult → 解读政策要点、说明申报条件"
+  constraints:
+    - 必须通过 RAG 工具查询知识库，不能使用预训练知识
+    - 根据问题复杂度选择最合适的工具
+    - 提供的信息必须标注来源
+    - 知识库未涉及的内容必须明确说明
+  metadata:
+    knowledge_base_path: /knowledge_base/chroma_db
+    supported_query_types: ["规划", "政策", "技术", "治理"]

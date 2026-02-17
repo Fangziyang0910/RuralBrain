@@ -14,6 +14,7 @@ from langchain_core.tools import tool
 from langchain.messages import SystemMessage
 
 from ..skills.base import Skill
+from ..skills.registry import get_registry
 
 # 全局技能存储（用于 load_skill 工具查询）
 _AVAILABLE_SKILLS: Dict[str, "Skill"] = {}
@@ -31,12 +32,18 @@ def load_skill(skill_name: str) -> str:
     Returns:
         技能的完整内容
     """
-    if skill_name not in _AVAILABLE_SKILLS:
-        available = ", ".join(_AVAILABLE_SKILLS.keys())
+    # 尝试从注册中心加载
+    registry = get_registry()
+    try:
+        content = registry.load_system_prompt(skill_name)
+        return f"已加载技能: {skill_name}\n\n{content}"
+    except ValueError:
+        # 回退到全局存储
+        if skill_name in _AVAILABLE_SKILLS:
+            skill = _AVAILABLE_SKILLS[skill_name]
+            return f"已加载技能: {skill_name}\n\n{skill.get_full_content()}"
+        available = ", ".join(list(_AVAILABLE_SKILLS.keys()) + list(registry.get_all_configs().keys()))
         return f"技能 '{skill_name}' 未找到。可用技能: {available}"
-
-    skill = _AVAILABLE_SKILLS[skill_name]
-    return f"已加载技能: {skill_name}\n\n{skill.get_full_content()}"
 
 
 class SkillMiddleware(AgentMiddleware):
@@ -62,10 +69,14 @@ class SkillMiddleware(AgentMiddleware):
         else:
             self.skills = list(_AVAILABLE_SKILLS.values())
 
-        # 构建技能描述列表
-        self.skills_prompt = "\n".join(
-            skill.get_prompt_addendum() for skill in self.skills
-        )
+        # 构建技能描述列表（优先使用注册中心的描述）
+        registry = get_registry()
+        if registry.get_all_configs():
+            self.skills_prompt = registry.get_skill_descriptions()
+        else:
+            self.skills_prompt = "\n".join(
+                skill.get_prompt_addendum() for skill in self.skills
+            )
 
     def wrap_model_call(
         self,

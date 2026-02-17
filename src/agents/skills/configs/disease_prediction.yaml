@@ -1,0 +1,23 @@
+# 疾病预测技能配置
+
+disease_prediction:
+  description: 疾病预测专家，分析畜禽疾病症状、预测疾病风险、提供健康评估
+  category: disease_prediction
+  version: "1.0.0"
+  system_prompt_template: disease_prediction
+  tools:
+    - disease_prediction_tool
+  keywords:
+    - 疾病
+    - 症状
+    - 生病
+    - 发热
+    - 咳嗽
+    - 拉稀
+  examples:
+    - "用户问'我的牛发热咳嗽是什么病？' → 调用 disease_prediction_tool → 分析疾病风险"
+  constraints:
+    - 必须调用 disease_prediction_tool 工具获取分析报告
+    - 涉及疾病诊断时要建议咨询专业兽医
+  metadata:
+    supported_animals: ["牛", "羊", "猪", "鸡"]
