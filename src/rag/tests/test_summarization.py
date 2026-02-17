@@ -235,7 +235,7 @@ def test_with_real_documents():
     # 检查知识库是否存在
     if not CHROMA_PERSIST_DIR.exists():
         print("\n⚠️  知识库不存在，跳过真实文档测试")
-        print("   提示：运行 python src/rag/build.py 构建知识库后再测试")
+        print(f"   提示：运行 python src/rag/build.py 构建知识库后再测试")
         return True
 
     try:
@@ -255,7 +255,7 @@ def test_with_real_documents():
         doc_index = cm.doc_index[first_source]
         if not doc_index.executive_summary:
             print("\n⚠️  该文档尚未生成摘要")
-            print("   提示：运行更新后的 build.py 重新构建知识库")
+            print(f"   提示：重新构建知识库后测试")
             return True
 
         # 测试查询
