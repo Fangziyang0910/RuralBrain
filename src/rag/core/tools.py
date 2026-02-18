@@ -143,6 +143,14 @@ def search_knowledge(query: str, top_k: int = 5, context_mode: str = "standard")
     - 匹配的文档片段列表，包含来源、位置、内容
     """
     try:
+        cache = get_vector_cache()
+
+        # 检查缓存
+        context_params = {"top_k": top_k, "context_mode": context_mode}
+        cached = cache.get_cached_query(query, context_params)
+        if cached is not None:
+            return cached
+
         db = get_vectorstore()
         context_chars_map = {"minimal": 0, "standard": 300, "expanded": 500}
         context_chars = context_chars_map.get(context_mode, 300)
@@ -184,7 +192,12 @@ def search_knowledge(query: str, top_k: int = 5, context_mode: str = "standard")
 
             fragments.append("\n".join(fragment))
 
-        return "\n\n".join(fragments)
+        result = "\n\n".join(fragments)
+
+        # 缓存结果
+        cache.cache_query_result(query, result, context_params)
+
+        return result
 
     except Exception as e:
         return format_error("查询知识库", e)
@@ -240,16 +253,14 @@ def search_key_points(query: str, sources: Optional[list[str]] = None) -> str:
 
 # ==================== LangChain Tools 定义 ====================
 
-def create_tool(name: str, func, description_template: str) -> Tool:
-    """创建工具的辅助函数"""
-    return Tool(name=name, func=func, description=description_template)
+@tool
+def document_list_tool() -> str:
+    """
+    列出知识库中所有可用的文档及其基本信息。
 
-
-document_list_tool = Tool(
-    name="list_documents",
-    func=list_available_documents,
-    description="列出知识库中所有可用的文档及其基本信息。在使用其他文档工具前，建议先使用此工具查看有哪些文档可用。",
-)
+    在使用其他文档工具前，建议先使用此工具查看有哪些文档可用。
+    """
+    return list_available_documents()
 
 @tool
 def document_overview_tool(source: str, include_chapters: bool = True) -> str:
@@ -306,23 +317,7 @@ def key_points_search_tool(query: str, sources: Optional[str] = None) -> str:
     if sources:
         sources_list = [s.strip() for s in sources.split(",") if s.strip()]
 
-    # 直接调用原始函数，传递解析后的参数
-    cm = get_context_manager()
-    result = cm.search_key_points(query, sources_list)
-
-    if result['total_matches'] == 0:
-        return f"⚠️  未找到包含 '{query}' 的要点"
-
-    lines = [
-        f"【关键要点搜索结果】",
-        f"查询: {result['query']}",
-        f"匹配数量: {result['total_matches']}\n"
-    ]
-
-    for match in result['matches']:
-        lines.append(f"📄 {match['source']}\n   {match['point']}\n")
-
-    return "\n".join(lines)
+    return search_key_points(query, sources_list)
 
 
 # ==================== 工具列表 ====================
@@ -333,28 +328,3 @@ PLANNING_TOOLS = [
     key_points_search_tool,
     knowledge_search_tool,
 ]
-
-# 向后兼容：别名
-planning_knowledge_tool = knowledge_search_tool
-executive_summary_tool = document_overview_tool
-chapter_summaries_list_tool = document_overview_tool
-context_around_tool = knowledge_search_tool
-
-
-# ==================== 旧版工具（兼容性）====================
-
-def retrieve_planning_knowledge(
-    query: str,
-    top_k: int = DEFAULT_TOP_K,
-    with_context: bool = True,
-    context_chars: int = 300
-) -> str:
-    """检索乡村规划相关知识（兼容旧版）"""
-    if not with_context or context_chars == 0:
-        context_mode = "minimal"
-    elif context_chars >= 500:
-        context_mode = "expanded"
-    else:
-        context_mode = "standard"
-
-    return search_knowledge(query, top_k, context_mode)

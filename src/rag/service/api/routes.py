@@ -116,15 +116,16 @@ async def health_check():
 @router.post("/chat/planning", summary="规划咨询对话（流式）", tags=["规划咨询"])
 async def planning_chat(request: PlanningChatRequest):
     """规划咨询对话接口（流式）"""
+    request_id = str(uuid.uuid4())
     try:
         agent = get_agent()
         thread_id = request.thread_id or str(uuid.uuid4())
         config = {"configurable": {"thread_id": thread_id}}
 
-        logger.info(f"收到规划咨询请求 [thread_id={thread_id}]: {request.message}")
+        logger.info(f"[{request_id}] 收到规划咨询请求 [thread_id={thread_id}]: {request.message}")
 
         return StreamingResponse(
-            _event_generator(agent, request, thread_id, config),
+            _event_generator(agent, request, thread_id, config, request_id),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -134,14 +135,14 @@ async def planning_chat(request: PlanningChatRequest):
         )
 
     except Exception as e:
-        logger.error(f"规划咨询请求失败: {e}")
+        logger.error(f"[{request_id}] 规划咨询请求失败: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"请求处理失败: {str(e)}"
         )
 
 
-async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, config: dict) -> AsyncGenerator[str, None]:
+async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, config: dict, request_id: str) -> AsyncGenerator[str, None]:
     """SSE 事件生成器"""
     tools_used = []
     full_content = ""
@@ -156,7 +157,7 @@ async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, 
 
     try:
         # 发送开始事件
-        yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id}, ensure_ascii=False)}\n\n"
+        yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id, 'request_id': request_id}, ensure_ascii=False)}\n\n"
 
         input_data = {
             "messages": [HumanMessage(content=request.message)],
@@ -189,19 +190,19 @@ async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, 
                 tool_output = event["data"].get("output")
                 output_str = str(tool_output.content) if hasattr(tool_output, "content") else str(tool_output)
 
-                logger.info(f"工具 {tool_name} 输出预览: {output_str[:200]}...")
+                logger.info(f"[{request_id}] 工具 {tool_name} 输出预览: {output_str[:200]}...")
 
                 # 提取知识库来源
                 extracted_sources = extract_knowledge_sources(output_str)
 
                 if tool_name == "search_knowledge":
-                    logger.info(f"[DEBUG] search_knowledge 输出长度: {len(output_str)}")
-                    logger.info(f"[DEBUG] 提取到 {len(extracted_sources)} 个来源")
+                    logger.info(f"[{request_id}] [DEBUG] search_knowledge 输出长度: {len(output_str)}")
+                    logger.info(f"[{request_id}] [DEBUG] 提取到 {len(extracted_sources)} 个来源")
                     if extracted_sources:
-                        logger.info(f"[DEBUG] 来源示例: {extracted_sources[0]}")
+                        logger.info(f"[{request_id}] [DEBUG] 来源示例: {extracted_sources[0]}")
 
                 if extracted_sources:
-                    logger.info(f"提取到 {len(extracted_sources)} 个知识库来源")
+                    logger.info(f"[{request_id}] 提取到 {len(extracted_sources)} 个知识库来源")
                     knowledge_sources.extend(extracted_sources)
 
                 yield f"data: {json.dumps({'type': 'tool', 'tool_name': tool_name, 'status': 'completed'}, ensure_ascii=False)}\n\n"
@@ -226,11 +227,11 @@ async def _event_generator(agent, request: PlanningChatRequest, thread_id: str, 
             "tool_call_count": tool_call_count,
             "total_time": round(total_time, 2),
         }
-        logger.info(f"请求完成 [thread_id={thread_id}, tools={len(tools_used)}, calls={tool_call_count}, time={total_time:.2f}s]")
+        logger.info(f"[{request_id}] 请求完成 [thread_id={thread_id}, tools={len(tools_used)}, calls={tool_call_count}, time={total_time:.2f}s]")
         yield f"data: {json.dumps(end_data, ensure_ascii=False)}\n\n"
 
     except Exception as e:
-        logger.error(f"流式响应生成错误: {e}")
+        logger.error(f"[{request_id}] 流式响应生成错误: {e}")
 
         # 尝试发送已收集的知识库来源
         if knowledge_sources and not sources_sent:
