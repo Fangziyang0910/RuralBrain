@@ -132,6 +132,14 @@ class SkillRegistry:
             for name in self._configs.keys()
         ]
 
+    def list_skill_names(self) -> List[str]:
+        """列出所有可用技能名称
+
+        Returns:
+            所有技能名称的列表
+        """
+        return list(self._configs.keys())
+
 
 # 全局单例
 _global_registry: Optional[SkillRegistry] = None

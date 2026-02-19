@@ -23,7 +23,16 @@ from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
 from ..utils import ModelManager
-from .tools import pest_detection_tool, rice_detection_tool, cow_detection_tool, pricing_tool, marketing_tool, farm_inspection_tool, disease_prediction_tool
+from .tools import (
+    pest_detection_tool,
+    rice_detection_tool,
+    cow_detection_tool,
+    pricing_tool,
+    marketing_tool,
+    farm_inspection_tool,
+    disease_prediction_tool,
+    load_skill,
+)
 from .tools.planning_service_tool import planning_consult
 from .skills.base import Skill
 from .skills.registry import get_registry
@@ -61,7 +70,7 @@ all_skills: List[Skill] = registry.create_all_skills(tools_map)
 
 # ========== 工具收集 ==========
 
-# 收集所有工具（检测3 + 定价1 + 营销1 + 巡检1 + 疾病预测1 + 规划1 = 8个工具）
+# 收集所有工具（检测3 + 定价1 + 营销1 + 巡检1 + 疾病预测1 + 规划1 + 技能加载1 = 9个工具）
 orchestrator_tools = [
     # 检测工具
     pest_detection_tool,
@@ -76,6 +85,8 @@ orchestrator_tools = [
     disease_prediction_tool,
     # 规划咨询工具（通过 HTTP 调用独立 RAG 服务）
     planning_consult,
+    # 技能加载工具
+    load_skill,
 ]
 
 

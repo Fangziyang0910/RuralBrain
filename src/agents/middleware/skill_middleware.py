@@ -1,82 +1,35 @@
 """
-技能中间件
+技能中间件 - 实现 Progressive Disclosure
 
-实现 Progressive Disclosure（渐进式披露）核心机制：
+职责：
 1. 将技能描述注入到系统消息中
-2. 注册 load_skill 工具
-3. Agent 按需加载技能完整内容
+2. 不再负责定义工具（由 tools/load_skill_tool.py 接管）
 """
-
-from typing import Callable, List, Dict, Optional
+from typing import Callable, Optional
 
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
-from langchain_core.tools import tool
 from langchain.messages import SystemMessage
 
-from ..skills.base import Skill
 from ..skills.registry import get_registry
-
-# 全局技能存储（用于 load_skill 工具查询）
-_AVAILABLE_SKILLS: Dict[str, "Skill"] = {}
-
-
-@tool
-def load_skill(skill_name: str) -> str:
-    """加载技能的完整内容
-
-    当需要详细了解如何处理特定类型的请求时使用此工具。
-
-    Args:
-        skill_name: 要加载的技能名称（例如 "pest_detection", "rural_planning"）
-
-    Returns:
-        技能的完整内容
-    """
-    # 尝试从注册中心加载
-    registry = get_registry()
-    try:
-        content = registry.load_content(skill_name)
-        return f"已加载技能: {skill_name}\n\n{content}"
-    except ValueError:
-        # 回退到全局存储
-        if skill_name in _AVAILABLE_SKILLS:
-            skill = _AVAILABLE_SKILLS[skill_name]
-            return f"已加载技能: {skill_name}\n\n{skill.get_full_content()}"
-        available = ", ".join(list(_AVAILABLE_SKILLS.keys()) + list(registry.get_all_configs().keys()))
-        return f"技能 '{skill_name}' 未找到。可用技能: {available}"
 
 
 class SkillMiddleware(AgentMiddleware):
     """技能中间件 - 实现 Progressive Disclosure 机制
 
-    将技能描述列表注入到系统消息中，注册 load_skill 工具供
-    Agent 按需调用，避免一次性加载所有技能内容。
+    将技能描述列表注入到系统消息中，Agent 通过 load_skill 工具
+    按需加载完整内容，避免一次性加载所有技能内容。
     """
 
-    tools = [load_skill]
-
-    def __init__(self, skills: Optional[List["Skill"]] = None):
+    def __init__(self, skills: Optional[list] = None):
         """初始化技能中间件
 
         Args:
-            skills: 要注册的技能列表
+            skills: 保留参数以兼容现有代码，但不再使用
         """
-        global _AVAILABLE_SKILLS
-
-        if skills is not None:
-            self.skills = skills
-            _AVAILABLE_SKILLS.update({s.name: s for s in skills})
-        else:
-            self.skills = list(_AVAILABLE_SKILLS.values())
-
-        # 构建技能描述列表（优先使用注册中心的描述）
-        registry = get_registry()
-        if registry.get_all_configs():
-            self.skills_prompt = registry.get_skill_descriptions()
-        else:
-            self.skills_prompt = "\n".join(
-                skill.get_prompt_addendum() for skill in self.skills
-            )
+        # 忽略 skills 参数，保留用于向后兼容
+        _ = skills
+        self.registry = get_registry()
+        self.skills_prompt = self.registry.get_skill_descriptions()
 
     def wrap_model_call(
         self,
@@ -117,12 +70,4 @@ class SkillMiddleware(AgentMiddleware):
         return await handler(request.override(system_message=new_system_message))
 
 
-def register_skills(skills: List["Skill"]) -> None:
-    """注册技能到全局存储"""
-    global _AVAILABLE_SKILLS
-    _AVAILABLE_SKILLS.update({s.name: s for s in skills})
-
-
-def get_registered_skills() -> Dict[str, "Skill"]:
-    """获取所有已注册的技能"""
-    return _AVAILABLE_SKILLS.copy()
+__all__ = ["SkillMiddleware"]
