@@ -16,14 +16,8 @@ class SkillConfigData:
     """技能配置数据（从 YAML 加载）"""
     name: str
     description: str
-    category: str
-    version: str = "1.0.0"
-    system_prompt_template: Optional[str] = None  # 引用模板文件
+    content: str = ""
     tools: List[str] = field(default_factory=list)
-    keywords: List[str] = field(default_factory=list)
-    examples: List[str] = field(default_factory=list)
-    constraints: List[str] = field(default_factory=list)
-    metadata: Dict = field(default_factory=dict)
 
 
 class SkillRegistry:
@@ -39,7 +33,6 @@ class SkillRegistry:
         if config_dir is None:
             config_dir = Path(__file__).parent / "configs"
         self.config_dir = config_dir
-        self.template_dir = config_dir.parent / "templates"
         self._configs: Dict[str, SkillConfigData] = {}
         self._load_all_configs()
 
@@ -79,24 +72,21 @@ class SkillRegistry:
             for config in self._configs.values()
         )
 
-    def load_system_prompt(self, skill_name: str) -> str:
+    def load_content(self, skill_name: str) -> str:
         """
-        加载技能的完整 system_prompt
+        加载技能的完整内容
 
-        从模板文件加载，或使用配置中的内联内容。
+        Args:
+            skill_name: 技能名称
+
+        Returns:
+            技能的完整内容
         """
         config = self.get_config(skill_name)
         if not config:
             raise ValueError(f"技能 '{skill_name}' 未找到")
 
-        # 如果配置中指定了模板文件，从模板加载
-        if config.system_prompt_template:
-            template_path = self.template_dir / f"{config.system_prompt_template}.md"
-            if template_path.exists():
-                return template_path.read_text(encoding='utf-8')
-
-        # 否则返回空（描述已在 Progressive Disclosure 中提供）
-        return f"# {config.name}\n\n{config.description}"
+        return config.content or f"# {config.name}\n\n{config.description}"
 
     def create_skill(
         self,
@@ -120,41 +110,12 @@ class SkillRegistry:
         # 解析工具
         tools = [tools_map[name] for name in config.tools if name in tools_map]
 
-        # 加载 system_prompt
-        system_prompt = self.load_system_prompt(skill_name)
-
         return Skill(
             name=config.name,
             description=config.description,
-            category=config.category,
-            version=config.version,
-            system_prompt=system_prompt,
+            content=config.content,
             tools=tools,
-            examples=config.examples,
-            constraints=config.constraints,
-            metadata=config.metadata,
         )
-
-    def create_skills_by_category(
-        self,
-        category: str,
-        tools_map: Dict[str, object],
-    ) -> List[Skill]:
-        """
-        按类别批量创建技能
-
-        Args:
-            category: 技能类别（如 "detection", "planning"）
-            tools_map: 工具名称到工具对象的映射
-
-        Returns:
-            技能列表
-        """
-        return [
-            self.create_skill(name, tools_map)
-            for name, config in self._configs.items()
-            if config.category == category
-        ]
 
     def create_all_skills(self, tools_map: Dict[str, object]) -> List[Skill]:
         """

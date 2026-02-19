@@ -2,22 +2,15 @@
 
 pricing_analysis:
   description: 定价分析专家，为农产品提供全面的定价因素分析和建议
-  category: pricing
-  version: "1.0.0"
-  system_prompt_template: pricing
   tools:
     - pricing_tool
-  keywords:
-    - 定价
-    - 价格
-    - 多少钱
-    - 卖
-  examples:
-    - "用户问'我的一等有机大米成本3.5元/斤，应该卖多少钱？' → 调用 pricing_tool → 给出定价建议"
-  constraints:
+  content: |
+    ## 定价分析技能
+
+    ### 约束条件
     - 必须调用 pricing_tool 工具获取分析报告
     - 定价建议必须基于工具报告中的数据
     - 价格要合理，符合市场实际情况
-  metadata:
-    supported_categories: ["粮食", "蔬菜", "水果", "畜牧", "水产"]
-    quality_grades: ["优等", "一等", "中等", "三等"]
+
+    ### 示例
+    - 用户问'我的一等有机大米成本3.5元/斤，应该卖多少钱？' → 调用 pricing_tool → 给出定价建议

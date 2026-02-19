@@ -35,7 +35,7 @@ def load_skill(skill_name: str) -> str:
     # 尝试从注册中心加载
     registry = get_registry()
     try:
-        content = registry.load_system_prompt(skill_name)
+        content = registry.load_content(skill_name)
         return f"已加载技能: {skill_name}\n\n{content}"
     except ValueError:
         # 回退到全局存储

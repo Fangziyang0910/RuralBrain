@@ -2,21 +2,14 @@
 
 farm_inspection:
   description: 农场巡检专家，收集农场数据、分析农田状况、监控养殖状态和设备
-  category: inspection
-  version: "1.0.0"
-  system_prompt_template: inspection
   tools:
     - farm_inspection_tool
-  keywords:
-    - 农场
-    - 农田
-    - 养殖
-    - 设备
-    - 巡检
-  examples:
-    - "用户问'农场巡检需要注意什么？' → 调用 farm_inspection_tool → 提供巡检要点"
-  constraints:
+  content: |
+    ## 农场巡检技能
+
+    ### 约束条件
     - 必须调用 farm_inspection_tool 工具获取分析报告
     - 建议要具体可操作
-  metadata:
-    inspection_types: ["农田", "养殖", "设备", "环境"]
+
+    ### 示例
+    - 用户问'农场巡检需要注意什么？' → 调用 farm_inspection_tool → 提供巡检要点

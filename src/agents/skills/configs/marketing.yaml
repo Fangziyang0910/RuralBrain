@@ -2,21 +2,14 @@
 
 marketing_strategy:
   description: 营销策略专家，为农产品提供营销策略、客户分析和品牌推广建议
-  category: marketing
-  version: "1.0.0"
-  system_prompt_template: marketing
   tools:
     - marketing_tool
-  keywords:
-    - 营销
-    - 推广
-    - 销售
-    - 客户
-    - 销量
-  examples:
-    - "用户问'如何推广我的有机大米？' → 调用 marketing_tool → 提供营销策略建议"
-  constraints:
+  content: |
+    ## 营销策略技能
+
+    ### 约束条件
     - 必须调用 marketing_tool 工具获取分析报告
     - 建议要具体可操作，避免空泛描述
-  metadata:
-    supported_channels: ["线上", "线下", "社群", "批发"]
+
+    ### 示例
+    - 用户问'如何推广我的有机大米？' → 调用 marketing_tool → 提供营销策略建议
