@@ -3,12 +3,16 @@
 
 集中管理所有技能配置，提供统一的技能加载接口。
 """
+import logging
 from pathlib import Path
 from typing import Dict, List, Optional
 import yaml
 from pydantic import ValidationError
 
 from .base import Skill
+
+# 配置日志记录器
+logger = logging.getLogger(__name__)
 
 
 class SkillRegistry:
@@ -48,19 +52,19 @@ class SkillRegistry:
                             self._skills[skill_name] = Skill(**skill_data)
                         except ValidationError as ve:
                             # 提供详细的验证错误信息
-                            print(f"错误：配置文件 {yaml_file} 中的技能 '{skill_name}' 验证失败：")
+                            logger.error(f"配置文件 {yaml_file} 中的技能 '{skill_name}' 验证失败：")
                             for error in ve.errors():
                                 loc = " -> ".join(str(p) for p in error["loc"])
-                                print(f"  - 字段 '{loc}': {error['msg']}")
+                                logger.error(f"  - 字段 '{loc}': {error['msg']}")
                         except Exception as e:
-                            print(f"错误：配置文件 {yaml_file} 中的技能 '{skill_name}' 加载失败: {e}")
+                            logger.warning(f"配置文件 {yaml_file} 中的技能 '{skill_name}' 加载失败: {e}")
 
             except yaml.YAMLError as e:
-                print(f"错误：配置文件 {yaml_file} YAML 解析失败: {e}")
+                logger.error(f"配置文件 {yaml_file} YAML 解析失败: {e}")
             except IOError as e:
-                print(f"错误：无法读取配置文件 {yaml_file}: {e}")
+                logger.error(f"无法读取配置文件 {yaml_file}: {e}")
             except Exception as e:
-                print(f"警告：加载配置文件 {yaml_file} 时发生意外错误: {e}")
+                logger.error(f"加载配置文件 {yaml_file} 时发生意外错误: {e}")
 
     def get_skill(self, skill_name: str) -> Optional[Skill]:
         """获取指定技能"""
