@@ -220,6 +220,7 @@ uv run python src/rag/build.py
 
 - **[Docker Hub 镜像使用指南](docker-hub.md)** - 镜像拉取、版本管理、协作者规范
 - **[开发工作流](development.md)** ⭐ - 日常开发必读，了解热重载和测试流程
+- **[Skills 开发指南](skills-development.md)** - 添加新技能的完整流程
 - [统一命令参考](../commands.md) - 完整命令列表
 - [故障排查](troubleshooting.md) - 常见问题解决
 

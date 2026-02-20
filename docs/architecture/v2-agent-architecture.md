@@ -393,6 +393,7 @@ SKILL_RELOAD_INTERVAL = 300        # 重新加载间隔（秒）
 - [系统架构设计](system-design.md) - 整体系统架构设计理念
 - [微服务架构设计](microservices.md) - 微服务拆分和通信设计
 - [Agent V2 迁移决策](../decisions/agent-v2-migration.md) - V2 迁移背景和效果
+- **[Skills 开发指南](../guides/skills-development.md)** - 添加新技能的操作指南
 
 ---
 
