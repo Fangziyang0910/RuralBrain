@@ -78,10 +78,8 @@ def create_pest_detection_skill() -> Skill:
     return Skill(
         name="pest_detection",
         description="病虫害检测专家",
-        system_prompt="""详细的病虫害检测指导...""",
-        tools=[pest_detection_tool],
-        examples=[...],
-        constraints=[...],
+        content="""详细的病虫害检测指导...""",
+        tool_names=["pest_detection_tool"],
     )
 ```
 
@@ -92,7 +90,7 @@ def load_skill(skill_name: str) -> str:
     """按需加载技能的详细指导"""
     skill = skills.get(skill_name)
     if skill:
-        return f"## {skill.name}\n\n{skill.system_prompt}"
+        return f"## {skill.name}\n\n{skill.content}"
     return f"技能 {skill_name} 不存在"
 ```
 
