@@ -40,6 +40,11 @@ RETRIEVE_SCORE_THRESHOLD = float(os.getenv("RETRIEVE_SCORE_THRESHOLD", "0.7"))
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-small-zh-v1.5")
 EMBEDDING_DEVICE: Literal["cpu", "cuda", "mps"] = os.getenv("EMBEDDING_DEVICE", "cpu")
 
+# 技能中间件配置
+SkillReloadStrategy = Literal["always", "timed", "never"]
+SKILL_RELOAD_STRATEGY: SkillReloadStrategy = os.getenv("SKILL_RELOAD_STRATEGY", "always")
+SKILL_RELOAD_INTERVAL = int(os.getenv("SKILL_RELOAD_INTERVAL", "300"))  # 秒
+
 
 def get_model_config(provider: ModelProvider) -> dict:
     """获取指定供应商的模型配置"""

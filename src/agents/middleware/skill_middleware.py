@@ -4,11 +4,14 @@
 职责：
 1. 将技能描述注入到系统提示词中
 2. 支持动态工具注册（未来扩展）
-3. 支持生产环境的技能刷新
+3. 支持生产环境的技能刷新（智能重新加载策略）
 """
+import time
 from typing import Callable, List, TYPE_CHECKING
 
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
+
+from src.config import SKILL_RELOAD_INTERVAL, SKILL_RELOAD_STRATEGY
 
 if TYPE_CHECKING:
     from ..skills.registry import SkillRegistry
@@ -24,7 +27,12 @@ class SkillMiddleware(AgentMiddleware):
     支持：
     - Progressive Disclosure（渐进式披露）
     - 动态工具注册（未来扩展）
-    - 生产环境的技能刷新
+    - 智能技能重新加载（可配置策略）
+
+    重新加载策略（通过 SKILL_RELOAD_STRATEGY 配置）：
+    - always: 每次请求都重新加载（适合开发环境）
+    - timed: 按时间间隔重新加载（适合生产环境）
+    - never: 从不自动重新加载（适合高性能环境）
     """
 
     def __init__(self, registry: "SkillRegistry"):
@@ -35,14 +43,27 @@ class SkillMiddleware(AgentMiddleware):
             registry: 技能注册中心
         """
         self.registry = registry
+        self.reload_strategy = SKILL_RELOAD_STRATEGY
+        self.reload_interval = SKILL_RELOAD_INTERVAL
+        self._last_reload_time = 0
 
     def before_agent(self, state, runtime):
         """
-        在 Agent 执行前刷新技能列表（生产环境考虑）
+        在 Agent 执行前智能刷新技能列表
 
-        这允许技能定期刷新，反映最新的变更。
+        根据配置的策略决定是否重新加载：
+        - always: 每次都重新加载
+        - timed: 只有超过时间间隔时才重新加载
+        - never: 从不自动重新加载
         """
-        self.registry.reload()
+        if self.reload_strategy == "always":
+            self.registry.reload()
+        elif self.reload_strategy == "timed":
+            current_time = time.time()
+            if current_time - self._last_reload_time >= self.reload_interval:
+                self.registry.reload()
+                self._last_reload_time = current_time
+        # "never" 模式不执行任何操作
         return None
 
     def wrap_model_call(
