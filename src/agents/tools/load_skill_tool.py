@@ -12,21 +12,11 @@ def load_skill(skill_name: str) -> str:
 
     当需要详细了解如何处理特定类型的请求时，使用此工具获取专业技能的详细工作流程、输出格式和专业要求。
 
-    可用技能：
-    - pest_detection: 病虫害检测专家，识别农作物病虫害并提供防治建议
-    - rice_detection: 大米品种识别专家，识别大米品种并提供品质分析
-    - cow_detection: 牛只检测专家，识别牛只品种和数量，提供养殖管理建议
-    - consult_planning_knowledge: 规划咨询专家，查询乡村发展、政策、产业规划等知识库信息
-    - pricing_analysis: 定价分析专家，为农产品提供全面的定价因素分析和建议
-    - marketing_strategy: 营销策略专家，为农产品提供营销策略、客户分析和品牌推广建议
-    - farm_inspection: 农场巡检专家，收集农场数据、分析农田状况、监控养殖状态和设备
-    - disease_prediction: 疾病预测专家，分析畜禽疾病症状、预测疾病风险、提供健康评估
-
     Args:
-        skill_name: 要加载的技能名称（必须是上述列表中的一个）
+        skill_name: 要加载的技能名称
 
     Returns:
-        技能的完整内容（包含详细的工作流程、输出格式和专业要求）
+        技能的完整内容。如果技能名称不存在，将返回当前可用的技能名称列表。
     """
     from ..skills.registry import get_registry
     registry = get_registry()
