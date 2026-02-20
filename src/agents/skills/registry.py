@@ -6,6 +6,7 @@
 from pathlib import Path
 from typing import Dict, List, Optional
 import yaml
+from pydantic import ValidationError
 
 from .base import Skill
 
@@ -36,14 +37,30 @@ class SkillRegistry:
             try:
                 with open(yaml_file, 'r', encoding='utf-8') as f:
                     data = yaml.safe_load(f)
-                    if data:
-                        for skill_name, skill_data in data.items():
-                            # 确保 name 字段存在
-                            skill_data["name"] = skill_name
-                            # 直接创建 Skill 对象
+                    if not data:
+                        continue
+
+                    for skill_name, skill_data in data.items():
+                        # 确保 name 字段存在
+                        skill_data["name"] = skill_name
+                        # 创建 Skill 对象（Pydantic 会自动验证）
+                        try:
                             self._skills[skill_name] = Skill(**skill_data)
+                        except ValidationError as ve:
+                            # 提供详细的验证错误信息
+                            print(f"错误：配置文件 {yaml_file} 中的技能 '{skill_name}' 验证失败：")
+                            for error in ve.errors():
+                                loc = " -> ".join(str(p) for p in error["loc"])
+                                print(f"  - 字段 '{loc}': {error['msg']}")
+                        except Exception as e:
+                            print(f"错误：配置文件 {yaml_file} 中的技能 '{skill_name}' 加载失败: {e}")
+
+            except yaml.YAMLError as e:
+                print(f"错误：配置文件 {yaml_file} YAML 解析失败: {e}")
+            except IOError as e:
+                print(f"错误：无法读取配置文件 {yaml_file}: {e}")
             except Exception as e:
-                print(f"警告：加载配置文件 {yaml_file} 失败: {e}")
+                print(f"警告：加载配置文件 {yaml_file} 时发生意外错误: {e}")
 
     def get_skill(self, skill_name: str) -> Optional[Skill]:
         """获取指定技能"""
