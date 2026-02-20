@@ -1,8 +1,28 @@
 """
 Planning Service 请求/响应数据模型
 """
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel, Field
+
+
+# ==================== 知识库更新模型 ====================
+class KnowledgeUpdateRequest(BaseModel):
+    """知识库更新请求"""
+    source: Optional[str] = Field(None, description="新增文档路径（单文件）")
+    source_dir: Optional[str] = Field(None, description="新增文档目录（批量）")
+    force_rebuild: bool = Field(False, description="是否全量重建（默认增量更新）")
+    category: Optional[str] = Field(None, description="文档类别: policies/cases")
+
+
+class KnowledgeUpdateResponse(BaseModel):
+    """知识库更新响应"""
+    success: bool = Field(..., description="更新是否成功")
+    mode: str = Field(..., description="更新模式: incremental/full")
+    documents_added: int = Field(..., description="新增文档数")
+    chunks_added: int = Field(..., description="新增切片数")
+    documents_removed: int = Field(default=0, description="删除文档数（全量重建时）")
+    message: str = Field(..., description="操作消息")
+    duration: float = Field(..., description="耗时（秒）")
 
 
 # ==================== 请求模型 ====================
@@ -10,11 +30,6 @@ class PlanningChatRequest(BaseModel):
     """规划咨询聊天请求"""
     message: str = Field(..., description="用户问题", min_length=1)
     thread_id: Optional[str] = Field(None, description="对话线程ID")
-    mode: str = Field(
-        "auto",
-        description="工作模式: auto(自动选择)/fast(快速浏览)/deep(深度分析)",
-        pattern="^(auto|fast|deep)$"
-    )
 
 
 class DocumentListRequest(BaseModel):
@@ -32,8 +47,7 @@ class ToolCall(BaseModel):
 class PlanningChatResponse(BaseModel):
     """规划咨询聊天响应（非流式）"""
     response: str = Field(..., description="AI 回复内容")
-    tools_used: List[str] = Field(default_factory=list, description="使用的工具列表")
-    actual_mode: str = Field(..., description="实际使用的工作模式")
+    tools_used: list[str] = Field(default_factory=list, description="使用的工具列表")
     thread_id: str = Field(..., description="对话线程ID")
     sources_count: int = Field(default=0, description="引用的文档数量")
 
@@ -48,7 +62,7 @@ class DocumentInfo(BaseModel):
 
 class DocumentListResponse(BaseModel):
     """文档列表响应"""
-    documents: List[DocumentInfo] = Field(..., description="可用文档列表")
+    documents: list[DocumentInfo] = Field(..., description="可用文档列表")
     total_count: int = Field(..., description="文档总数")
     total_chunks: int = Field(..., description="总切片数")
 
@@ -68,7 +82,7 @@ class ChapterInfo(BaseModel):
 class ChapterListResponse(BaseModel):
     """章节列表响应"""
     source: str = Field(..., description="文档文件名")
-    chapters: List[ChapterInfo] = Field(..., description="章节列表")
+    chapters: list[ChapterInfo] = Field(..., description="章节列表")
 
 
 # ==================== 健康检查模型 ====================

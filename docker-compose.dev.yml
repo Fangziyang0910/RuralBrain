@@ -39,7 +39,7 @@ services:
       - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
     volumes:
-      - ./knowledge_base:/app/knowledge_base:ro
+      - ruralbrain-knowledge-base:/app/knowledge_base:ro
       - ./service:/app/service
       - ./src/agents:/app/src/agents
       - ./src/utils:/app/src/utils
@@ -95,6 +95,11 @@ services:
     restart: unless-stopped
     networks:
       - ruralbrain-network
+
+volumes:
+  ruralbrain-knowledge-base:
+    driver: local
+    name: ruralbrain-knowledge-base
 
 networks:
   ruralbrain-network:

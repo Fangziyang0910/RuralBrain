@@ -35,7 +35,7 @@ services:
       - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
     volumes:
-      - ./knowledge_base:/app/knowledge_base:ro
+      - ruralbrain-knowledge-base:/app/knowledge_base:ro
     # 使用 tmpfs 存储临时文件（内存存储，容器重启自动清空）
     tmpfs:
       - /tmp/ruralbrain:size=500M,mode=0777
@@ -84,10 +84,16 @@ services:
       - SERVICE_HOST=0.0.0.0
       - MODEL_PROVIDER=${MODEL_PROVIDER:-deepseek}
     volumes:
-      - ./knowledge_base:/app/knowledge_base:ro
+      - ruralbrain-knowledge-base:/app/knowledge_base:ro
     restart: unless-stopped
     networks:
       - ruralbrain-network
+
+volumes:
+  # 知识库数据卷（与代码仓库解耦）
+  ruralbrain-knowledge-base:
+    driver: local
+    name: ruralbrain-knowledge-base
 
 networks:
   ruralbrain-network:

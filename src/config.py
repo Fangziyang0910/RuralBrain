@@ -3,7 +3,7 @@ import os
 from typing import Literal
 
 # 模型配置
-ModelProvider = Literal["deepseek", "glm"]
+ModelProvider = Literal["deepseek", "glm", "qwen"]
 
 DEFAULT_PROVIDER: ModelProvider = os.getenv("MODEL_PROVIDER", "deepseek")
 DEFAULT_TEMPERATURE = float(os.getenv("MODEL_TEMPERATURE", "0.7"))
@@ -12,6 +12,11 @@ MODEL_MAX_TOKENS = int(os.getenv("MODEL_MAX_TOKENS", "2000"))
 MODEL_CONFIGS = {
     "deepseek": {"default_model": "deepseek-chat", "api_key_env": "DEEPSEEK_API_KEY"},
     "glm": {"default_model": "glm-4", "api_key_env": "ZHIPUAI_API_KEY"},
+    "qwen": {
+        "default_model": "qwen-plus",
+        "api_key_env": "QWEN_API_KEY",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    },
 }
 
 

@@ -21,7 +21,10 @@ ENV/
 .vscode/
 .cursor/
 .claude/
-.idea/ 
+.idea/
+
+# Local development docs
+docs/local/ 
 
 # OS generated files
 .DS_Store

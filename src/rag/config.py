@@ -31,11 +31,30 @@ QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
 QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "rural_planning")
 
 # ==================== Embedding 模型配置 ====================
+# Embedding Provider: dashscope（千问，默认）, local（本地模型）, openai
+# 优先使用千问 API，密钥缺失时自动降级到本地模型
+EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "dashscope")
+
+# 千问 API 配置（默认，使用 OpenAI 兼容格式）
+QWEN_API_KEY = os.getenv("QWEN_API_KEY", "")
+QWEN_EMBEDDING_MODEL = os.getenv(
+    "QWEN_EMBEDDING_MODEL",
+    "text-embedding-v4"  # 千问 Embedding 模型
+)
+
+# 本地模型配置（降级方案）
 EMBEDDING_MODEL_NAME = os.getenv(
     "EMBEDDING_MODEL_NAME",
     "BAAI/bge-small-zh-v1.5"  # 中文 Embedding 模型
 )
 EMBEDDING_DEVICE = os.getenv("EMBEDDING_DEVICE", "cpu")  # 可选: cuda, mps
+
+# OpenAI 配置（可选）
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_EMBEDDING_MODEL = os.getenv(
+    "OPENAI_EMBEDDING_MODEL",
+    "text-embedding-3-small"
+)
 
 # ==================== 文本分割配置 ====================
 # 针对 Planning Agent 优化：更大的 chunk_size 保留更多上下文
@@ -88,3 +107,80 @@ def validate_config() -> None:
 
 # 初始化时验证
 validate_config()
+
+
+# ==================== Embedding 工厂函数 ====================
+def get_embeddings():
+    """
+    获取 Embedding 实例（支持多种 Provider）
+
+    优先级：
+    1. 千问 API (dashscope) - 默认方案（密钥缺失时自动降级到本地模型）
+    2. OpenAI API - 备选方案
+    3. 本地模型 - 降级方案
+
+    Returns:
+        LangChain Embeddings 实例
+    """
+    provider = EMBEDDING_PROVIDER.lower()
+
+    # 千问 API（默认，使用 OpenAI 兼容格式）
+    if provider == "dashscope":
+        if QWEN_API_KEY:
+            try:
+                from langchain_openai import OpenAIEmbeddings
+                import logging
+                logging.info(f"使用千问 Embedding: {QWEN_EMBEDDING_MODEL}")
+                return OpenAIEmbeddings(
+                    model=QWEN_EMBEDDING_MODEL,
+                    openai_api_key=QWEN_API_KEY,
+                    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+                )
+            except ImportError:
+                pass
+        # 千问不可用，降级到本地模型
+        import logging
+        logging.warning("千问 API 密钥未配置或依赖缺失，降级到本地 Embedding 模型")
+        return _get_local_embeddings()
+
+    # OpenAI API
+    elif provider == "openai":
+        if OPENAI_API_KEY:
+            try:
+                from langchain_openai import OpenAIEmbeddings
+                import logging
+                logging.info(f"使用 OpenAI Embedding: {OPENAI_EMBEDDING_MODEL}")
+                return OpenAIEmbeddings(
+                    model=OPENAI_EMBEDDING_MODEL,
+                    openai_api_key=OPENAI_API_KEY
+                )
+            except ImportError:
+                pass
+        # OpenAI 不可用，降级到本地模型
+        import logging
+        logging.warning("OpenAI API 密钥未配置或依赖缺失，降级到本地 Embedding 模型")
+        return _get_local_embeddings()
+
+    # 本地（默认降级方案）
+    else:
+        return _get_local_embeddings()
+
+
+def _get_local_embeddings():
+    """获取本地 Embedding 模型（降级方案）"""
+    try:
+        from langchain_community.embeddings import HuggingFaceEmbeddings
+        import logging
+        logging.info(f"使用本地 Embedding 模型: {EMBEDDING_MODEL_NAME}")
+        return HuggingFaceEmbeddings(
+            model_name=EMBEDDING_MODEL_NAME,
+            model_kwargs={'device': EMBEDDING_DEVICE},
+            encode_kwargs={
+                'normalize_embeddings': True,  # 归一化向量
+            }
+        )
+    except ImportError:
+        raise ImportError(
+            "本地 Embedding 需要 langchain-community 和 sentence-transformers 依赖\n"
+            "请运行: uv add langchain-community sentence-transformers"
+        )

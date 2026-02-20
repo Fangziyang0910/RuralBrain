@@ -21,15 +21,10 @@ from src.rag.core.summarization import (
 )
 
 from src.rag.core.tools import (
-    planning_knowledge_tool,
-    full_document_tool,
-    chapter_context_tool,
     document_list_tool,
-    context_around_tool,
-    executive_summary_tool,
-    chapter_summaries_list_tool,
-    chapter_summary_tool,
+    document_overview_tool,
     key_points_search_tool,
+    knowledge_search_tool,
 )
 
 __all__ = [
@@ -42,15 +37,9 @@ __all__ = [
     "DocumentSummary",
     "ChapterSummary",
     "summarize_document",
-    # Tools (阶段1)
-    "planning_knowledge_tool",
-    "full_document_tool",
-    "chapter_context_tool",
+    # Tools
     "document_list_tool",
-    "context_around_tool",
-    # Tools (阶段2)
-    "executive_summary_tool",
-    "chapter_summaries_list_tool",
-    "chapter_summary_tool",
+    "document_overview_tool",
     "key_points_search_tool",
+    "knowledge_search_tool",
 ]
