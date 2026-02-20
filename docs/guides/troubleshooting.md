@@ -99,16 +99,21 @@
 
 ---
 
-### Q: 如何切换 Agent 版本？
+### Q: 如何重新加载技能配置？
 
 **解决方法**：
 
-编辑 `.env` 文件：
-```bash
-AGENT_VERSION=v1  # 或 v2
-```
+技能重新加载策略由 `SKILL_RELOAD_STRATEGY` 配置控制：
 
-重启服务生效。
+- **always**: 每次请求都重新加载（开发环境）
+- **timed**: 按时间间隔重新加载（生产环境）
+- **never**: 从不自动重新加载（高性能环境）
+
+编辑 `.env` 文件或 `src/config.py`：
+```bash
+SKILL_RELOAD_STRATEGY=always  # 或 timed, never
+SKILL_RELOAD_INTERVAL=300     # 重新加载间隔（秒）
+```
 
 ---
 
@@ -154,4 +159,4 @@ bash scripts/dev/health_check.sh --service backend
 
 ---
 
-**最后更新**: 2026-02-11
+**最后更新**: 2026-02-20

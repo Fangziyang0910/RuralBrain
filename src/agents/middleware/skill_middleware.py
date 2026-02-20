@@ -1,86 +1,83 @@
 """
-技能中间件
+技能中间件 - 实现 Progressive Disclosure
 
-实现 Progressive Disclosure（渐进式披露）核心机制：
-1. 将技能描述注入到系统消息中
-2. 注册 load_skill 工具
-3. Agent 按需加载技能完整内容
+职责：
+1. 将技能描述注入到系统提示词中
+2. 支持动态工具注册（未来扩展）
+3. 支持生产环境的技能刷新（智能重新加载策略）
 """
-
-from typing import Callable, List, Dict, Optional
+import time
+from typing import Callable, List, TYPE_CHECKING
 
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
-from langchain_core.tools import tool
 from langchain.messages import SystemMessage
 
-from ..skills.base import Skill
+from src.config import SKILL_RELOAD_INTERVAL, SKILL_RELOAD_STRATEGY
 
-# 全局技能存储（用于 load_skill 工具查询）
-_AVAILABLE_SKILLS: Dict[str, "Skill"] = {}
-
-
-@tool
-def load_skill(skill_name: str) -> str:
-    """加载技能的完整内容
-
-    当需要详细了解如何处理特定类型的请求时使用此工具。
-
-    Args:
-        skill_name: 要加载的技能名称（例如 "pest_detection", "rural_planning"）
-
-    Returns:
-        技能的完整内容
-    """
-    if skill_name not in _AVAILABLE_SKILLS:
-        available = ", ".join(_AVAILABLE_SKILLS.keys())
-        return f"技能 '{skill_name}' 未找到。可用技能: {available}"
-
-    skill = _AVAILABLE_SKILLS[skill_name]
-    return f"已加载技能: {skill_name}\n\n{skill.get_full_content()}"
+if TYPE_CHECKING:
+    from ..skills.registry import SkillRegistry
 
 
 class SkillMiddleware(AgentMiddleware):
-    """技能中间件 - 实现 Progressive Disclosure 机制
+    """
+    技能中间件 - 实现 Progressive Disclosure 机制
 
-    将技能描述列表注入到系统消息中，注册 load_skill 工具供
-    Agent 按需调用，避免一次性加载所有技能内容。
+    将技能描述列表注入到系统提示词中，Agent 通过 load_skill 工具
+    按需加载完整内容，避免一次性加载所有技能内容。
+
+    支持：
+    - Progressive Disclosure（渐进式披露）
+    - 动态工具注册（未来扩展）
+    - 智能技能重新加载（可配置策略）
+
+    重新加载策略（通过 SKILL_RELOAD_STRATEGY 配置）：
+    - always: 每次请求都重新加载（适合开发环境）
+    - timed: 按时间间隔重新加载（适合生产环境）
+    - never: 从不自动重新加载（适合高性能环境）
     """
 
-    tools = [load_skill]
-
-    def __init__(self, skills: Optional[List["Skill"]] = None):
-        """初始化技能中间件
+    def __init__(self, registry: "SkillRegistry"):
+        """
+        初始化技能中间件
 
         Args:
-            skills: 要注册的技能列表
+            registry: 技能注册中心
         """
-        global _AVAILABLE_SKILLS
+        self.registry = registry
+        self.reload_strategy = SKILL_RELOAD_STRATEGY
+        self.reload_interval = SKILL_RELOAD_INTERVAL
+        self._last_reload_time = 0
 
-        if skills is not None:
-            self.skills = skills
-            _AVAILABLE_SKILLS.update({s.name: s for s in skills})
-        else:
-            self.skills = list(_AVAILABLE_SKILLS.values())
+    def before_agent(self, state, runtime):
+        """
+        在 Agent 执行前智能刷新技能列表
 
-        # 构建技能描述列表
-        self.skills_prompt = "\n".join(
-            skill.get_prompt_addendum() for skill in self.skills
-        )
+        根据配置的策略决定是否重新加载：
+        - always: 每次都重新加载
+        - timed: 只有超过时间间隔时才重新加载
+        - never: 从不自动重新加载
+        """
+        if self.reload_strategy == "always":
+            self.registry.reload()
+        elif self.reload_strategy == "timed":
+            current_time = time.time()
+            if current_time - self._last_reload_time >= self.reload_interval:
+                self.registry.reload()
+                self._last_reload_time = current_time
+        # "never" 模式不执行任何操作
+        return None
 
     def wrap_model_call(
         self,
         request: ModelRequest,
         handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelResponse:
-        """将技能描述注入到系统消息中（同步版本）"""
-        skills_addendum = (
-            f"\n\n## 可用技能\n\n{self.skills_prompt}\n\n"
-            "使用 load_skill 工具获取技能的详细信息。"
-        )
+        """将技能描述注入到系统提示词中（同步版本）"""
+        skills_prompt = self._build_skills_prompt()
 
-        # 使用 content_blocks API（LangChain 1.0+）
+        # 使用 content_blocks API 添加技能描述
         new_content = list(request.system_message.content_blocks) + [
-            {"type": "text", "text": skills_addendum}
+            {"type": "text", "text": skills_prompt}
         ]
         new_system_message = SystemMessage(content=new_content)
 
@@ -91,27 +88,40 @@ class SkillMiddleware(AgentMiddleware):
         request: ModelRequest,
         handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelResponse:
-        """将技能描述注入到系统消息中（异步版本）"""
-        skills_addendum = (
-            f"\n\n## 可用技能\n\n{self.skills_prompt}\n\n"
-            "使用 load_skill 工具获取技能的详细信息。"
-        )
+        """将技能描述注入到系统提示词中（异步版本）"""
+        skills_prompt = self._build_skills_prompt()
 
-        # 使用 content_blocks API（LangChain 1.0+）
+        # 使用 content_blocks API 添加技能描述
         new_content = list(request.system_message.content_blocks) + [
-            {"type": "text", "text": skills_addendum}
+            {"type": "text", "text": skills_prompt}
         ]
         new_system_message = SystemMessage(content=new_content)
 
         return await handler(request.override(system_message=new_system_message))
 
+    def wrap_tool_call(self, request, handler):
+        """
+        处理动态工具注册（未来扩展）
 
-def register_skills(skills: List["Skill"]) -> None:
-    """注册技能到全局存储"""
-    global _AVAILABLE_SKILLS
-    _AVAILABLE_SKILLS.update({s.name: s for s in skills})
+        当加载技能时，动态注册该技能关联的工具。
+        """
+        # TODO: 实现动态工具注册
+        # - 检测 load_skill 工具调用
+        # - 根据技能的 tool_names 动态注册工具
+        # - 更新 request.tools
+        return handler(request)
+
+    async def awrap_tool_call(self, request, handler):
+        """
+        处理动态工具注册（未来扩展，异步版本）
+        """
+        # TODO: 实现动态工具注册
+        return await handler(request)
+
+    def _build_skills_prompt(self) -> str:
+        """构建技能描述"""
+        descriptions = self.registry.get_skill_descriptions()
+        return f"\n\n## 可用技能\n\n{descriptions}\n\n使用 load_skill 工具获取技能详细信息。"
 
 
-def get_registered_skills() -> Dict[str, "Skill"]:
-    """获取所有已注册的技能"""
-    return _AVAILABLE_SKILLS.copy()
+__all__ = ["SkillMiddleware"]

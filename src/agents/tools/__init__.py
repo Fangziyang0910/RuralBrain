@@ -10,6 +10,7 @@ from .pricing_tool import pricing_tool
 from .marketing_tool import marketing_tool
 from .disease_prediction_tool import disease_prediction_tool
 from .farm_inspection_tool import farm_inspection_tool
+from .load_skill_tool import load_skill
 
 __all__ = [
     "pest_detection_tool",
@@ -19,4 +20,5 @@ __all__ = [
     "marketing_tool",
     "disease_prediction_tool",
     "farm_inspection_tool",
+    "load_skill",
 ]
