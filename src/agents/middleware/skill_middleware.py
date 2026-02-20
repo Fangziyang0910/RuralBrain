@@ -10,6 +10,7 @@ import time
 from typing import Callable, List, TYPE_CHECKING
 
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
+from langchain.messages import SystemMessage
 
 from src.config import SKILL_RELOAD_INTERVAL, SKILL_RELOAD_STRATEGY
 
@@ -74,10 +75,13 @@ class SkillMiddleware(AgentMiddleware):
         """将技能描述注入到系统提示词中（同步版本）"""
         skills_prompt = self._build_skills_prompt()
 
-        # 使用 request.override 动态修改系统提示词
-        return handler(request.override(
-            system_prompt=request.system_prompt + skills_prompt
-        ))
+        # 使用 content_blocks API 添加技能描述
+        new_content = list(request.system_message.content_blocks) + [
+            {"type": "text", "text": skills_prompt}
+        ]
+        new_system_message = SystemMessage(content=new_content)
+
+        return handler(request.override(system_message=new_system_message))
 
     async def awrap_model_call(
         self,
@@ -87,10 +91,13 @@ class SkillMiddleware(AgentMiddleware):
         """将技能描述注入到系统提示词中（异步版本）"""
         skills_prompt = self._build_skills_prompt()
 
-        # 使用 request.override 动态修改系统提示词
-        return await handler(request.override(
-            system_prompt=request.system_prompt + skills_prompt
-        ))
+        # 使用 content_blocks API 添加技能描述
+        new_content = list(request.system_message.content_blocks) + [
+            {"type": "text", "text": skills_prompt}
+        ]
+        new_system_message = SystemMessage(content=new_content)
+
+        return await handler(request.override(system_message=new_system_message))
 
     def wrap_tool_call(self, request, handler):
         """
