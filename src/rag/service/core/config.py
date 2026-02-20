@@ -4,7 +4,6 @@ Planning Service 服务配置
 """
 import os
 from pathlib import Path
-from typing import List
 
 # ==================== 服务基础配置 ====================
 SERVICE_NAME = "planning-service"
@@ -15,7 +14,7 @@ SERVICE_PORT = int(os.getenv("PLANNING_SERVICE_PORT", "8003"))
 SERVICE_HOST = os.getenv("SERVICE_HOST", "0.0.0.0")
 
 # ==================== CORS 配置 ====================
-ALLOWED_ORIGINS: List[str] = os.getenv(
+ALLOWED_ORIGINS: list[str] = os.getenv(
     "ALLOWED_ORIGINS", "*"
 ).split(",") if os.getenv("ALLOWED_ORIGINS") != "*" else ["*"]
 

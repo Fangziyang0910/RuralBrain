@@ -1,7 +1,7 @@
 """
 Planning Service 请求/响应数据模型
 """
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -47,7 +47,7 @@ class ToolCall(BaseModel):
 class PlanningChatResponse(BaseModel):
     """规划咨询聊天响应（非流式）"""
     response: str = Field(..., description="AI 回复内容")
-    tools_used: List[str] = Field(default_factory=list, description="使用的工具列表")
+    tools_used: list[str] = Field(default_factory=list, description="使用的工具列表")
     thread_id: str = Field(..., description="对话线程ID")
     sources_count: int = Field(default=0, description="引用的文档数量")
 
@@ -62,7 +62,7 @@ class DocumentInfo(BaseModel):
 
 class DocumentListResponse(BaseModel):
     """文档列表响应"""
-    documents: List[DocumentInfo] = Field(..., description="可用文档列表")
+    documents: list[DocumentInfo] = Field(..., description="可用文档列表")
     total_count: int = Field(..., description="文档总数")
     total_chunks: int = Field(..., description="总切片数")
 
@@ -82,7 +82,7 @@ class ChapterInfo(BaseModel):
 class ChapterListResponse(BaseModel):
     """章节列表响应"""
     source: str = Field(..., description="文档文件名")
-    chapters: List[ChapterInfo] = Field(..., description="章节列表")
+    chapters: list[ChapterInfo] = Field(..., description="章节列表")
 
 
 # ==================== 健康检查模型 ====================
