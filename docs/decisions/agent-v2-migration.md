@@ -70,17 +70,41 @@ Orchestrator Agent V2
 
 ### 核心实现
 
-**1. Skill 定义**
+**1. Skill 定义（YAML 配置）**
+
+```yaml
+# src/agents/skills/configs/detection.yaml
+pest_detection:
+  description: 病虫害检测专家，识别农作物病虫害并提供防治建议
+  tool_names:
+    - pest_detection_tool
+  content: |
+    你是病虫害检测专家，专注于农作物的病虫害识别和防治。
+
+    ## 核心能力
+    - 识别常见农作物病虫害（瓜实蝇、斜纹夜蛾、稻飞虱等）
+    - 分析病虫害危害程度和传播风险
+    - 提供科学的预防措施建议和针对性的综合防治方案
+
+    ## 工作流程
+    1. 使用 `pest_detection_tool` 分析图片
+    2. 根据检测结果识别害虫种类和数量
+    3. 评估危害程度和对作物的影响
+    4. 提供多层次防治方案（化学、生物、物理防治）
+    5. 给出预防措施和农事管理建议
+```
+
+**2. Skill 数据模型（简化版）**
 
 ```python
-# src/agents/skills/detection_skills.py
-def create_pest_detection_skill() -> Skill:
-    return Skill(
-        name="pest_detection",
-        description="病虫害检测专家",
-        content="""详细的病虫害检测指导...""",
-        tool_names=["pest_detection_tool"],
-    )
+# src/agents/skills/base.py
+class Skill(BaseModel):
+    """技能数据类 - 基于 LangChain Skills 模式"""
+    name: str                    # 技能唯一标识
+    description: str             # 简短描述（1-2 句话）
+    content: str                 # 完整内容（按需加载）
+    tool_names: List[str]        # 关联的工具名称列表
+    references: List[str]        # 参考资源列表
 ```
 
 **2. load_skill 工具**
@@ -132,26 +156,26 @@ system_prompt = """
 ### 第一阶段：架构设计
 
 1. 研究 LangChain Skills 模式
-2. 设计 Skill 数据结构
+2. 设计 Skill 数据结构（Pydantic BaseModel）
 3. 设计中间件系统
 
 ### 第二阶段：核心实现
 
 1. 实现 `SkillMiddleware`（按需加载）
 2. 实现 `ToolSelectorMiddleware`（工具选择）
-3. 创建各技能定义文件
+3. 创建各技能定义文件（Python 代码）
 
-### 第三阶段：迁移适配
+### 第三阶段：配置迁移
 
-1. 保留 V1 作为后备（`AGENT_VERSION=v1`）
-2. 实现 V2 Agent
-3. 添加自动降级机制
+1. 创建技能注册中心（`registry.py`）
+2. 将技能定义从 Python 迁移到 YAML 配置
+3. 支持技能热重载
 
 ### 第四阶段：测试验证
 
 1. 功能测试：所有场景正常工作
 2. 性能测试：Token 消耗对比
-3. 降级测试：V2 失败时自动切换到 V1
+3. 配置验证：YAML 配置正确加载
 
 ---
 
@@ -163,22 +187,25 @@ system_prompt = """
 |------|----|----|----|
 | 系统提示词行数 | 82 | 20 | -76% |
 | Token 消耗/请求 | ~2000 | ~1000 | -50% |
-| 新增技能成本 | 修改核心文件 | 新增文件 | 低 |
-| 响应延迟 | 基准 | +<10% | 可接受 |
+| 新增技能成本 | 修改核心文件 | 新增 YAML 文件 | 显著降低 |
+| 技能维护 | 分散在代码中 | 集中在配置文件 | 易维护 |
 
 ### 定性改进
 
 1. **开发效率**
-   - 新增技能无需修改核心文件
-   - 模块化清晰，易于维护
+   - 新增技能仅需添加 YAML 配置
+   - 技能注册中心统一管理
+   - 支持热重载，无需重启服务
 
-2. **系统稳定性**
-   - 支持 V1/V2 版本切换
-   - 自动降级机制
+2. **代码质量**
+   - Skill 数据模型使用 Pydantic，自动验证
+   - 配置与代码分离，职责清晰
+   - 移除冗余代码（-1000+ 行）
 
 3. **扩展性**
-   - 技能独立开发和测试
-   - 支持技能版本管理
+   - 技能独立配置和测试
+   - 支持动态工具注册
+   - 支持技能参考资源
 
 ---
 
@@ -188,19 +215,16 @@ system_prompt = """
 
 ```bash
 # .env
-AGENT_VERSION=v2              # 使用 V2
-AGENT_AUTO_FALLBACK=true      # V2 失败时自动切换到 V1
+# 技能重新加载策略: always（每次）| timed（定时）| never（从不）
+SKILL_RELOAD_STRATEGY=always
+SKILL_RELOAD_INTERVAL=300      # 重新加载间隔（秒）
 ```
 
-### 切换版本
+### 技能重新加载策略
 
-```bash
-# 切换到 V1
-AGENT_VERSION=v1
-
-# 切换到 V2
-AGENT_VERSION=v2
-```
+- **always**: 每次请求都重新加载技能配置（适合开发环境）
+- **timed**: 按时间间隔重新加载（适合生产环境）
+- **never**: 从不自动重新加载（适合高性能环境）
 
 ---
 
@@ -210,15 +234,16 @@ AGENT_VERSION=v2
 
 1. Token 消耗降低 50%+
 2. 系统提示词更简洁
-3. 模块化易于扩展
-4. 支持版本切换和自动降级
+3. YAML 配置易于维护和扩展
+4. 技能注册中心统一管理
+5. 支持智能重新加载策略
 
 ### 缺点
 
 1. **响应延迟增加**：`load_skill` 需要额外调用
    - 评估：延迟增加 <10%，用户无感知
 
-2. **复杂度增加**：引入了中间件和 Skill 系统
+2. **复杂度增加**：引入了中间件和注册中心系统
    - 缓解：清晰的架构设计，完善的文档
 
 3. **学习成本**：新开发者需要理解 Skills 模式
@@ -230,15 +255,15 @@ AGENT_VERSION=v2
 
 ### 短期
 
-1. 优化 `load_skill` 调用时机
-2. 添加技能缓存机制
-3. 完善技能版本管理
+1. ✅ 技能配置从 Python 迁移到 YAML
+2. ✅ 技能注册中心统一管理
+3. ✅ 支持智能重新加载策略
 
 ### 长期
 
-1. 支持技能的动态加载（从文件或数据库）
-2. 技能 marketplace（第三方技能扩展）
-3. 技能性能分析和优化
+1. 支持技能的动态版本管理
+2. 技能性能分析和优化
+3. 技能依赖管理（技能间的依赖关系）
 
 ---
 
@@ -251,5 +276,6 @@ AGENT_VERSION=v2
 ---
 
 **决策日期**: 2026-01-20
+**最后更新**: 2026-02-20
 **决策状态**: 已实施并稳定运行
-**效果**: Token 消耗降低 50%+，维护成本显著降低
+**效果**: Token 消耗降低 50%+，维护成本显著降低，YAML 配置驱动

@@ -77,7 +77,6 @@ cp .env.example .env
 # 编辑 .env 文件，设置必要的配置
 # MODEL_PROVIDER=deepseek
 # DEEPSEEK_API_KEY=your_api_key_here
-# AGENT_VERSION=v2
 ```
 
 ### 第三步：启动开发环境
@@ -164,7 +163,6 @@ nano .env
 ```bash
 MODEL_PROVIDER=deepseek
 DEEPSEEK_API_KEY=your_api_key_here
-AGENT_VERSION=v2
 ```
 
 ### 3. 启动服务
@@ -227,4 +225,4 @@ uv run python src/rag/build.py
 
 ---
 
-**最后更新**: 2026-02-14
+**最后更新**: 2026-02-20
