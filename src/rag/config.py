@@ -35,11 +35,11 @@ QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "rural_planning")
 # 优先使用千问 API，密钥缺失时自动降级到本地模型
 EMBEDDING_PROVIDER = os.getenv("EMBEDDING_PROVIDER", "dashscope")
 
-# 千问 API 配置（默认）
-DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
-DASHSCOPE_EMBEDDING_MODEL = os.getenv(
-    "DASHSCOPE_EMBEDDING_MODEL",
-    "text-embedding-v3"  # 千问 Embedding 模型
+# 千问 API 配置（默认，使用 OpenAI 兼容格式）
+QWEN_API_KEY = os.getenv("QWEN_API_KEY", "")
+QWEN_EMBEDDING_MODEL = os.getenv(
+    "QWEN_EMBEDDING_MODEL",
+    "text-embedding-v4"  # 千问 Embedding 模型
 )
 
 # 本地模型配置（降级方案）
@@ -124,16 +124,17 @@ def get_embeddings():
     """
     provider = EMBEDDING_PROVIDER.lower()
 
-    # 千问 API（默认）
+    # 千问 API（默认，使用 OpenAI 兼容格式）
     if provider == "dashscope":
-        if DASHSCOPE_API_KEY:
+        if QWEN_API_KEY:
             try:
-                from langchain_community.embeddings import DashScopeEmbeddings
+                from langchain_openai import OpenAIEmbeddings
                 import logging
-                logging.info(f"使用千问 Embedding: {DASHSCOPE_EMBEDDING_MODEL}")
-                return DashScopeEmbeddings(
-                    model=DASHSCOPE_EMBEDDING_MODEL,
-                    dashscope_api_key=DASHSCOPE_API_KEY
+                logging.info(f"使用千问 Embedding: {QWEN_EMBEDDING_MODEL}")
+                return OpenAIEmbeddings(
+                    model=QWEN_EMBEDDING_MODEL,
+                    openai_api_key=QWEN_API_KEY,
+                    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
                 )
             except ImportError:
                 pass

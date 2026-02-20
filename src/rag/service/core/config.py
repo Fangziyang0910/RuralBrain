@@ -63,7 +63,7 @@ def validate_config() -> None:
     if not (1 <= SERVICE_PORT <= 65535):
         raise ValueError(f"无效的 SERVICE_PORT: {SERVICE_PORT}")
 
-    if MODEL_PROVIDER not in ["deepseek", "glm", "openai"]:
+    if MODEL_PROVIDER not in ["deepseek", "glm", "qwen", "openai"]:
         raise ValueError(
             f"无效的 MODEL_PROVIDER: {MODEL_PROVIDER}"
         )
