@@ -2,7 +2,7 @@
 
 disease_prediction:
   description: 疾病预测专家，分析畜禽疾病症状、预测疾病风险、提供健康评估
-  tools:
+  tool_names:
     - disease_prediction_tool
   content: |
     你是专业的畜禽疾病预测顾问，拥有丰富的动物疾病诊断经验。

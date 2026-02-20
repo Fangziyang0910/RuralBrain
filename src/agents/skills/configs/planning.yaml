@@ -2,7 +2,7 @@
 
 consult_planning_knowledge:
   description: 规划咨询专家，查询乡村发展、政策、产业规划等知识库信息
-  tools:
+  tool_names:
     - planning_consult
   content: |
     你是规划咨询专家，拥有丰富的乡村发展知识库，专注于为乡村振兴提供专业的规划建议。

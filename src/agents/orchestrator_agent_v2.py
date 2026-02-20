@@ -5,7 +5,7 @@
 1. Progressive Disclosure：只在系统提示词中包含技能简短描述
 2. 按需加载：通过 load_skill 工具获取技能完整内容
 3. 技能组织：检测技能、规划技能、编排技能
-4. 中间件支持：SkillMiddleware
+4. 中间件支持：SkillMiddleware（支持动态工具注册）
 
 使用场景：
 - 纯检测：识别病虫害、农作物品种、牛只等
@@ -34,7 +34,6 @@ from .tools import (
     load_skill,
 )
 from .tools.planning_service_tool import planning_consult
-from .skills.base import Skill
 from .skills.registry import get_registry
 from .middleware.skill_middleware import SkillMiddleware
 from langchain.agents.middleware import SummarizationMiddleware
@@ -51,21 +50,6 @@ model = model_manager.get_chat_model()
 
 # 获取技能注册中心
 registry = get_registry()
-
-# 构建工具映射（工具名 -> 工具对象）
-tools_map = {
-    "pest_detection_tool": pest_detection_tool,
-    "rice_detection_tool": rice_detection_tool,
-    "cow_detection_tool": cow_detection_tool,
-    "pricing_tool": pricing_tool,
-    "marketing_tool": marketing_tool,
-    "farm_inspection_tool": farm_inspection_tool,
-    "disease_prediction_tool": disease_prediction_tool,
-    "planning_consult": planning_consult,
-}
-
-# 使用注册中心创建所有技能
-all_skills: List[Skill] = registry.create_all_skills(tools_map)
 
 
 # ========== 工具收集 ==========
@@ -118,7 +102,6 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 - **关键词"疾病/症状/生病/发热/咳嗽/拉稀"** → 使用疾病预测工具（disease_prediction_tool）
 
 **技能加载**：如需详细了解如何处理特定类型的请求，可使用 load_skill 工具加载技能详细指导。
-可加载技能：pest_detection, rice_detection, cow_detection, consult_planning_knowledge, pricing_analysis, marketing_strategy, farm_inspection, disease_prediction, intent_recognition, scenario_switching
 </task_context>
 
 <workflow>
@@ -161,8 +144,8 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """<role>
 
 # ========== 中间件配置 ==========
 
-# 技能中间件：实现 Progressive Disclosure
-skill_middleware = SkillMiddleware(skills=all_skills)
+# 技能中间件：实现 Progressive Disclosure，直接使用注册中心
+skill_middleware = SkillMiddleware(registry=registry)
 
 # 总结中间件：长对话历史自动总结（LangChain 官方推荐最佳实践）
 summarization_middleware = SummarizationMiddleware(
@@ -188,9 +171,10 @@ agent = create_agent(
     middleware=middleware,
 )
 
+skill_count = len(registry.list_skill_names())
 logger.info(
     f"✓ 统一编排 Agent V2 (Orchestrator V2) 创建成功 - "
-    f"采用 Skills 架构，技能数量: {len(all_skills)}, 工具数量: {len(orchestrator_tools)}"
+    f"采用 Skills 架构，技能数量: {skill_count}, 工具数量: {len(orchestrator_tools)}"
 )
 
-__all__ = ["agent", "all_skills", "orchestrator_tools"]
+__all__ = ["agent", "registry", "orchestrator_tools"]

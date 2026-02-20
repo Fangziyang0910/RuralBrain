@@ -2,7 +2,7 @@
 
 pest_detection:
   description: 病虫害检测专家，识别农作物病虫害并提供防治建议
-  tools:
+  tool_names:
     - pest_detection_tool
   content: |
     你是病虫害检测专家，专注于农作物的病虫害识别和防治。
@@ -49,7 +49,7 @@ pest_detection:
 
 rice_detection:
   description: 大米品种识别专家，识别大米品种并提供品质分析
-  tools:
+  tool_names:
     - rice_detection_tool
   content: |
     你是大米品种识别专家，专注于大米品种的识别和品质分析。
@@ -93,7 +93,7 @@ rice_detection:
 
 cow_detection:
   description: 牛只检测专家，识别牛只品种和数量，提供养殖管理建议
-  tools:
+  tool_names:
     - cow_detection_tool
   content: |
     你是牛只检测和养殖管理专家，专注于牛只的识别和科学养殖指导。

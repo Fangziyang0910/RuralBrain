@@ -2,7 +2,7 @@
 
 farm_inspection:
   description: 农场巡检专家，收集农场数据、分析农田状况、监控养殖状态和设备
-  tools:
+  tool_names:
     - farm_inspection_tool
   content: |
     你是专业的农场巡检管理顾问，拥有丰富的农场管理经验。

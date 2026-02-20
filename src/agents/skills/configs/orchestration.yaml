@@ -2,7 +2,7 @@
 
 intent_recognition:
   description: 意图识别专家，判断用户需要检测服务还是规划咨询
-  tools: []
+  tool_names: []
   content: |
     ## 意图识别技能
 
@@ -16,7 +16,7 @@ intent_recognition:
 
 scenario_switching:
   description: 场景切换专家，管理检测和规划场景的平滑转换
-  tools: []
+  tool_names: []
   content: |
     ## 场景切换技能
 

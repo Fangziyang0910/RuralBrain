@@ -1,23 +1,13 @@
 """
 技能注册中心
 
-集中管理所有技能配置，提供统一的技能创建和加载接口。
+集中管理所有技能配置，提供统一的技能加载接口。
 """
 from pathlib import Path
 from typing import Dict, List, Optional
-from dataclasses import dataclass, field
 import yaml
 
 from .base import Skill
-
-
-@dataclass
-class SkillConfigData:
-    """技能配置数据（从 YAML 加载）"""
-    name: str
-    description: str
-    content: str = ""
-    tools: List[str] = field(default_factory=list)
 
 
 class SkillRegistry:
@@ -33,7 +23,7 @@ class SkillRegistry:
         if config_dir is None:
             config_dir = Path(__file__).parent / "configs"
         self.config_dir = config_dir
-        self._configs: Dict[str, SkillConfigData] = {}
+        self._skills: Dict[str, Skill] = {}
         self._load_all_configs()
 
     def _load_all_configs(self):
@@ -48,18 +38,20 @@ class SkillRegistry:
                     data = yaml.safe_load(f)
                     if data:
                         for skill_name, skill_data in data.items():
+                            # 确保 name 字段存在
                             skill_data["name"] = skill_name
-                            self._configs[skill_name] = SkillConfigData(**skill_data)
+                            # 直接创建 Skill 对象
+                            self._skills[skill_name] = Skill(**skill_data)
             except Exception as e:
                 print(f"警告：加载配置文件 {yaml_file} 失败: {e}")
 
-    def get_config(self, skill_name: str) -> Optional[SkillConfigData]:
-        """获取技能配置"""
-        return self._configs.get(skill_name)
+    def get_skill(self, skill_name: str) -> Optional[Skill]:
+        """获取指定技能"""
+        return self._skills.get(skill_name)
 
-    def get_all_configs(self) -> Dict[str, SkillConfigData]:
-        """获取所有技能配置"""
-        return self._configs.copy()
+    def get_all_skills(self) -> List[Skill]:
+        """获取所有技能"""
+        return list(self._skills.values())
 
     def get_skill_descriptions(self) -> str:
         """
@@ -68,8 +60,8 @@ class SkillRegistry:
         用于 Progressive Disclosure，注入到系统提示词中。
         """
         return "\n".join(
-            f"- **{config.name}**: {config.description}"
-            for config in self._configs.values()
+            skill.get_description_for_prompt()
+            for skill in self._skills.values()
         )
 
     def load_content(self, skill_name: str) -> str:
@@ -82,55 +74,11 @@ class SkillRegistry:
         Returns:
             技能的完整内容
         """
-        config = self.get_config(skill_name)
-        if not config:
+        skill = self.get_skill(skill_name)
+        if not skill:
             raise ValueError(f"技能 '{skill_name}' 未找到")
 
-        return config.content or f"# {config.name}\n\n{config.description}"
-
-    def create_skill(
-        self,
-        skill_name: str,
-        tools_map: Dict[str, object],
-    ) -> Skill:
-        """
-        根据配置创建技能对象
-
-        Args:
-            skill_name: 技能名称
-            tools_map: 工具名称到工具对象的映射
-
-        Returns:
-            Skill 对象
-        """
-        config = self.get_config(skill_name)
-        if not config:
-            raise ValueError(f"技能 '{skill_name}' 未找到")
-
-        # 解析工具
-        tools = [tools_map[name] for name in config.tools if name in tools_map]
-
-        return Skill(
-            name=config.name,
-            description=config.description,
-            content=config.content,
-            tools=tools,
-        )
-
-    def create_all_skills(self, tools_map: Dict[str, object]) -> List[Skill]:
-        """
-        创建所有技能
-
-        Args:
-            tools_map: 工具名称到工具对象的映射
-
-        Returns:
-            所有技能的列表
-        """
-        return [
-            self.create_skill(name, tools_map)
-            for name in self._configs.keys()
-        ]
+        return skill.content or f"# {skill.name}\n\n{skill.description}"
 
     def list_skill_names(self) -> List[str]:
         """列出所有可用技能名称
@@ -138,7 +86,12 @@ class SkillRegistry:
         Returns:
             所有技能名称的列表
         """
-        return list(self._configs.keys())
+        return list(self._skills.keys())
+
+    def reload(self):
+        """重新加载技能配置（生产环境考虑）"""
+        self._skills.clear()
+        self._load_all_configs()
 
 
 # 全局单例

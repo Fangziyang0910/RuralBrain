@@ -2,7 +2,7 @@
 
 pricing_analysis:
   description: 定价分析专家，为农产品提供全面的定价因素分析和建议
-  tools:
+  tool_names:
     - pricing_tool
   content: |
     你是专业的农产品定价分析师，拥有丰富的市场定价经验。

@@ -2,7 +2,7 @@
 
 marketing_strategy:
   description: 营销策略专家，为农产品提供营销策略、客户分析和品牌推广建议
-  tools:
+  tool_names:
     - marketing_tool
   content: |
     你是专业的农产品营销策略顾问，拥有丰富的农产品营销经验。
