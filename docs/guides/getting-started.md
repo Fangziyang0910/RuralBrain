@@ -77,7 +77,6 @@ cp .env.example .env
 # 编辑 .env 文件，设置必要的配置
 # MODEL_PROVIDER=deepseek
 # DEEPSEEK_API_KEY=your_api_key_here
-# AGENT_VERSION=v2
 ```
 
 ### 第三步：启动开发环境
@@ -164,7 +163,6 @@ nano .env
 ```bash
 MODEL_PROVIDER=deepseek
 DEEPSEEK_API_KEY=your_api_key_here
-AGENT_VERSION=v2
 ```
 
 ### 3. 启动服务
@@ -222,9 +220,10 @@ uv run python src/rag/build.py
 
 - **[Docker Hub 镜像使用指南](docker-hub.md)** - 镜像拉取、版本管理、协作者规范
 - **[开发工作流](development.md)** ⭐ - 日常开发必读，了解热重载和测试流程
+- **[Skills 开发指南](skills-development.md)** - 添加新技能的完整流程
 - [统一命令参考](../commands.md) - 完整命令列表
 - [故障排查](troubleshooting.md) - 常见问题解决
 
 ---
 
-**最后更新**: 2026-02-14
+**最后更新**: 2026-02-20

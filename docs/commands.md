@@ -43,7 +43,6 @@ cp .env.example .env
 # 编辑 .env 文件，配置 API Keys
 # MODEL_PROVIDER=deepseek  # 或 glm
 # API_KEY=sk-xxxxx         # 你的 API 密钥（必需）
-# AGENT_VERSION=v2         # 推荐使用 V2
 ```
 
 **获取 API Key**：
@@ -353,5 +352,5 @@ http://localhost:8001
 
 ---
 
-**最后更新**: 2026-02-10
+**最后更新**: 2026-02-20
 **维护者**: RuralBrain Team

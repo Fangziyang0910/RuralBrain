@@ -40,9 +40,6 @@
 # 模型配置
 MODEL_PROVIDER=deepseek  # 或 glm
 DEEPSEEK_API_KEY=your_api_key_here
-
-# Agent 配置
-AGENT_VERSION=v2
 ```
 
 ### 1.3 服务端口说明
@@ -522,4 +519,4 @@ docker compose -f docker-compose.dev.yml ps
 
 ---
 
-**最后更新**: 2026-02-14
+**最后更新**: 2026-02-20

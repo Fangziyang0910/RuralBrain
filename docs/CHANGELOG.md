@@ -4,6 +4,48 @@
 
 ---
 
+## [2026-02] - Skills 架构优化（YAML 配置驱动）
+
+### 🎯 架构优化
+
+**技能配置迁移到 YAML**
+
+将技能定义从 Python 代码迁移到 YAML 配置文件，进一步提高可维护性和扩展性。
+
+**核心改进**：
+- ✅ 技能配置与代码完全分离
+- ✅ 新增技能注册中心（`registry.py`）
+- ✅ 支持技能热重载（可配置策略）
+- ✅ Skill 数据模型简化（Pydantic BaseModel）
+- ✅ 移除 V1/V2 版本切换逻辑，统一使用 V2 架构
+
+**代码精简**：
+- 删除 8 个技能实现文件（`*_skills.py`）
+- 新增 6 个 YAML 配置文件
+- 删除 `mode_aware_middleware.py`（冗余中间件）
+- 总代码行数减少 ~1000 行
+
+**新增配置**：
+```bash
+# 技能重新加载策略
+SKILL_RELOAD_STRATEGY=always  # always | timed | never
+SKILL_RELOAD_INTERVAL=300     # 重新加载间隔（秒）
+```
+
+**目录结构变更**：
+```
+src/agents/skills/
+├── configs/              # 新增：YAML 配置目录
+│   ├── detection.yaml
+│   ├── planning.yaml
+│   └── ...
+├── registry.py           # 新增：技能注册中心
+├── base.py               # 简化：Pydantic BaseModel
+└── __init__.py
+```
+
+---
+
 ## [2026-01] - V2 Agent 架构升级
 
 ### 🎯 架构升级

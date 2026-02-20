@@ -201,79 +201,83 @@ BASE_SYSTEM_PROMPT = """
 
 ## 技能抽象
 
-### Skill 数据结构
+### Skill 数据结构（Pydantic BaseModel）
 
 ```python
-@dataclass
-class Skill:
-    name: str                        # 技能唯一标识
-    description: str                 # 简短描述
-    category: str                    # 分类：detection/planning/analysis
-    system_prompt: Optional[str]     # 完整系统提示词（按需加载）
-    tools: List[BaseTool]            # 技能专属工具
-    examples: List[str]              # Few-shot 示例
-    constraints: List[str]           # 约束条件
+class Skill(BaseModel):
+    """技能数据类 - 基于 LangChain Skills 模式"""
+    name: str                    # 技能唯一标识
+    description: str             # 简短描述（1-2 句话）
+    content: str                 # 完整内容（按需加载）
+    tool_names: List[str]        # 关联的工具名称列表
+    references: List[str]        # 参考资源列表
 ```
 
-### 技能配置示例
+### YAML 配置示例
 
 ```yaml
-# pest_detection.yaml
-name: pest_detection
-description: 病虫害检测专家，识别农作物病虫害并提供防治建议
-category: detection
+# src/agents/skills/configs/detection.yaml
+pest_detection:
+  description: 病虫害检测专家，识别农作物病虫害并提供防治建议
+  tool_names:
+    - pest_detection_tool
+  content: |
+    你是病虫害检测专家，专注于农作物的病虫害识别和防治。
 
-system_prompt: |
-  你是病虫害检测专家，专注于农作物的病虫害识别和防治。
+    ## 核心能力
+    - 识别常见农作物病虫害（瓜实蝇、斜纹夜蛾、稻飞虱等）
+    - 分析病虫害危害程度和传播风险
+    - 提供科学的预防措施建议和针对性的综合防治方案
 
-  ## 核心能力
-  - 识别常见农作物病虫害（瓜实蝇、斜纹夜蛾等）
-  - 分析病虫害危害程度
-  - 提供针对性的防治方案（化学、生物、物理防治）
+    ## 工作流程
+    1. 使用 `pest_detection_tool` 分析图片
+    2. 根据检测结果识别害虫种类和数量
+    3. 评估危害程度和对作物的影响
+    4. 提供多层次防治方案（化学、生物、物理防治）
 
-tools:
-  - pest_detection_tool
-
-examples:
-  - "用户上传图片并问'这是什么害虫？' → 调用检测工具 → 识别为瓜实蝇 → 提供防治方案"
-
-constraints:
-  - 必须基于检测结果提供建议，不得虚构
-  - 防治方案应包括化学、生物、物理多种方式
+    ## 输出格式
+    ### 检测结果摘要
+    清晰列出检测到的害虫种类和数量
+    ### 危害分析
+    评估害虫的危害程度和潜在影响
+    ### 防治方案
+    - **化学防治**：推荐药剂、使用方法、注意事项
+    - **生物防治**：天敌利用、生物农药
+    - **物理防治**：物理隔离、诱杀方法
 ```
 
 ---
 
-## 版本切换机制
+## 技能重新加载
 
-### 环境变量配置
+### 配置策略
 
-```bash
-# .env
-# Agent 版本选择: v1, v2, auto
-AGENT_VERSION=v2
-
-# V2 Agent 失败时是否自动回退到 V1
-AGENT_AUTO_FALLBACK=true
-```
-
-### 服务端集成
+系统支持三种技能重新加载策略：
 
 ```python
-def get_agent():
-    """支持版本切换的 Agent 加载"""
-    if AGENT_VERSION == "v2":
-        try:
-            from src.agents.image_detection_agent_v2 import agent as agent_v2
-            return agent_v2
-        except Exception as e:
-            if AGENT_AUTO_FALLBACK:
-                from src.agents.image_detection_agent import agent as agent_v1
-                return agent_v1
-            raise
-    else:
-        from src.agents.image_detection_agent import agent as agent_v1
-        return agent_v1
+# src/config.py
+SkillReloadStrategy = Literal["always", "timed", "never"]
+SKILL_RELOAD_STRATEGY: SkillReloadStrategy = "always"
+SKILL_RELOAD_INTERVAL = 300  # 秒
+```
+
+### 策略说明
+
+- **always**: 每次请求都重新加载技能配置（适合开发环境）
+- **timed**: 按时间间隔重新加载（适合生产环境）
+- **never**: 从不自动重新加载（适合高性能环境）
+
+### 实现方式
+
+```python
+class SkillMiddleware(AgentMiddleware):
+    def before_agent(self, state, runtime):
+        if self.reload_strategy == "always":
+            self.registry.reload()
+        elif self.reload_strategy == "timed":
+            if time.time() - self._last_reload_time >= self.reload_interval:
+                self.registry.reload()
+                self._last_reload_time = time.time()
 ```
 
 ---
@@ -283,18 +287,23 @@ def get_agent():
 ```
 src/agents/
 ├── middleware/                  # 中间件系统
-│   ├── skill_middleware.py
-│   └── tool_selector_middleware.py
+│   ├── skill_middleware.py      # 技能渐进式披露
+│   └── tool_selector_middleware.py  # 工具选择
 ├── skills/                      # 技能系统
-│   ├── base.py                 # Skill 基类
-│   ├── registry.py             # 技能注册中心
-│   ├── configs/                # 技能配置文件
-│   │   ├── pest_detection.yaml
-│   │   ├── rice_detection.yaml
-│   │   └── cow_detection.yaml
-│   └── detection_skills.py     # 当前实现
-├── image_detection_agent_v2.py  # V2 Agent
-└── image_detection_agent.py     # V1 Agent（保留）
+│   ├── base.py                  # Skill 数据模型（Pydantic）
+│   ├── registry.py              # 技能注册中心
+│   ├── configs/                 # YAML 技能配置文件
+│   │   ├── detection.yaml       # 检测技能
+│   │   ├── planning.yaml        # 规划技能
+│   │   ├── pricing.yaml         # 定价技能
+│   │   ├── marketing.yaml       # 营销技能
+│   │   ├── inspection.yaml      # 巡检技能
+│   │   └── disease_prediction.yaml  # 疾病预测技能
+│   └── __init__.py
+├── tools/                       # 工具系统
+│   ├── load_skill_tool.py       # 技能加载工具
+│   └── ...
+└── orchestrator_agent_v2.py     # V2 Agent（统一编排）
 ```
 
 ---
@@ -318,26 +327,39 @@ src/agents/
 
 ## 扩展性
 
-### 添加新技能
-
-**方式一：Python 代码**
-
-```python
-from src.agents.skills.base import Skill
-
-new_skill = Skill(
-    name="new_feature",
-    description="新功能描述",
-    category="analysis",
-    system_prompt="...",
-    tools=[new_tool],
-)
-```
-
-**方式二：YAML 配置**（推荐）
+### 添加新技能（YAML 配置）
 
 1. 创建 `src/agents/skills/configs/new_feature.yaml`
-2. 重启服务，自动加载
+
+```yaml
+new_feature:
+  description: 新功能描述
+  tool_names:
+    - new_tool
+  content: |
+    新功能的详细说明...
+
+    ## 核心能力
+    - 能力1
+    - 能力2
+
+    ## 工作流程
+    1. 步骤1
+    2. 步骤2
+```
+
+2. 重启服务或等待重新加载（根据 `SKILL_RELOAD_STRATEGY` 配置）
+3. 技能自动被注册中心加载并可用
+
+### 技能重新加载策略
+
+在 `.env` 或 `src/config.py` 中配置：
+
+```python
+# 技能重新加载策略
+SKILL_RELOAD_STRATEGY = "always"  # always | timed | never
+SKILL_RELOAD_INTERVAL = 300        # 重新加载间隔（秒）
+```
 
 ---
 
@@ -371,10 +393,11 @@ new_skill = Skill(
 - [系统架构设计](system-design.md) - 整体系统架构设计理念
 - [微服务架构设计](microservices.md) - 微服务拆分和通信设计
 - [Agent V2 迁移决策](../decisions/agent-v2-migration.md) - V2 迁移背景和效果
+- **[Skills 开发指南](../guides/skills-development.md)** - 添加新技能的操作指南
 
 ---
 
 **实现时间**：2026-01
 **当前状态**：✅ 已完成并集成到服务端
-**版本**：v2.0
-**最后更新**：2026-02-11
+**版本**：v2.1（YAML 配置驱动）
+**最后更新**：2026-02-20

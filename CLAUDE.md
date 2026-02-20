@@ -130,6 +130,9 @@ RuralBrain/
 │   ├── agents/                 # Agent 系统（V2 Skills 架构）
 │   │   ├── orchestrator_agent_v2.py   # ⭐ 统一编排 Agent
 │   │   ├── skills/            # Skills 架构模块
+│   │   │   ├── configs/       # YAML 技能配置文件
+│   │   │   ├── registry.py    # 技能注册中心
+│   │   │   └── base.py        # Skill 数据模型
 │   │   ├── tools/             # Agent 工具集
 │   │   └── middleware/        # 中间件系统
 │   │
@@ -308,8 +311,19 @@ bash scripts/dev/test_production.sh
 ### 架构特点
 
 - **渐进式披露**：初始只提供技能描述，按需加载完整内容
-- **模块化技能配置**：每个技能专注一个特定领域
-- **中间件系统**：SkillMiddleware、ToolSelectorMiddleware
+- **YAML 配置驱动**：技能定义使用 YAML 配置文件，支持热重载
+- **技能注册中心**：集中管理所有技能配置，提供统一加载接口
+- **中间件系统**：SkillMiddleware（技能渐进式披露）
+
+### 技能配置系统
+
+技能定义位于 `src/agents/skills/configs/`：
+- `detection.yaml` - 检测技能（病虫害、大米品种、牛只检测）
+- `planning.yaml` - 规划技能（乡村规划咨询）
+- `pricing.yaml` - 定价技能（农产品定价分析）
+- `marketing.yaml` - 营销技能（营销策略建议）
+- `inspection.yaml` - 巡检技能（农场检查）
+- `disease_prediction.yaml` - 疾病预测技能
 
 ### 工具系统
 
@@ -323,15 +337,13 @@ bash scripts/dev/test_production.sh
 - `marketing_tool` - 营销策略
 - `farm_inspection_tool` - 农场检查
 - `disease_prediction_tool` - 疾病预测
+- `load_skill` - 技能加载工具（按需加载技能完整内容）
 
-### 技能文件
+### 技能注册中心
 
-位于 `src/agents/skills/`：
-- `detection_skills.py` - 检测技能
-- `planning_skills.py` - 规划技能
-- `pricing_skills.py` - 定价技能
-- `marketing_skills.py` - 营销技能
-- `orchestration_skills.py` - 编排技能
+- 文件：`src/agents/skills/registry.py`
+- 功能：从 YAML 配置文件加载所有技能，提供统一的技能查询接口
+- 支持热重载：可通过 `SKILL_RELOAD_STRATEGY` 配置重新加载策略
 
 ---
 
@@ -365,12 +377,13 @@ bash scripts/dev/test_production.sh
 - 环境变量：`.env` 文件
 - 模型配置：`src/config.py`
 
-### Agent 版本切换
+### Agent 架构
 
-- **V1**（传统架构）：固定提示词，所有工具始终加载
-- **V2**（Skills 架构）：渐进式披露，按需加载技能（推荐）
-
-配置：`AGENT_VERSION=v2`（在 `.env` 文件中）
+当前采用 **V2 Skills 架构**：
+- 渐进式披露（Progressive Disclosure）
+- YAML 配置驱动
+- 技能按需加载
+- 中间件系统支持
 
 ---
 
