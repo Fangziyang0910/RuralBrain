@@ -14,9 +14,6 @@ MODEL_CONFIGS = {
     "glm": {"default_model": "glm-4", "api_key_env": "ZHIPUAI_API_KEY"},
 }
 
-# Agent 配置
-AGENT_VERSION: Literal["v1", "v2"] = os.getenv("AGENT_VERSION", "v2")
-AGENT_AUTO_FALLBACK = os.getenv("AGENT_AUTO_FALLBACK", "true").lower() == "true"
 
 # LangSmith 配置
 LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "false").lower() == "true"

@@ -47,8 +47,3 @@ MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 # 支持的图片格式
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
-# ============================================
-# Agent 配置
-# ============================================
-# Agent 版本选择（默认使用 V2 Skills 架构）
-AGENT_VERSION = os.getenv("AGENT_VERSION", "v2").lower()

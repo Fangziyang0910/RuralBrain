@@ -28,7 +28,6 @@ from service.settings import (
     UPLOAD_DIR,
     MAX_UPLOAD_SIZE,
     ALLOWED_EXTENSIONS,
-    AGENT_VERSION,
 )
 from service.schemas import ChatRequest, UploadResponse
 
@@ -79,34 +78,14 @@ _agent_version = None
 
 
 def get_agent():
-    """
-    延迟加载统一编排 Agent（支持 V1/V2 切换）
-
-    根据环境变量 AGENT_VERSION 动态加载：
-    - v1: 传统固定提示词架构
-    - v2: Skills 架构（Progressive Disclosure）
-    """
+    """延迟加载统一编排 Agent（V2 Skills 架构）"""
     global _agent, _agent_version
 
     if _agent is None:
-        version = AGENT_VERSION
-        logger.info(f"正在加载统一编排 Agent (版本: {version.upper()})...")
-
-        try:
-            if version == "v2":
-                from src.agents.orchestrator_agent_v2 import agent as orchestrator_agent_v2
-                _agent = orchestrator_agent_v2
-                _agent_version = "orchestrator_v2"
-                logger.info("✓ 统一编排 Agent V2 加载完成 - 采用 Skills 架构")
-            else:
-                from src.agents.orchestrator_agent import agent as orchestrator_agent_v1
-                _agent = orchestrator_agent_v1
-                _agent_version = "orchestrator_v1"
-                logger.info("✓ 统一编排 Agent V1 加载完成 - 传统架构")
-
-        except Exception as e:
-            logger.error(f"✗ Agent V{version} 加载失败: {e}")
-            raise
+        from src.agents.orchestrator_agent_v2 import agent
+        _agent = agent
+        _agent_version = "orchestrator_v2"
+        logger.info("✓ 统一编排 Agent V2 加载完成 - Skills 架构")
 
     return _agent
 
