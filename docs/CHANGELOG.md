@@ -62,7 +62,6 @@ src/agents/skills/
 
 **新增功能**：
 - `SkillMiddleware` - 技能中间件，实现渐进式披露
-- `ToolSelectorMiddleware` - 工具选择中间件，动态过滤工具
 - `load_skill` 工具 - Agent 可按需加载完整技能指导
 - 版本切换机制 - 通过 `AGENT_VERSION` 环境变量选择
 

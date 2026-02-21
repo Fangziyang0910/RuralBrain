@@ -37,7 +37,6 @@ RuralBrain V2 Agent 采用基于 LangChain 官方 **Skills 模式**和**渐进�
 │  ┌──────────────────────────────┐   │
 │  │       middleware 列表         │   │
 │  │  1. SkillMiddleware          │   │
-│  │  2. ToolSelectorMiddleware   │   │
 │  └──────────────────────────────┘   │
 └─────────────────────────────────────┘
     ↓
@@ -50,12 +49,7 @@ RuralBrain V2 Agent 采用基于 LangChain 官方 **Skills 模式**和**渐进�
 │  └──────────────────────────────┘   │
 │             ↓                       │
 │  ┌──────────────────────────────┐   │
-│  │ Layer 2: ToolSelector        │   │
-│  │ - 根据标签过滤工具列表       │   │
-│  └──────────────────────────────┘   │
-│             ↓                       │
-│  ┌──────────────────────────────┐   │
-│  │ Layer 3: LLM 推理            │   │
+│  │ Layer 2: LLM 推理            │   │
 │  └──────────────────────────────┘   │
 └─────────────────────────────────────┘
 ```
@@ -94,24 +88,6 @@ class SkillMiddleware(AgentMiddleware):
 2. Agent 判断需要某个技能时，调用 `load_skill`
 3. 获取完整的技能指导（工作流程、输出格式、示例）
 4. 基于完整指导进行推理
-
-### ToolSelectorMiddleware - 工具选择中间件
-
-**功能**：根据标签动态过滤工具列表
-
-```python
-class ToolSelectorMiddleware(AgentMiddleware):
-    def __init__(self, tools, tags):
-        self.filtered_tools = [t for t in tools if tag匹配(t)]
-
-    def wrap_model_call(self, request, handler):
-        return handler(request.override(tools=self.filtered_tools))
-```
-
-**优势**：
-- 减少 Agent 需要处理的工具数量
-- 提高决策准确性
-- 降低 Token 消耗
 
 ---
 

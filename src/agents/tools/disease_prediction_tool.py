@@ -274,7 +274,3 @@ if __name__ == "__main__":
         print(f"\n=== 测试用例 {i} ===")
         result = disease_prediction_tool.invoke(case)
         print(result)
-
-
-# 为工具添加标签，供 ToolSelectorMiddleware 使用
-disease_prediction_tool.tags = ["prediction", "disease", "health"]
