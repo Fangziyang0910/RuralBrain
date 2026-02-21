@@ -3,8 +3,9 @@
 
 职责：
 1. 将技能描述注入到系统提示词中
-2. 支持动态工具注册（未来扩展）
-3. 支持生产环境的技能刷新（智能重新加载策略）
+2. 支持生产环境的技能刷新（智能重新加载策略）
+
+注意：动态工具注册功能已移至 DynamicToolMiddleware
 """
 import time
 from typing import Callable, List, TYPE_CHECKING
@@ -27,13 +28,14 @@ class SkillMiddleware(AgentMiddleware):
 
     支持：
     - Progressive Disclosure（渐进式披露）
-    - 动态工具注册（未来扩展）
     - 智能技能重新加载（可配置策略）
 
     重新加载策略（通过 SKILL_RELOAD_STRATEGY 配置）：
     - always: 每次请求都重新加载（适合开发环境）
     - timed: 按时间间隔重新加载（适合生产环境）
     - never: 从不自动重新加载（适合高性能环境）
+
+    注意：动态工具注册功能由 DynamicToolMiddleware 提供
     """
 
     def __init__(self, registry: "SkillRegistry"):
@@ -98,25 +100,6 @@ class SkillMiddleware(AgentMiddleware):
         new_system_message = SystemMessage(content=new_content)
 
         return await handler(request.override(system_message=new_system_message))
-
-    def wrap_tool_call(self, request, handler):
-        """
-        处理动态工具注册（未来扩展）
-
-        当加载技能时，动态注册该技能关联的工具。
-        """
-        # TODO: 实现动态工具注册
-        # - 检测 load_skill 工具调用
-        # - 根据技能的 tool_names 动态注册工具
-        # - 更新 request.tools
-        return handler(request)
-
-    async def awrap_tool_call(self, request, handler):
-        """
-        处理动态工具注册（未来扩展，异步版本）
-        """
-        # TODO: 实现动态工具注册
-        return await handler(request)
 
     def _build_skills_prompt(self) -> str:
         """构建技能描述"""
