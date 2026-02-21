@@ -52,7 +52,26 @@ class SkillMiddleware(AgentMiddleware):
 
     def before_agent(self, state, runtime):
         """
-        在 Agent 执行前智能刷新技能列表
+        在 Agent 执行前智能刷新技能列表（同步版本）
+
+        根据配置的策略决定是否重新加载：
+        - always: 每次都重新加载
+        - timed: 只有超过时间间隔时才重新加载
+        - never: 从不自动重新加载
+        """
+        if self.reload_strategy == "always":
+            self.registry.reload()
+        elif self.reload_strategy == "timed":
+            current_time = time.time()
+            if current_time - self._last_reload_time >= self.reload_interval:
+                self.registry.reload()
+                self._last_reload_time = current_time
+        # "never" 模式不执行任何操作
+        return None
+
+    async def abefore_agent(self, state, runtime):
+        """
+        在 Agent 执行前智能刷新技能列表（异步版本）
 
         根据配置的策略决定是否重新加载：
         - always: 每次都重新加载
