@@ -21,7 +21,7 @@ from .middleware.dynamic_tool_middleware import (
     DynamicToolMiddleware,
     set_dynamic_middleware,
 )
-# from langchain.agents.middleware import SummarizationMiddleware  # 暂时禁用
+from langchain.agents.middleware import SummarizationMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -103,14 +103,14 @@ dynamic_tool_middleware.set_tool_loader(tool_loader)
 # 技能渐进式披露中间件
 skill_middleware = SkillMiddleware(registry=registry)
 
-# 摘要中间件（临时禁用，用于调试）
-# summarization_middleware = SummarizationMiddleware(
-#     model=model_manager.get_chat_model(),
-#     trigger=("tokens", 8000),
-#     keep=("messages", 15),
-# )
+# 摘要中间件
+summarization_middleware = SummarizationMiddleware(
+    model=model_manager.get_chat_model(),
+    trigger=("tokens", 8000),
+    keep=("messages", 15),
+)
 
-middleware = [dynamic_tool_middleware, skill_middleware]
+middleware = [dynamic_tool_middleware, skill_middleware, summarization_middleware]
 
 # ---- 创建 Agent ----
 
