@@ -47,7 +47,7 @@ EMBEDDING_DEVICE: Literal["cpu", "cuda", "mps"] = os.getenv("EMBEDDING_DEVICE", 
 
 # 技能中间件配置
 SkillReloadStrategy = Literal["always", "timed", "never"]
-SKILL_RELOAD_STRATEGY: SkillReloadStrategy = os.getenv("SKILL_RELOAD_STRATEGY", "always")
+SKILL_RELOAD_STRATEGY: SkillReloadStrategy = os.getenv("SKILL_RELOAD_STRATEGY", "never")
 SKILL_RELOAD_INTERVAL = int(os.getenv("SKILL_RELOAD_INTERVAL", "300"))  # 秒
 
 

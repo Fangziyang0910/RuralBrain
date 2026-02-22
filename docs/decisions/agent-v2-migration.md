@@ -62,8 +62,7 @@ Orchestrator Agent V2
     │   └─ scenario_switching（场景切换技能）
     │
     ├─ 中间件系统
-    │   ├─ SkillMiddleware（按需加载技能）
-    │   └─ ToolSelectorMiddleware（工具选择）
+    │   └─ SkillMiddleware（按需加载技能）
     │
     └─ 工具系统（9个工具）
 ```
@@ -162,8 +161,7 @@ system_prompt = """
 ### 第二阶段：核心实现
 
 1. 实现 `SkillMiddleware`（按需加载）
-2. 实现 `ToolSelectorMiddleware`（工具选择）
-3. 创建各技能定义文件（Python 代码）
+2. 创建各技能定义文件（Python 代码）
 
 ### 第三阶段：配置迁移
 

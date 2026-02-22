@@ -194,14 +194,14 @@ uv run python run_frontend.py    # 前端
 ### 健康检查与测试
 
 ```bash
-# 健康检查
-bash scripts/dev/health_check.sh                 # 完整检查
-bash scripts/dev/health_check.sh --quick         # 快速检查
+# 统一检查脚本（合并了健康检查和功能测试）
+bash scripts/dev/check.sh --health                # 健康检查
+bash scripts/dev/check.sh --quick                 # 快速检查
 
 # 功能测试（分级）
-bash scripts/dev/test_services.sh --fast         # 快速测试 (< 30秒)
-bash scripts/dev/test_services.sh --normal       # 正常测试 (< 2分钟)
-bash scripts/dev/test_services.sh --full         # 完整测试 (< 5分钟)
+bash scripts/dev/check.sh --test fast             # 快速测试 (< 30秒)
+bash scripts/dev/check.sh --test normal           # 正常测试 (< 2分钟)
+bash scripts/dev/check.sh --test full             # 完整测试 (< 5分钟)
 ```
 
 ### 知识库构建
@@ -281,10 +281,10 @@ pip install package
 # 1. 等待热重载完成（自动，1-3秒）
 
 # 2. 快速健康检查
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 
 # 3. 运行相关功能测试
-bash scripts/dev/test_services.sh --fast
+bash scripts/dev/check.sh --test fast
 
 # 4. 如果测试通过，继续开发
 #    如果测试失败，修复问题
@@ -293,7 +293,7 @@ bash scripts/dev/test_services.sh --fast
 **部署前验证**：
 ```bash
 # 1. 完整功能测试
-bash scripts/dev/test_services.sh --full
+bash scripts/dev/check.sh --test full
 
 # 2. 切换到生产模式
 bash scripts/dev/switch_to_production.sh
@@ -407,11 +407,11 @@ bash scripts/dev/test_production.sh
 docker-compose -f docker-compose.dev.yml up -d
 
 # 验证服务健康
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 
 # 每次代码修改后
-bash scripts/dev/health_check.sh --quick
-bash scripts/dev/test_services.sh --fast
+bash scripts/dev/check.sh --quick
+bash scripts/dev/check.sh --test fast
 ```
 
 ### 添加新功能时
@@ -479,9 +479,16 @@ bash scripts/dev/test_services.sh --fast
 
 ## 更新日志
 
-**最后更新**: 2026-02-14 | **版本**: v3.2
+**最后更新**: 2026-02-22 | **版本**: v3.3
 
-**v3.2 主要变更**（本次更新）：
+**v3.3 主要变更**（本次更新）：
+- 实现动态工具注册系统（DynamicToolMiddleware），确保会话隔离
+- 合并开发脚本为统一的 `check.sh`（健康检查 + 功能测试）
+- 移除冗余中间件（ModeAwareMiddleware、ToolSelectorMiddleware）
+- 修复工具参数传递和异步上下文问题
+- 更新测试以适应严格渐进式披露架构
+
+**v3.2 主要变更**：
 - 强调 Docker 热重载开发工作流为标准开发方式
 - 更新 [docs/guides/development.md](docs/guides/development.md) - 清晰的代码更改验证流程
 - 更新 [docs/guides/getting-started.md](docs/guides/getting-started.md) - 强调 Docker 开发模式

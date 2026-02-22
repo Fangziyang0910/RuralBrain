@@ -13,19 +13,14 @@ from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
 from ..utils import ModelManager
-from .tools import (
-    pest_detection_tool,
-    rice_detection_tool,
-    cow_detection_tool,
-    pricing_tool,
-    marketing_tool,
-    farm_inspection_tool,
-    disease_prediction_tool,
-    load_skill,
-)
-from .tools.planning_service_tool import planning_consult
+from .tools import load_skill
+from .tools.tool_loader import get_tool_loader
 from .skills.registry import get_registry
 from .middleware.skill_middleware import SkillMiddleware
+from .middleware.dynamic_tool_middleware import (
+    DynamicToolMiddleware,
+    set_dynamic_middleware,
+)
 from langchain.agents.middleware import SummarizationMiddleware
 
 logger = logging.getLogger(__name__)
@@ -38,17 +33,14 @@ registry = get_registry()
 
 # ---- 工具 ----
 
+# 严格渐进式披露：初始只注册 load_skill 工具
+# 其他工具在 load_skill 时通过 DynamicToolMiddleware 动态注册
 orchestrator_tools = [
-    pest_detection_tool,
-    rice_detection_tool,
-    cow_detection_tool,
-    pricing_tool,
-    marketing_tool,
-    farm_inspection_tool,
-    disease_prediction_tool,
-    planning_consult,
     load_skill,
 ]
+
+# 初始化工具加载器
+tool_loader = get_tool_loader()
 
 # ---- 系统提示词 ----
 
@@ -101,15 +93,24 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """
 
 # ---- 中间件 ----
 
+# 动态工具注册中间件（必须放在 skill_middleware 之前）
+dynamic_tool_middleware = DynamicToolMiddleware(tool_loader=tool_loader)
+set_dynamic_middleware(dynamic_tool_middleware)
+
+# 设置 tool_loader 到中间件
+dynamic_tool_middleware.set_tool_loader(tool_loader)
+
+# 技能渐进式披露中间件
 skill_middleware = SkillMiddleware(registry=registry)
 
+# 摘要中间件
 summarization_middleware = SummarizationMiddleware(
     model=model_manager.get_chat_model(),
     trigger=("tokens", 8000),
     keep=("messages", 15),
 )
 
-middleware = [skill_middleware, summarization_middleware]
+middleware = [dynamic_tool_middleware, skill_middleware, summarization_middleware]
 
 # ---- 创建 Agent ----
 
@@ -122,8 +123,11 @@ agent = create_agent(
 )
 
 skill_count = len(registry.list_skill_names())
+available_tools = tool_loader.get_available_tool_names()
 logger.info(
-    f"✓ Agent V2 创建成功 - 技能: {skill_count}, 工具: {len(orchestrator_tools)}"
+    f"✓ Agent V2 创建成功 - 技能: {skill_count}, "
+    f"初始工具: {len(orchestrator_tools)}, "
+    f"可用工具: {len(available_tools)}"
 )
 
 __all__ = ["agent", "registry", "orchestrator_tools"]

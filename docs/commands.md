@@ -86,7 +86,7 @@ docker compose -f docker-compose.dev.yml up
 1. 启动服务：`cd docker && docker compose -f docker-compose.dev.yml up -d`
 2. 修改代码文件
 3. 等待 1-3 秒，服务自动重启
-4. 验证更改：`bash scripts/dev/health_check.sh --quick`
+4. 验证更改：`bash scripts/dev/check.sh --health --quick`
 
 ### 2.2 生产环境
 
@@ -187,38 +187,38 @@ docker exec -it ruralbrain-planning-service bash
 
 ```bash
 # 完整健康检查
-bash scripts/dev/health_check.sh
+bash scripts/dev/check.sh --health
 
 # 快速检查
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --health --quick
 
 # 检查特定服务
-bash scripts/dev/health_check.sh --service backend
-bash scripts/dev/health_check.sh --service frontend
-bash scripts/dev/health_check.sh --service detection
-bash scripts/dev/health_check.sh --service planning
+bash scripts/dev/check.sh --health --service backend
+bash scripts/dev/check.sh --health --service frontend
+bash scripts/dev/check.sh --health --service detection
+bash scripts/dev/check.sh --health --service planning
 
 # 详细输出
-bash scripts/dev/health_check.sh --verbose
+bash scripts/dev/check.sh --health --verbose
 ```
 
 ### 4.2 功能测试
 
 ```bash
 # 快速测试（< 30秒）
-bash scripts/dev/test_services.sh --fast
+bash scripts/dev/check.sh --test fast
 
 # 正常测试（< 2分钟）
-bash scripts/dev/test_services.sh --normal
+bash scripts/dev/check.sh --test normal
 
 # 完整测试（< 5分钟）
-bash scripts/dev/test_services.sh --full
+bash scripts/dev/check.sh --test full
 
 # 详细输出
-bash scripts/dev/test_services.sh --fast --verbose
+bash scripts/dev/check.sh --test fast --verbose
 
 # 遇到错误继续测试
-bash scripts/dev/test_services.sh --continue
+bash scripts/dev/check.sh --test --continue
 ```
 
 ### 4.3 生产环境测试
@@ -230,8 +230,11 @@ bash scripts/dev/test_production.sh
 ### 4.4 服务状态检查
 
 ```bash
-# 使用检查脚本
-bash scripts/dev/check_services.sh
+# 快速健康检查（推荐）
+bash scripts/dev/check.sh --health --quick
+
+# 完整健康检查
+bash scripts/dev/check.sh --health
 
 # 或手动检查端口
 lsof -i :3001  # 前端
@@ -352,5 +355,5 @@ http://localhost:8001
 
 ---
 
-**最后更新**: 2026-02-20
+**最后更新**: 2026-02-22
 **维护者**: RuralBrain Team

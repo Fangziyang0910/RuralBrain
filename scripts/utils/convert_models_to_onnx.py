@@ -7,7 +7,7 @@ YOLO PT 模型转 ONNX 格式转换脚本
 - ONNX Runtime 依赖更小，推理更快，适合生产部署
 
 使用方法：
-    uv run python scripts/dev/convert_models_to_onnx.py
+    uv run python scripts/utils/convert_models_to_onnx.py
 """
 from pathlib import Path
 from ultralytics import YOLO
