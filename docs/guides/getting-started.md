@@ -96,10 +96,10 @@ docker compose -f docker-compose.dev.yml logs -f
 
 ```bash
 # 快速健康检查
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 
 # 快速功能测试
-bash scripts/dev/test_services.sh --fast
+bash scripts/dev/check.sh --test fast
 ```
 
 ### 服务访问地址

@@ -137,16 +137,16 @@ uv run python <script>
 
 ```bash
 # 完整健康检查
-bash scripts/dev/health_check.sh
+bash scripts/dev/check.sh
 
 # 快速检查
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 
 # 详细输出
-bash scripts/dev/health_check.sh --verbose
+bash scripts/dev/check.sh --verbose
 
 # 检查单个服务
-bash scripts/dev/health_check.sh --service backend
+bash scripts/dev/check.sh --service backend
 ```
 
 ---

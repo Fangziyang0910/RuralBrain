@@ -55,7 +55,7 @@ skill_name:
 ### 步骤 4：测试验证
 
 ```bash
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 ```
 
 ---

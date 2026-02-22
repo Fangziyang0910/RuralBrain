@@ -74,7 +74,7 @@ cp .env.example .env
 docker compose -f docker-compose.dev.yml up -d
 
 # 4. 验证服务
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 ```
 
 ### 1.3 每日启动开发环境
@@ -86,7 +86,7 @@ docker compose -f docker-compose.dev.yml up -d
 # 2. 等待服务启动（约 10-20 秒）
 
 # 3. 验证服务健康
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 
 # 4. 开始开发
 ```
@@ -192,18 +192,18 @@ docker compose -f docker-compose.dev.yml up -d frontend
    $ docker compose -f docker-compose.dev.yml up -d
 
 2. 验证服务健康
-   $ bash scripts/dev/health_check.sh --quick
+   $ bash scripts/dev/check.sh --quick
 
 3. 开发代码（自动热重载）
    - 修改文件
    - Docker 自动检测变更并重启服务（1-3秒）
 
 4. 快速验证（每次修改后）
-   $ bash scripts/dev/health_check.sh --quick
-   $ bash scripts/dev/test_services.sh --fast
+   $ bash scripts/dev/check.sh --quick
+   $ bash scripts/dev/check.sh --test fast
 
 5. 完整测试（功能开发完成后）
-   $ bash scripts/dev/test_services.sh --normal
+   $ bash scripts/dev/check.sh --test normal
 ```
 
 ### 3.2 健康检查脚本
@@ -212,19 +212,19 @@ docker compose -f docker-compose.dev.yml up -d frontend
 
 ```bash
 # 完整健康检查
-bash scripts/dev/health_check.sh
+bash scripts/dev/check.sh --health
 
 # 快速检查（仅健康端点）⭐ 每次修改后使用
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 
 # 详细输出
-bash scripts/dev/health_check.sh --verbose
+bash scripts/dev/check.sh --health --verbose
 
 # 检查单个服务
-bash scripts/dev/health_check.sh --service backend
-bash scripts/dev/health_check.sh --service frontend
-bash scripts/dev/health_check.sh --service detection
-bash scripts/dev/health_check.sh --service planning
+bash scripts/dev/check.sh --health --service backend
+bash scripts/dev/check.sh --health --service frontend
+bash scripts/dev/check.sh --health --service detection
+bash scripts/dev/check.sh --health --service planning
 ```
 
 ### 3.3 功能测试脚本
@@ -239,16 +239,16 @@ bash scripts/dev/health_check.sh --service planning
 
 ```bash
 # 快速测试（每次代码修改后）⭐
-bash scripts/dev/test_services.sh --fast
+bash scripts/dev/check.sh --test fast
 
 # 正常测试（功能开发完成后）⭐
-bash scripts/dev/test_services.sh --normal
+bash scripts/dev/check.sh --test normal
 
 # 完整测试（发布前）
-bash scripts/dev/test_services.sh --full
+bash scripts/dev/check.sh --test full
 
 # 遇到错误继续测试
-bash scripts/dev/test_services.sh --fast --continue
+bash scripts/dev/check.sh --test fast --continue
 ```
 
 ### 3.4 代码更改验证流程 ⭐⭐⭐
@@ -259,10 +259,10 @@ bash scripts/dev/test_services.sh --fast --continue
 # 1. 等待热重载完成（1-3秒，自动）
 
 # 2. 快速健康检查
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 
 # 3. 快速功能测试
-bash scripts/dev/test_services.sh --fast
+bash scripts/dev/check.sh --test fast
 
 # 4. 如果测试通过，继续开发
 #    如果测试失败，修复问题
@@ -272,7 +272,7 @@ bash scripts/dev/test_services.sh --fast
 
 ```bash
 # 1. 运行完整功能测试
-bash scripts/dev/test_services.sh --normal
+bash scripts/dev/check.sh --test normal
 
 # 2. 如果测试通过，切换到生产模式验证
 #    如果测试失败，修复问题后重试
@@ -350,7 +350,7 @@ bash scripts/dev/switch_to_development.sh
 
 1. 查看详细输出：
    ```bash
-   bash scripts/dev/test_services.sh --fast --verbose
+   bash scripts/dev/check.sh --test fast --verbose
    ```
 
 2. 查看服务日志：
@@ -362,7 +362,7 @@ bash scripts/dev/switch_to_development.sh
 
 4. 检查服务健康：
    ```bash
-   bash scripts/dev/health_check.sh --verbose
+   bash scripts/dev/check.sh --health --verbose
    ```
 
 ### 5.3 服务启动失败
@@ -394,7 +394,7 @@ bash scripts/dev/switch_to_development.sh
 
 1. 检查服务是否都在运行：
    ```bash
-   bash scripts/dev/health_check.sh
+   bash scripts/dev/check.sh --health
    ```
 
 2. 检查服务间连通性：
@@ -430,11 +430,11 @@ jobs:
 
       - name: Wait for services
         run: |
-          bash scripts/dev/health_check.sh --verbose
+          bash scripts/dev/check.sh --health --verbose
 
       - name: Run tests
         run: |
-          bash scripts/dev/test_services.sh --fast
+          bash scripts/dev/check.sh --test fast
 
       - name: Show logs on failure
         if: failure()
@@ -450,7 +450,7 @@ jobs:
 ```bash
 #!/bin/bash
 echo "运行预提交测试..."
-bash scripts/dev/health_check.sh --quick
+bash scripts/dev/check.sh --quick
 if [ $? -ne 0 ]; then
     echo "健康检查失败，请修复后再提交"
     exit 1
@@ -480,10 +480,10 @@ docker compose -f docker-compose.dev.yml up -d
 docker compose -f docker-compose.dev.yml down
 
 # 健康检查
-bash scripts/dev/health_check.sh [--quick] [--verbose] [--service <name>]
+bash scripts/dev/check.sh --health [--quick] [--verbose] [--service <name>]
 
 # 功能测试
-bash scripts/dev/test_services.sh [--fast|--normal|--full]
+bash scripts/dev/check.sh --test [--fast|--normal|--full]
 
 # 生产环境测试
 bash scripts/dev/test_production.sh
