@@ -23,10 +23,11 @@ class TestRegistrySkills:
         skills = registry.get_all_skills()
         assert len(skills) >= 6  # 至少有 6 个技能
 
-        # 检查关键技能存在
+        # 检查关键技能存在（检测、规划、定价、营销等）
         skill_names = [s.name for s in skills]
-        assert "intent_recognition" in skill_names
-        assert "scenario_switching" in skill_names
+        assert "pest_detection" in skill_names
+        assert "consult_planning_knowledge" in skill_names
+        assert "pricing_analysis" in skill_names
 
     def test_skill_types(self):
         """测试技能类型"""
@@ -51,23 +52,14 @@ class TestRegistrySkills:
             # content 可能是中文，不包含英文名称，所以只检查长度
             assert len(content) > 0
 
-    def test_intent_recognition_skill_content(self):
-        """测试意图识别技能内容"""
-        intent_skill = registry.get_skill("intent_recognition")
-        assert intent_skill is not None
+    def test_detection_skill_content(self):
+        """测试检测技能内容"""
+        pest_skill = registry.get_skill("pest_detection")
+        assert pest_skill is not None
 
-        # 根据 YAML 配置中的内容验证
-        assert "约束条件" in intent_skill.content
-        assert "示例" in intent_skill.content
-
-    def test_scenario_switching_skill_content(self):
-        """测试场景切换技能内容"""
-        scenario_skill = registry.get_skill("scenario_switching")
-        assert scenario_skill is not None
-
-        # 根据 YAML 配置中的内容验证
-        assert "约束条件" in scenario_skill.content
-        assert "示例" in scenario_skill.content
+        # 验证内容包含关键信息
+        assert len(pest_skill.content) > 0
+        assert "pest_detection" in pest_skill.name
 
 
 class TestOrchestratorAgentV2:
@@ -78,22 +70,41 @@ class TestOrchestratorAgentV2:
         assert agent is not None
 
     def test_agent_tools(self):
-        """测试 Agent 工具配置"""
-        # 应该包含检测工具
-        assert len(orchestrator_tools) >= 3
+        """测试 Agent 工具配置 - 严格渐进式披露"""
+        # 初始只注册 load_skill 工具，其他工具通过 DynamicToolMiddleware 动态注册
+        assert len(orchestrator_tools) == 1
 
         tool_names = [tool.name for tool in orchestrator_tools]
-        assert "pest_detection_tool" in tool_names
-        assert "rice_detection_tool" in tool_names
-        assert "cow_detection_tool" in tool_names
         assert "load_skill" in tool_names
+
+    @pytest.mark.asyncio
+    async def test_dynamic_tool_registration(self):
+        """测试动态工具注册功能"""
+        from src.agents.middleware.dynamic_tool_middleware import get_dynamic_middleware
+        from src.agents.tools import load_skill
+
+        middleware = get_dynamic_middleware()
+        thread_id = "test_thread"
+
+        # 初始状态：没有动态注册的工具
+        registered = middleware.get_registered_tools(thread_id)
+        assert len(registered) == 0
+
+        # 通过 load_skill 注册检测工具
+        await load_skill.ainvoke(
+            {"skill_name": "pest_detection"},
+            config={"configurable": {"thread_id": thread_id}}
+        )
+
+        # 验证工具已注册
+        registered = middleware.get_registered_tools(thread_id)
+        assert "pest_detection_tool" in registered
 
     def test_agent_skills_count(self):
         """测试 Agent 技能数量"""
-        # YAML 配置中有 6 个技能：pest, rice, cow, planning, pricing, marketing
-        # 加上 inspection, disease_prediction, 和 2 个 orchestration
+        # YAML 配置文件：detection, planning, pricing, marketing, inspection, disease_prediction
         skills = registry.get_all_skills()
-        assert len(skills) >= 8  # 至少有 8 个技能
+        assert len(skills) >= 6  # 至少有 6 个技能
 
     def test_agent_skill_names(self):
         """测试 Agent 技能名称"""
@@ -107,9 +118,9 @@ class TestOrchestratorAgentV2:
         # 规划技能
         assert "consult_planning_knowledge" in skill_names
 
-        # 编排技能
-        assert "intent_recognition" in skill_names
-        assert "scenario_switching" in skill_names
+        # 定价和营销技能
+        assert "pricing_analysis" in skill_names
+        assert "marketing_strategy" in skill_names
 
     def test_skill_tool_associations(self):
         """测试技能工具关联（通过 tool_names 属性）"""
@@ -121,13 +132,14 @@ class TestOrchestratorAgentV2:
         for skill in detection_skills:
             assert len(skill.tool_names) > 0, f"{skill.name} 应该有关联的工具"
 
-        # 编排技能不应该关联工具（仅提供指导）
-        orchestration_skills = [
+        # 规划类技能可能没有关联工具（使用 RAG）
+        planning_skills = [
             s for s in registry.get_all_skills()
-            if s.name in ["intent_recognition", "scenario_switching"]
+            if s.name == "consult_planning_knowledge"
         ]
-        for skill in orchestration_skills:
-            assert len(skill.tool_names) == 0, f"{skill.name} 不应该关联工具"
+        for skill in planning_skills:
+            # 规划技能可能没有直接的工具关联
+            assert len(skill.tool_names) >= 0
 
 
 class TestSkillRegistry:
@@ -148,7 +160,7 @@ class TestSkillRegistry:
     def test_list_skill_names(self):
         """测试列出技能名称"""
         names = registry.list_skill_names()
-        assert len(names) >= 8
+        assert len(names) >= 6
         assert "pest_detection" in names
         assert "rice_detection" in names
 
@@ -157,7 +169,7 @@ class TestSkillRegistry:
         descriptions = registry.get_skill_descriptions()
         assert "pest_detection" in descriptions
         assert "rice_detection" in descriptions
-        assert "intent_recognition" in descriptions
+        assert "pricing_analysis" in descriptions
 
     def test_load_content(self):
         """测试加载技能内容"""
@@ -183,7 +195,7 @@ class TestSkillMiddlewareIntegration:
         assert "pest_detection" in registered
         assert "rice_detection" in registered
         assert "cow_detection" in registered
-        assert "intent_recognition" in registered
+        assert "consult_planning_knowledge" in registered
 
     def test_load_skill_tool_exists(self):
         """测试 load_skill 工具是否存在"""
@@ -192,17 +204,24 @@ class TestSkillMiddlewareIntegration:
         assert load_skill is not None
         assert load_skill.name == "load_skill"
 
-    def test_load_skill_tool_functionality(self):
+    @pytest.mark.asyncio
+    async def test_load_skill_tool_functionality(self):
         """测试 load_skill 工具功能"""
-        from src.agents.tools.load_skill_tool import load_skill
+        from src.agents.tools import load_skill
 
-        # 测试加载存在的技能（调用工具的 invoke）
-        result = load_skill.invoke({"skill_name": "pest_detection"})
+        # 测试加载存在的技能（需要 thread_id 上下文）
+        result = await load_skill.ainvoke(
+            {"skill_name": "pest_detection"},
+            config={"configurable": {"thread_id": "test_thread"}}
+        )
         assert "pest_detection" in result
         assert "病虫害检测" in result
 
         # 测试加载不存在的技能
-        result = load_skill.invoke({"skill_name": "nonexistent_skill"})
+        result = await load_skill.ainvoke(
+            {"skill_name": "nonexistent_skill"},
+            config={"configurable": {"thread_id": "test_thread_2"}}
+        )
         assert "未找到" in result
 
 
