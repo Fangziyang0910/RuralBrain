@@ -133,11 +133,11 @@ uv run python <script>
 
 ## 健康检查脚本
 
-使用 `scripts/dev/health_check.sh` 进行系统检查：
+使用 `scripts/dev/check.sh` 进行系统检查（已合并 `health_check.sh` 和 `test_services.sh`）：
 
 ```bash
 # 完整健康检查
-bash scripts/dev/check.sh
+bash scripts/dev/check.sh --health
 
 # 快速检查
 bash scripts/dev/check.sh --quick
@@ -159,4 +159,4 @@ bash scripts/dev/check.sh --service backend
 
 ---
 
-**最后更新**: 2026-02-20
+**最后更新**: 2026-02-22

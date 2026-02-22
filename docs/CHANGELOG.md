@@ -4,6 +4,72 @@
 
 ---
 
+## [2026-02-22] - 动态工具注册与测试优化
+
+### 🎯 架构优化
+
+**动态工具注册系统**
+
+实现基于会话的动态工具注册机制，确保工具调用的会话隔离和安全性。
+
+**核心改进**：
+- ✅ 新增 `DynamicToolMiddleware` - 会话隔离的动态工具注册
+- ✅ 移除 `ModeAwareMiddleware` 和 `ToolSelectorMiddleware`（冗余中间件）
+- ✅ 修复工具参数传递问题
+- ✅ 修复异步上下文中的协程错误
+- ✅ 实现严格渐进式披露架构
+
+**代码变更**：
+- 新增 `src/agents/middleware/dynamic_tool_middleware.py`
+- 更新 `src/agents/middleware/skill_middleware.py` - 简化并优化
+- 移除 `src/agents/middleware/mode_aware_middleware.py`
+- 移除 `src/agents/middleware/tool_selector_middleware.py`
+
+### 🔧 脚本优化
+
+**统一检查脚本**
+
+将多个分散的开发脚本合并为统一的 `check.sh`，提供健康检查和功能测试的一站式解决方案。
+
+**核心改进**：
+- ✅ 合并 `health_check.sh`、`test_services.sh`、`quick_start.sh` 为 `check.sh`
+- ✅ 支持分级测试（fast、normal、full）
+- ✅ 统一的健康检查和功能测试入口
+- ✅ 改进测试输出格式和错误处理
+
+**新脚本用法**：
+```bash
+# 健康检查
+bash scripts/dev/check.sh --health
+bash scripts/dev/check.sh --quick
+
+# 功能测试
+bash scripts/dev/check.sh --test fast
+bash scripts/dev/check.sh --test normal
+bash scripts/dev/check.sh --test full
+```
+
+**删除的脚本**：
+- `scripts/dev/health_check.sh`
+- `scripts/dev/test_services.sh`
+- `scripts/dev/quick_start.sh`
+
+### 🛠️ 测试更新
+
+**测试架构优化**
+
+- ✅ 更新测试以适应严格渐进式披露架构
+- ✅ 添加 `SkillMiddleware` 单元测试
+- ✅ 修复测试函数参数顺序
+
+### 📝 文档更新
+
+- ✅ 更新开发工作流文档
+- ✅ 更新命令参考文档
+- ✅ 更新故障排查指南
+
+---
+
 ## [2026-02] - Skills 架构优化（YAML 配置驱动）
 
 ### 🎯 架构优化

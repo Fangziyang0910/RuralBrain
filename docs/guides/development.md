@@ -208,7 +208,7 @@ docker compose -f docker-compose.dev.yml up -d frontend
 
 ### 3.2 健康检查脚本
 
-`scripts/dev/health_check.sh` 提供多种检查模式：
+`scripts/dev/check.sh` 提供多种检查模式：
 
 ```bash
 # 完整健康检查
@@ -221,15 +221,15 @@ bash scripts/dev/check.sh --quick
 bash scripts/dev/check.sh --health --verbose
 
 # 检查单个服务
-bash scripts/dev/check.sh --health --service backend
-bash scripts/dev/check.sh --health --service frontend
-bash scripts/dev/check.sh --health --service detection
-bash scripts/dev/check.sh --health --service planning
+bash scripts/dev/check.sh --service backend
+bash scripts/dev/check.sh --service frontend
+bash scripts/dev/check.sh --service detection
+bash scripts/dev/check.sh --service planning
 ```
 
 ### 3.3 功能测试脚本
 
-`scripts/dev/test_services.sh` 支持三级测试：
+`scripts/dev/check.sh` 支持三级测试：
 
 | 级别 | 选项 | 测试内容 | 预计时间 | 使用场景 |
 |------|------|----------|----------|----------|
@@ -519,4 +519,4 @@ docker compose -f docker-compose.dev.yml ps
 
 ---
 
-**最后更新**: 2026-02-20
+**最后更新**: 2026-02-22
