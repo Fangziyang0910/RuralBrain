@@ -7,19 +7,30 @@
 1. 加载技能的完整内容到系统提示词
 2. 动态注册该技能关联的工具（通过 tool_names 配置）
 3. 工具在当前会话中永久生效（会话级别生命周期，按 thread_id 隔离）
+
+注意：
+- 使用 config 参数来获取 thread_id（从 RunnableConfig.configurable.thread_id）
+- config 参数是 LangChain 工具的标准参数，会被自动注入
 """
 import logging
-from typing import Any
+from typing import Any, Optional
 
-from langchain.tools import tool, ToolRuntime
+from langchain.tools import tool
+from langchain_core.runnables import RunnableConfig
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
 
-@tool
+class LoadSkillInput(BaseModel):
+    """加载技能的输入参数"""
+    skill_name: str = Field(description="要加载的技能名称")
+
+
+@tool(args_schema=LoadSkillInput)
 def load_skill(
     skill_name: str,
-    runtime: ToolRuntime[Any, Any]
+    config: Optional[RunnableConfig] = None
 ) -> str:
     """加载技能的完整内容，并动态注册关联的工具。
 
@@ -42,15 +53,15 @@ def load_skill(
     from ..middleware.dynamic_tool_middleware import get_dynamic_middleware, DEFAULT_THREAD_ID
     from ..skills.registry import get_registry
 
-    # 获取 thread_id（从 runtime.config.configurable.thread_id）
+    # 获取 thread_id（从 config.configurable.thread_id）
     thread_id = DEFAULT_THREAD_ID
-    if runtime and hasattr(runtime, 'config'):
+    if config:
         try:
-            configurable = runtime.config.get('configurable', {})
+            configurable = config.get('configurable', {})
             thread_id = configurable.get('thread_id', DEFAULT_THREAD_ID)
-            logger.debug(f"load_skill: 从 runtime 获取到 thread_id={thread_id}")
+            logger.debug(f"load_skill: 从 config 获取到 thread_id={thread_id}")
         except Exception as e:
-            logger.debug(f"load_skill: 无法从 runtime 获取 thread_id: {e}")
+            logger.debug(f"load_skill: 无法从 config 获取 thread_id: {e}")
 
     registry = get_registry()
 

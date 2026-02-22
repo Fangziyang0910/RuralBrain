@@ -15,7 +15,8 @@ https://docs.langchain.com/oss/python/langchain/agents
 import logging
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 
-from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse, ToolCallRequest
+from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
+from langchain.agents.middleware.types import ToolCallRequest
 from langchain_core.tools import BaseTool
 
 if TYPE_CHECKING:
@@ -88,15 +89,16 @@ class DynamicToolMiddleware(AgentMiddleware):
         Returns:
             thread_id，如果无法获取则返回默认值
         """
-        # 尝试从 config.configurable 中获取 thread_id
+        # 尝试从 runtime.config.configurable 中获取 thread_id
         try:
-            if hasattr(request, 'config') and request.config:
-                configurable = request.config.get('configurable', {})
-                thread_id = configurable.get('thread_id')
-                if thread_id:
-                    return str(thread_id)
+            if hasattr(request, 'runtime') and request.runtime:
+                if hasattr(request.runtime, 'config') and request.runtime.config:
+                    configurable = request.runtime.config.get('configurable', {})
+                    thread_id = configurable.get('thread_id')
+                    if thread_id:
+                        return str(thread_id)
         except Exception as e:
-            logger.debug(f"无法从 config 获取 thread_id: {e}")
+            logger.debug(f"无法从 runtime.config 获取 thread_id: {e}")
 
         # 如果无法获取，使用默认值
         return DEFAULT_THREAD_ID
