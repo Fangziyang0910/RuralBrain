@@ -230,8 +230,11 @@ bash scripts/dev/test_production.sh
 ### 4.4 服务状态检查
 
 ```bash
-# 使用检查脚本
-bash scripts/dev/check_services.sh
+# 快速健康检查（推荐）
+bash scripts/dev/health_check.sh --quick
+
+# 完整健康检查
+bash scripts/dev/health_check.sh
 
 # 或手动检查端口
 lsof -i :3001  # 前端
