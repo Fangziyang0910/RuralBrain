@@ -252,14 +252,17 @@ class DynamicToolMiddleware(AgentMiddleware):
         """
         tool_name = request.tool_call.get("name")
 
-        # 在所有会话中查找该工具
-        if tool_name:
-            for thread_id, session_tools in self._registered_tools.items():
-                if tool_name in session_tools:
-                    # 这是一个动态工具，提供正确的工具实例
-                    tool = session_tools[tool_name]
-                    logger.debug(f"wrap_tool_call: 执行动态工具 {tool_name} (thread_id: {thread_id})")
-                    return handler(request.override(tool=tool))
+        # 获取当前会话的 thread_id（保持会话隔离）
+        thread_id = self._get_thread_id(request)
+
+        # 只在当前会话中查找该工具
+        if tool_name and thread_id in self._registered_tools:
+            session_tools = self._registered_tools[thread_id]
+            if tool_name in session_tools:
+                # 这是一个动态工具，提供正确的工具实例
+                tool = session_tools[tool_name]
+                logger.debug(f"wrap_tool_call: 执行动态工具 {tool_name} (thread_id: {thread_id})")
+                return handler(request.override(tool=tool))
 
         # 静态工具，直接调用
         return handler(request)
@@ -307,14 +310,17 @@ class DynamicToolMiddleware(AgentMiddleware):
         """
         tool_name = request.tool_call.get("name")
 
-        # 在所有会话中查找该工具
-        if tool_name:
-            for thread_id, session_tools in self._registered_tools.items():
-                if tool_name in session_tools:
-                    # 这是一个动态工具，提供正确的工具实例
-                    tool = session_tools[tool_name]
-                    logger.debug(f"awrap_tool_call: 执行动态工具 {tool_name} (thread_id: {thread_id})")
-                    return await handler(request.override(tool=tool))
+        # 获取当前会话的 thread_id（保持会话隔离）
+        thread_id = self._get_thread_id(request)
+
+        # 只在当前会话中查找该工具
+        if tool_name and thread_id in self._registered_tools:
+            session_tools = self._registered_tools[thread_id]
+            if tool_name in session_tools:
+                # 这是一个动态工具，提供正确的工具实例
+                tool = session_tools[tool_name]
+                logger.debug(f"awrap_tool_call: 执行动态工具 {tool_name} (thread_id: {thread_id})")
+                return await handler(request.override(tool=tool))
 
         # 静态工具，直接调用（需要 await）
         return await handler(request)
