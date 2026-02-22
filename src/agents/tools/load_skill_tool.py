@@ -9,8 +9,8 @@
 3. 工具在当前会话中永久生效（会话级别生命周期，按 thread_id 隔离）
 
 注意：
-- 使用 config 参数来获取 thread_id（从 RunnableConfig.configurable.thread_id）
-- config 参数是 LangChain 工具的标准参数，会被自动注入
+- 使用 langgraph.config.get_config() 自动获取 thread_id
+- 不需要手动传递 thread_id 参数
 """
 import logging
 from typing import Any, Optional
@@ -42,6 +42,7 @@ def load_skill(
 
     Args:
         skill_name: 要加载的技能名称
+        config: RunnableConfig（自动注入，用于获取 thread_id）
 
     Returns:
         技能的完整内容和已注册的工具列表。如果技能名称不存在，将返回当前可用的技能名称列表。
@@ -50,18 +51,8 @@ def load_skill(
         >>> load_skill("pest_detection")
         "已加载技能: pest_detection\\n\\n已注册工具: pest_detection_tool\\n\\n[技能内容...]"
     """
-    from ..middleware.dynamic_tool_middleware import get_dynamic_middleware, DEFAULT_THREAD_ID
+    from ..middleware.dynamic_tool_middleware import get_dynamic_middleware
     from ..skills.registry import get_registry
-
-    # 获取 thread_id（从 config.configurable.thread_id）
-    thread_id = DEFAULT_THREAD_ID
-    if config:
-        try:
-            configurable = config.get('configurable', {})
-            thread_id = configurable.get('thread_id', DEFAULT_THREAD_ID)
-            logger.debug(f"load_skill: 从 config 获取到 thread_id={thread_id}")
-        except Exception as e:
-            logger.debug(f"load_skill: 无法从 config 获取 thread_id: {e}")
 
     registry = get_registry()
 
@@ -75,24 +66,25 @@ def load_skill(
     content = skill.content or f"# {skill.name}\n\n{skill.description}"
 
     # 3. 注册关联的工具（动态工具注册）
+    # 注意：register_tools_by_skill 会自动从调用上下文获取 thread_id
     registered_tools_info = ""
     if skill.tool_names:
         try:
             middleware = get_dynamic_middleware()
 
-            # 注册工具到指定会话
+            # 注册工具到当前会话（thread_id 自动获取）
             count = middleware.register_tools_by_skill(
                 skill_name,
-                skill.tool_names,
-                thread_id=thread_id
+                skill.tool_names
+                # thread_id 现在由 register_tools_by_skill 自动获取
             )
 
             if count > 0:
                 registered_tools_info = f"\n\n✅ 已注册工具: {', '.join(skill.tool_names)}"
-                logger.info(f"技能 {skill_name} 注册了 {count} 个工具 (thread_id: {thread_id})")
+                logger.info(f"技能 {skill_name} 注册了 {count} 个工具")
             else:
                 registered_tools_info = "\n\n⚠️ 工具已存在或加载失败"
-                logger.warning(f"技能 {skill_name} 工具注册失败 (thread_id: {thread_id})")
+                logger.warning(f"技能 {skill_name} 工具注册失败")
 
         except RuntimeError as e:
             # DynamicToolMiddleware 未初始化（开发模式）

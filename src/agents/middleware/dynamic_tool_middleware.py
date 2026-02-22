@@ -18,6 +18,7 @@ from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
 from langchain.agents.middleware.types import ToolCallRequest
 from langchain_core.tools import BaseTool
+from langgraph.config import get_config
 
 if TYPE_CHECKING:
     from ..tools.tool_loader import ToolLoader
@@ -89,16 +90,18 @@ class DynamicToolMiddleware(AgentMiddleware):
         Returns:
             thread_id，如果无法获取则返回默认值
         """
-        # 尝试从 runtime.config.configurable 中获取 thread_id
+        # 使用 langgraph 的 get_config() 获取 RunnableConfig
+        # 这是在中间件中获取 thread_id 的正确方式
         try:
-            if hasattr(request, 'runtime') and request.runtime:
-                if hasattr(request.runtime, 'config') and request.runtime.config:
-                    configurable = request.runtime.config.get('configurable', {})
-                    thread_id = configurable.get('thread_id')
-                    if thread_id:
-                        return str(thread_id)
+            config = get_config()
+            thread_id = config.get("configurable", {}).get("thread_id")
+            if thread_id:
+                return str(thread_id)
+        except RuntimeError:
+            # 如果在 runnable 上下文外调用，使用默认值
+            logger.debug("无法获取 config（不在 runnable 上下文中）")
         except Exception as e:
-            logger.debug(f"无法从 runtime.config 获取 thread_id: {e}")
+            logger.debug(f"获取 thread_id 时出错: {e}")
 
         # 如果无法获取，使用默认值
         return DEFAULT_THREAD_ID
@@ -108,7 +111,7 @@ class DynamicToolMiddleware(AgentMiddleware):
         tool_names: List[str],
         tools: List[BaseTool],
         skill_name: str = "",
-        thread_id: str = DEFAULT_THREAD_ID
+        thread_id: Optional[str] = None
     ):
         """
         注册工具到指定会话
@@ -117,8 +120,23 @@ class DynamicToolMiddleware(AgentMiddleware):
             tool_names: 工具名称列表
             tools: 工具实例列表
             skill_name: 关联的技能名称（可选，用于日志和跟踪）
-            thread_id: 会话 ID，默认使用默认会话
+            thread_id: 会话 ID，如果为 None 则自动从上下文获取
         """
+        # 如果未指定 thread_id，尝试从调用上下文自动获取
+        if thread_id is None:
+            try:
+                config = get_config()
+                thread_id = config.get("configurable", {}).get("thread_id")
+                if thread_id:
+                    thread_id = str(thread_id)
+                    logger.debug(f"从上下文自动获取 thread_id: {thread_id}")
+            except (RuntimeError, KeyError) as e:
+                logger.debug(f"无法从上下文获取 thread_id: {e}，使用默认值")
+
+        # 如果仍然无法获取，使用默认值
+        if thread_id is None:
+            thread_id = DEFAULT_THREAD_ID
+
         # 确保该 thread_id 的工具字典存在
         if thread_id not in self._registered_tools:
             self._registered_tools[thread_id] = {}
@@ -147,7 +165,7 @@ class DynamicToolMiddleware(AgentMiddleware):
         self,
         skill_name: str,
         tool_names: List[str],
-        thread_id: str = DEFAULT_THREAD_ID
+        thread_id: Optional[str] = None
     ) -> int:
         """
         根据技能名称注册关联的工具
@@ -155,7 +173,7 @@ class DynamicToolMiddleware(AgentMiddleware):
         Args:
             skill_name: 技能名称
             tool_names: 工具名称列表
-            thread_id: 会话 ID
+            thread_id: 会话 ID，如果为 None 则自动从上下文获取
 
         Returns:
             成功注册的工具数量
@@ -167,6 +185,22 @@ class DynamicToolMiddleware(AgentMiddleware):
             raise RuntimeError("ToolLoader 未设置，无法加载工具")
 
         tools = self._tool_loader.load_tools_by_names(tool_names)
+
+        # 如果未指定 thread_id，尝试从调用上下文自动获取
+        if thread_id is None:
+            try:
+                config = get_config()
+                thread_id = config.get("configurable", {}).get("thread_id")
+                if thread_id:
+                    thread_id = str(thread_id)
+                    logger.debug(f"从上下文自动获取 thread_id: {thread_id}")
+            except (RuntimeError, KeyError) as e:
+                logger.debug(f"无法从上下文获取 thread_id: {e}，使用默认值")
+
+        # 如果仍然无法获取，使用默认值
+        if thread_id is None:
+            thread_id = DEFAULT_THREAD_ID
+
         self.register_tools(tool_names, tools, skill_name, thread_id)
 
         # 返回该会话中成功注册的工具数量
