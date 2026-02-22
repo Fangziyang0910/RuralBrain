@@ -329,18 +329,18 @@ run_test() {
 # 测试函数
 test_basic_connectivity() {
     local ALL_OK=true
-    check_http "$FRONTEND_URL" "200" "前端" || ALL_OK=false
-    check_http "$BACKEND_URL/health" "200" "后端健康" || ALL_OK=false
-    check_http "$DETECTION_URL/health" "200" "检测服务健康" || ALL_OK=false
-    check_http "$PLANNING_URL/health" "200" "规划服务健康" || ALL_OK=false
+    check_http "前端" "$FRONTEND_URL" "200" || ALL_OK=false
+    check_http "后端健康" "$BACKEND_URL/health" "200" || ALL_OK=false
+    check_http "检测服务健康" "$DETECTION_URL/health" "200" || ALL_OK=false
+    check_http "规划服务健康" "$PLANNING_URL/health" "200" || ALL_OK=false
     $ALL_OK
 }
 
 test_api_docs() {
     local ALL_OK=true
-    check_http "$BACKEND_URL/docs" "200" "后端 API 文档" || ALL_OK=false
-    check_http "$DETECTION_URL/docs" "200" "检测服务 API 文档" || ALL_OK=false
-    check_http "$PLANNING_URL/docs" "200" "规划服务 API 文档" || ALL_OK=false
+    check_http "后端 API 文档" "$BACKEND_URL/docs" "200" || ALL_OK=false
+    check_http "检测服务 API 文档" "$DETECTION_URL/docs" "200" || ALL_OK=false
+    check_http "规划服务 API 文档" "$PLANNING_URL/docs" "200" || ALL_OK=false
     $ALL_OK
 }
 
