@@ -27,6 +27,7 @@
 - [故障排查](guides/troubleshooting.md) - 常见问题解决
 
 ### 优化计划
+- [Skills 扩展模式分析](plans/skills-extension-analysis.md) - LangChain Skills 扩展模式深入分析
 - [RAG 服务优化计划](plans/rag-optimization.md) - 性能提升和架构改进方案
 
 ### 项目记录
@@ -73,7 +74,8 @@ docs/
     └── troubleshooting.md             # 故障排查
 │
 └── plans/                             # 📋 优化计划
-    └── rag-optimization.md            # RAG 服务优化计划
+    ├── rag-optimization.md            # RAG 服务优化计划
+    └── skills-extension-analysis.md   # Skills 扩展模式分析
 ```
 
 ---
