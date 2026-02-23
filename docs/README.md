@@ -26,6 +26,9 @@
 - [快速开始](guides/getting-started.md) - Docker 和本地部署
 - [故障排查](guides/troubleshooting.md) - 常见问题解决
 
+### 优化计划
+- [RAG 服务优化计划](plans/rag-optimization.md) - 性能提升和架构改进方案
+
 ### 项目记录
 - [变更日志](CHANGELOG.md) - 功能迭代和配置变更记录
 
@@ -42,6 +45,7 @@
 | 排查问题 | [故障排查指南](guides/troubleshooting.md) |
 | 了解重要决策 | [架构决策记录](decisions/) |
 | 开发调试 | [开发工作流](guides/development.md) |
+| 查看优化计划 | [优化计划](plans/) |
 
 ---
 
@@ -67,6 +71,9 @@ docs/
     ├── getting-started.md             # 快速开始
     ├── development.md                 # 开发工作流
     └── troubleshooting.md             # 故障排查
+│
+└── plans/                             # 📋 优化计划
+    └── rag-optimization.md            # RAG 服务优化计划
 ```
 
 ---
