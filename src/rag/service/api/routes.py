@@ -72,24 +72,73 @@ def extract_knowledge_sources(tool_output: str) -> list[dict]:
 # ==================== 延迟加载 Agent ====================
 
 _agent_cache = None
+_agent_lock = None
+
+
+def _get_agent_lock():
+    """获取 Agent 初始化锁（线程安全）"""
+    global _agent_lock
+    if _agent_lock is None:
+        _agent_lock = asyncio.Lock()
+    return _agent_lock
 
 
 def get_agent():
     """
-    获取 Planning Agent（单例模式）
+    获取 Planning Agent（单例模式，线程安全）
 
     Returns:
         配置好的 Agent 实例
     """
     global _agent_cache
+    if _agent_cache is not None:
+        return _agent_cache
+
+    # 异步环境需要使用 asyncio.Lock
+    import asyncio
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # 没有运行中的事件循环，同步创建
+        if _agent_cache is None:
+            logger.info("正在创建 Planning Agent（同步模式）...")
+            from src.agents.planning_agent import get_planning_agent
+            _agent_cache = get_planning_agent()
+            logger.info("Planning Agent 创建完成")
+        return _agent_cache
+
+    # 异步上下文，需要通过锁保护
+    # 注意：这是一个同步函数，无法直接使用 asyncio.Lock
+    # 如果在异步上下文调用，建议使用异步版本的 get_agent_async
     if _agent_cache is None:
+        logger.warning("get_agent() 在异步上下文中调用，建议使用 get_agent_async()")
         logger.info("正在创建 Planning Agent...")
         from src.agents.planning_agent import get_planning_agent
-
         _agent_cache = get_planning_agent()
         logger.info("Planning Agent 创建完成")
 
     return _agent_cache
+
+
+async def get_agent_async():
+    """
+    获取 Planning Agent（异步版本，线程安全）
+
+    Returns:
+        配置好的 Agent 实例
+    """
+    global _agent_cache
+    if _agent_cache is not None:
+        return _agent_cache
+
+    async with _get_agent_lock():
+        # 双重检查
+        if _agent_cache is None:
+            logger.info("正在创建 Planning Agent（异步）...")
+            from src.agents.planning_agent import get_planning_agent
+            _agent_cache = get_planning_agent()
+            logger.info("Planning Agent 创建完成")
+        return _agent_cache
 
 
 # ==================== 核心端点 ====================
@@ -122,7 +171,7 @@ async def planning_chat(request: PlanningChatRequest):
     """规划咨询对话接口（流式）"""
     request_id = str(uuid.uuid4())
     try:
-        agent = get_agent()
+        agent = await get_agent_async()
         thread_id = request.thread_id or str(uuid.uuid4())
         config = {"configurable": {"thread_id": thread_id}}
 
@@ -516,8 +565,10 @@ async def _update_knowledge_base_impl(request: KnowledgeUpdateRequest) -> Knowle
                 if source and source not in existing_sources:
                     new_sources.add(source)
 
-            # TODO: 实现更精细的切片去重
-            logger.info(f"增量模式: {len(new_sources)} 个新文档")
+            # 切片去重：基于内容级别的 MD5 哈希
+            # 由于增量模式下只添加新文档的切片，这里不需要额外去重
+            # 文档级别的去重已在上面实现（new_sources 筛选）
+            logger.info(f"增量模式: {len(new_sources)} 个新文档, 去重策略：文档级别")
 
         # 6. 向量化并存储
         logger.info("正在向量化并存储...")

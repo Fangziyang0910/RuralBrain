@@ -8,7 +8,7 @@
 3. 查询结果缓存（可选，使用 LRU 策略）
 """
 import hashlib
-import pickle
+import json
 import threading
 from pathlib import Path
 from typing import Optional, List
@@ -146,18 +146,19 @@ class VectorStoreCache:
         self._query_cache[cache_key] = (results, timestamp)
 
         # 持久化缓存（可选）- 需要锁保护
-        cache_file = self.cache_dir / f"query_{cache_key}.pkl"
+        cache_file = self.cache_dir / f"query_{cache_key}.json"
         try:
             with self._cache_lock:
-                with open(cache_file, 'wb') as f:
-                    pickle.dump({
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump({
                         'results': results,
-                        'timestamp': timestamp,
+                        'timestamp': timestamp.isoformat(),
                         'query': query,
                         'params': context_params
-                    }, f)
+                    }, f, ensure_ascii=False)
         except Exception as e:
-            print(f"⚠️  持久化缓存失败: {e}")
+            logger = __import__('logging').getLogger(__name__)
+            logger.error(f"持久化缓存失败: {e}", exc_info=True)
 
     def get_cached_query(
         self,
@@ -195,18 +196,18 @@ class VectorStoreCache:
                     pass
 
         # 检查持久化缓存 - 需要锁保护
-        cache_file = self.cache_dir / f"query_{cache_key}.pkl"
+        cache_file = self.cache_dir / f"query_{cache_key}.json"
         if cache_file.exists():
             try:
                 with self._cache_lock:
                     if not cache_file.exists():
                         return None
 
-                    with open(cache_file, 'rb') as f:
-                        cached_data = pickle.load(f)
+                    with open(cache_file, 'r', encoding='utf-8') as f:
+                        cached_data = json.load(f)
 
                 # 检查是否过期
-                cache_time = cached_data['timestamp']
+                cache_time = datetime.fromisoformat(cached_data['timestamp'])
                 if datetime.now() - cache_time < timedelta(seconds=self.cache_ttl):
                     print(f"🎯 持久化缓存命中: {query[:50]}...")
                     # 加载到内存缓存
@@ -221,7 +222,8 @@ class VectorStoreCache:
                         if cache_file.exists():
                             cache_file.unlink()
             except Exception as e:
-                print(f"⚠️  读取持久化缓存失败: {e}")
+                logger = __import__('logging').getLogger(__name__)
+                logger.error(f"读取持久化缓存失败: {e}", exc_info=True)
 
         return None
 
@@ -277,7 +279,7 @@ class VectorStoreCache:
 
         # 清理持久化缓存
         if self.cache_dir.exists():
-            for cache_file in self.cache_dir.glob("query_*.pkl"):
+            for cache_file in self.cache_dir.glob("query_*.json"):
                 try:
                     if older_than is None:
                         with self._cache_lock:
@@ -293,7 +295,8 @@ class VectorStoreCache:
                                     cache_file.unlink()
                                     count += 1
                 except Exception as e:
-                    print(f"⚠️  删除缓存文件失败: {e}")
+                    logger = __import__('logging').getLogger(__name__)
+                    logger.error(f"删除缓存文件失败: {e}", exc_info=True)
 
         print(f"🧹 清理了 {count} 个缓存项")
         return count
@@ -309,7 +312,7 @@ class VectorStoreCache:
         persistent_cache_count = 0
         persistent_cache_size = 0
         if self.cache_dir.exists():
-            for cache_file in self.cache_dir.glob("query_*.pkl"):
+            for cache_file in self.cache_dir.glob("query_*.json"):
                 persistent_cache_count += 1
                 persistent_cache_size += cache_file.stat().st_size
 

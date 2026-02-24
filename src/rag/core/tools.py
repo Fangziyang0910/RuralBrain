@@ -12,6 +12,7 @@
 - get_full_document 已删除 - 功能通过 search_knowledge 的 expanded 模式实现
 - retrieve_knowledge_detailed 已删除 - 冗余工具
 """
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -25,6 +26,8 @@ from src.rag.config import DEFAULT_TOP_K
 from src.rag.core.context_manager import get_context_manager
 from src.rag.core.cache import get_vector_cache
 
+logger = logging.getLogger(__name__)
+
 
 # ==================== 辅助函数 ====================
 
@@ -34,7 +37,8 @@ def get_vectorstore():
 
 
 def format_error(message: str, error: Exception) -> str:
-    """格式化错误消息"""
+    """格式化错误消息（记录完整堆栈）"""
+    logger.error(f"{message}时发生错误: {error}", exc_info=True)
     return f"❌ {message}时发生错误: {error}"
 
 
@@ -213,18 +217,13 @@ def search_key_points(query: str, sources: Optional[list[str]] = None) -> str:
     - 探索文档的核心观点
 
     **参数：**
-    - query (str | required): 搜索关键词
+    - query (str | required):: 搜索关键词
     - sources (list[str] | optional): 限制搜索的文档列表，默认搜索所有文档
 
     **返回：**
     - 匹配的要点列表，包含来源文档和具体内容
     """
     try:
-        # 兼容旧的调用方式
-        if isinstance(query, dict):
-            query = query.get("query", "")
-            sources = query.get("sources")
-
         cm = get_context_manager()
 
         sources_list = None
