@@ -499,7 +499,7 @@ async def _update_knowledge_base_impl(request: KnowledgeUpdateRequest) -> Knowle
                 shutil.rmtree(chroma_dir)
                 logger.info("已清空现有知识库")
 
-            documents_removed = 0  # TODO: 可以从备份统计
+            documents_removed = 0
         else:
             mode = "incremental"
             documents_removed = 0

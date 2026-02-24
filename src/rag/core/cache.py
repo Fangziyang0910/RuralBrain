@@ -9,6 +9,7 @@
 """
 import hashlib
 import json
+import logging
 import threading
 from pathlib import Path
 from typing import Optional, List
@@ -16,6 +17,8 @@ from datetime import datetime, timedelta
 
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
+
+logger = logging.getLogger(__name__)
 
 from src.rag.config import (
     CHROMA_COLLECTION_NAME,
@@ -157,7 +160,6 @@ class VectorStoreCache:
                         'params': context_params
                     }, f, ensure_ascii=False)
         except Exception as e:
-            logger = __import__('logging').getLogger(__name__)
             logger.error(f"持久化缓存失败: {e}", exc_info=True)
 
     def get_cached_query(
@@ -222,7 +224,6 @@ class VectorStoreCache:
                         if cache_file.exists():
                             cache_file.unlink()
             except Exception as e:
-                logger = __import__('logging').getLogger(__name__)
                 logger.error(f"读取持久化缓存失败: {e}", exc_info=True)
 
         return None
@@ -295,7 +296,6 @@ class VectorStoreCache:
                                     cache_file.unlink()
                                     count += 1
                 except Exception as e:
-                    logger = __import__('logging').getLogger(__name__)
                     logger.error(f"删除缓存文件失败: {e}", exc_info=True)
 
         print(f"🧹 清理了 {count} 个缓存项")
