@@ -2,6 +2,7 @@
 Planning Service API 路由
 提供规划咨询、知识库查询等端点
 """
+import asyncio
 import json
 import logging
 import time
@@ -38,6 +39,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# ==================== 全局更新锁 ====================
+_kb_update_lock = asyncio.Lock()
 
 
 # ==================== 辅助函数 ====================
@@ -355,7 +359,7 @@ async def get_document_chapters(source: str):
 @router.post("/knowledge/update", response_model=KnowledgeUpdateResponse, tags=["知识库"])
 async def update_knowledge_base(request: KnowledgeUpdateRequest, background_tasks=None):
     """
-    更新知识库
+    更新知识库（线程安全）
 
     支持两种模式：
     - **增量更新**（默认）：仅处理新增/变更文档，保留现有数据
@@ -364,6 +368,15 @@ async def update_knowledge_base(request: KnowledgeUpdateRequest, background_task
     数据源选项：
     - source: 单个文档路径
     - source_dir: 文档目录（批量处理）
+    """
+    # 使用全局锁确保更新操作串行执行
+    async with _kb_update_lock:
+        return await _update_knowledge_base_impl(request)
+
+
+async def _update_knowledge_base_impl(request: KnowledgeUpdateRequest) -> KnowledgeUpdateResponse:
+    """
+    更新知识库的具体实现
     """
     import time
     from pathlib import Path
@@ -383,7 +396,7 @@ async def update_knowledge_base(request: KnowledgeUpdateRequest, background_task
         )
         from langchain_chroma import Chroma
         from langchain_text_splitters import RecursiveCharacterTextSplitter
-        from src.rag.config import get_embeddings
+        from src.rag.config import get_embeddings_cached
         import hashlib
 
         # 1. 确定数据源
@@ -508,7 +521,7 @@ async def update_knowledge_base(request: KnowledgeUpdateRequest, background_task
 
         # 6. 向量化并存储
         logger.info("正在向量化并存储...")
-        embeddings = get_embeddings()
+        embeddings = get_embeddings_cached()
 
         vectorstore = Chroma.from_documents(
             documents=splits,

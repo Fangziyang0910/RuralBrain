@@ -4,6 +4,7 @@
 支持决策智能体深度理解文档结构
 """
 import json
+import threading
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -46,6 +47,7 @@ class DocumentContextManager:
         self.index_path = Path(index_path or CHROMA_PERSIST_DIR / "document_index.json")
         self.doc_index: dict[str, DocumentIndex] = {}
         self._loaded = False
+        self._index_lock = threading.Lock()  # 保护索引文件读写操作的锁
 
     def _ensure_loaded(self) -> None:
         """确保索引已加载"""
@@ -98,7 +100,7 @@ class DocumentContextManager:
         self._loaded = True
 
     def save(self) -> None:
-        """保存索引到磁盘"""
+        """保存索引到磁盘（线程安全）"""
         from dataclasses import asdict
 
         self.index_path.parent.mkdir(parents=True, exist_ok=True)
@@ -107,23 +109,25 @@ class DocumentContextManager:
             source: asdict(index) for source, index in self.doc_index.items()
         }
 
-        with open(self.index_path, 'w', encoding='utf-8') as f:
-            json.dump(serializable_index, f, ensure_ascii=False, indent=2)
+        with self._index_lock:
+            with open(self.index_path, 'w', encoding='utf-8') as f:
+                json.dump(serializable_index, f, ensure_ascii=False, indent=2)
 
         print(f"✅ 文档索引已保存到: {self.index_path}")
 
     def load(self) -> None:
-        """从磁盘加载索引"""
+        """从磁盘加载索引（线程安全）"""
         if not self.index_path.exists():
             raise FileNotFoundError(
                 f"文档索引不存在: {self.index_path}\n"
                 f"请先运行 build.py 构建知识库"
             )
 
-        with open(self.index_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        with self._index_lock:
+            with open(self.index_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
 
-        # 重建 DocumentIndex 对象（兼容旧格式）
+        # 重建 DocumentIndex 对象（兼容旧（格式）
         self.doc_index = {}
 
         for source, item in data.items():
@@ -380,18 +384,36 @@ class DocumentContextManager:
 # ==================== 全局单例 ====================
 
 _context_manager = None
+_context_manager_lock = None
+
+
+def _get_context_manager_lock():
+    """获取上下文管理器初始化锁"""
+    global _context_manager_lock
+    if _context_manager_lock is None:
+        _context_manager_lock = threading.Lock()
+    return _context_manager_lock
 
 
 def get_context_manager() -> DocumentContextManager:
-    """获取全局上下文管理器实例"""
+    """
+    获取全局上下文管理器实例（线程安全）
+
+    Returns:
+        DocumentContextManager 单例
+        线程安全，使用双重检查锁定模式
+    """
     global _context_manager
+    if _context_manager is not None:
+        return _context_manager
 
-    if _context_manager is None:
-        _context_manager = DocumentContextManager()
-        if _context_manager.index_path.exists():
-            _context_manager.load()
-
-    return _context_manager
+    with _get_context_manager_lock():
+        # 双重检查
+        if _context_manager is None:
+            _context_manager = DocumentContextManager()
+            if _context_manager.index_path.exists():
+                _context_manager.load()
+        return _context_manager
 
 
 if __name__ == "__main__":

@@ -109,6 +109,47 @@ def validate_config() -> None:
 validate_config()
 
 
+# ==================== Embedding 单例缓存 ====================
+_embedding_instance = None
+_embedding_lock = None
+
+
+def _get_embedding_lock():
+    """获取 Embedding 初始化锁"""
+    global _embedding_lock
+    if _embedding_lock is None:
+        import threading
+        _embedding_lock = threading.Lock()
+    return _embedding_lock
+
+
+def get_embeddings_cached():
+    """
+    获取 Embedding 实例（单例缓存模式）
+
+    优先使用缓存的实例，避免重复加载模型。
+    如需强制重新加载，调用 reset_embeddings_cache()
+
+    Returns:
+        LangChain Embeddings 单例实例
+    """
+    global _embedding_instance
+    if _embedding_instance is not None:
+        return _embedding_instance
+
+    with _get_embedding_lock():
+        # 双重检查
+        if _embedding_instance is None:
+            _embedding_instance = get_embeddings()
+        return _embedding_instance
+
+
+def reset_embeddings_cache():
+    """重置 Embedding 缓存（主要用于测试）"""
+    global _embedding_instance
+    _embedding_instance = None
+
+
 # ==================== Embedding 工厂函数 ====================
 def get_embeddings():
     """

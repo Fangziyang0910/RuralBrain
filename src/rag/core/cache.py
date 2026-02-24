@@ -9,6 +9,7 @@
 """
 import hashlib
 import pickle
+import threading
 from pathlib import Path
 from typing import Optional, List
 from datetime import datetime, timedelta
@@ -19,8 +20,14 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 from src.rag.config import (
     CHROMA_COLLECTION_NAME,
     CHROMA_PERSIST_DIR,
-    EMBEDDING_MODEL_NAME,
 )
+
+try:
+    from cachetools import LRUCache
+    CACHE_TOOLS_AVAILABLE = True
+except ImportError:
+    CACHE_TOOLS_AVAILABLE = False
+    LRUCache = None
 
 
 class VectorStoreCache:
@@ -42,7 +49,8 @@ class VectorStoreCache:
         self,
         cache_dir: Optional[Path] = None,
         enable_query_cache: bool = True,
-        cache_ttl: int = 3600  # 缓存有效期（秒），默认 1 小时
+        cache_ttl: int = 3600,  # 缓存有效期（秒），默认 1 小时
+        cache_max_size: int = 1000,  # LRU 缓存最大条目数
     ):
         """
         初始化缓存管理器
@@ -51,18 +59,29 @@ class VectorStoreCache:
             cache_dir: 缓存目录，默认使用 knowledge_base/cache
             enable_query_cache: 是否启用查询结果缓存
             cache_ttl: 缓存有效期（秒）
+            cache_max_size: LRU 缓存最大条目数
         """
         self.cache_dir = cache_dir or (CHROMA_PERSIST_DIR / "cache")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.enable_query_cache = enable_query_cache
         self.cache_ttl = cache_ttl
+        self.cache_max_size = cache_max_size
 
         # 缓存实例
         self._embedding_model = None
         self._vectorstore = None
-        self._query_cache = {}  # 内存缓存：{query_hash: (result, timestamp)}
+
+        # 使用 LRUCache 替换普通字典，防止内存泄漏
+        if CACHE_TOOLS_AVAILABLE:
+            self._query_cache = LRUCache(maxsize=cache_max_size)
+            print(f"✅ 使用 LRU 缓存（最大: {cache_max_size} 条目）")
+        else:
+            self._query_cache = {}  # 降级到普通字典
+            print(f"⚠️  cachetools 未安装，使用普通字典缓存（无上限）")
+
         self._cache_metadata = {}  # 缓存元数据：{query_hash: timestamp}
+        self._cache_lock = threading.Lock()  # 保护持久化缓存操作的锁
 
         print(f"✅ 缓存管理器初始化完成（目录: {self.cache_dir}）")
 
@@ -71,17 +90,14 @@ class VectorStoreCache:
         懒加载并缓存 Embedding 模型
 
         Returns:
-            HuggingFaceEmbeddings 实例
+            LangChain Embeddings 实例
         """
         if self._embedding_model is None:
-            from langchain_huggingface import HuggingFaceEmbeddings
+            from src.rag.config import get_embeddings_cached
 
             print("📥 正在加载 Embedding 模型...")
-            self._embedding_model = HuggingFaceEmbeddings(
-                model_name=EMBEDDING_MODEL_NAME,
-                encode_kwargs={"normalize_embeddings": True},
-            )
-            print(f"✅ Embedding 模型已缓存: {EMBEDDING_MODEL_NAME}")
+            self._embedding_model = get_embeddings_cached()
+            print("✅ Embedding 模型已缓存")
 
         return self._embedding_model
 
@@ -126,19 +142,20 @@ class VectorStoreCache:
         cache_key = self._generate_cache_key(query, context_params)
         timestamp = datetime.now()
 
-        # 内存缓存
+        # 内存缓存（LRU 自动处理上限）
         self._query_cache[cache_key] = (results, timestamp)
 
-        # 持久化缓存（可选）
+        # 持久化缓存（可选）- 需要锁保护
         cache_file = self.cache_dir / f"query_{cache_key}.pkl"
         try:
-            with open(cache_file, 'wb') as f:
-                pickle.dump({
-                    'results': results,
-                    'timestamp': timestamp,
-                    'query': query,
-                    'params': context_params
-                }, f)
+            with self._cache_lock:
+                with open(cache_file, 'wb') as f:
+                    pickle.dump({
+                        'results': results,
+                        'timestamp': timestamp,
+                        'query': query,
+                        'params': context_params
+                    }, f)
         except Exception as e:
             print(f"⚠️  持久化缓存失败: {e}")
 
@@ -172,14 +189,21 @@ class VectorStoreCache:
                 return results
             else:
                 # 过期，删除缓存
-                del self._query_cache[cache_key]
+                try:
+                    del self._query_cache[cache_key]
+                except KeyError:
+                    pass
 
-        # 检查持久化缓存
+        # 检查持久化缓存 - 需要锁保护
         cache_file = self.cache_dir / f"query_{cache_key}.pkl"
         if cache_file.exists():
             try:
-                with open(cache_file, 'rb') as f:
-                    cached_data = pickle.load(f)
+                with self._cache_lock:
+                    if not cache_file.exists():
+                        return None
+
+                    with open(cache_file, 'rb') as f:
+                        cached_data = pickle.load(f)
 
                 # 检查是否过期
                 cache_time = cached_data['timestamp']
@@ -193,7 +217,9 @@ class VectorStoreCache:
                     return cached_data['results']
                 else:
                     # 过期，删除缓存文件
-                    cache_file.unlink()
+                    with self._cache_lock:
+                        if cache_file.exists():
+                            cache_file.unlink()
             except Exception as e:
                 print(f"⚠️  读取持久化缓存失败: {e}")
 
@@ -243,22 +269,29 @@ class VectorStoreCache:
                 if (current_time - timestamp).total_seconds() > older_than
             ]
             for key in expired_keys:
-                del self._query_cache[key]
-                count += 1
+                try:
+                    del self._query_cache[key]
+                    count += 1
+                except KeyError:
+                    pass
 
         # 清理持久化缓存
         if self.cache_dir.exists():
             for cache_file in self.cache_dir.glob("query_*.pkl"):
                 try:
                     if older_than is None:
-                        cache_file.unlink()
-                        count += 1
+                        with self._cache_lock:
+                            if cache_file.exists():
+                                cache_file.unlink()
+                                count += 1
                     else:
                         # 检查文件修改时间
                         file_time = datetime.fromtimestamp(cache_file.stat().st_mtime)
                         if (current_time - file_time).total_seconds() > older_than:
-                            cache_file.unlink()
-                            count += 1
+                            with self._cache_lock:
+                                if cache_file.exists():
+                                    cache_file.unlink()
+                                    count += 1
                 except Exception as e:
                     print(f"⚠️  删除缓存文件失败: {e}")
 
@@ -282,29 +315,46 @@ class VectorStoreCache:
 
         return {
             "memory_cache_count": len(self._query_cache),
+            "memory_cache_max": self.cache_max_size,
             "persistent_cache_count": persistent_cache_count,
             "persistent_cache_size_mb": round(persistent_cache_size / 1024 / 1024, 2),
             "cache_dir": str(self.cache_dir),
             "query_cache_enabled": self.enable_query_cache,
-            "cache_ttl_seconds": self.cache_ttl
+            "cache_ttl_seconds": self.cache_ttl,
+            "using_lru": CACHE_TOOLS_AVAILABLE
         }
 
 
 # 全局缓存实例
 _vector_cache = None
+_vector_cache_lock = None
+
+
+def _get_vector_cache_lock():
+    """获取向量缓存初始化锁"""
+    global _vector_cache_lock
+    if _vector_cache_lock is None:
+        _vector_cache_lock = threading.Lock()
+    return _vector_cache_lock
 
 
 def get_vector_cache() -> VectorStoreCache:
     """
-    获取全局向量缓存实例
+    获取全局向量缓存实例（线程安全）
 
     Returns:
         VectorStoreCache 单例
+        线程安全，使用双重检查锁定模式
     """
     global _vector_cache
-    if _vector_cache is None:
-        _vector_cache = VectorStoreCache()
-    return _vector_cache
+    if _vector_cache is not None:
+        return _vector_cache
+
+    with _get_vector_cache_lock():
+        # 双重检查
+        if _vector_cache is None:
+            _vector_cache = VectorStoreCache()
+        return _vector_cache
 
 
 if __name__ == "__main__":
