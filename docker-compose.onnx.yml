@@ -29,19 +29,22 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=production
-      - PLANNING_SERVICE_URL=http://planning-service:8003
       # 检测服务 API 地址（使用统一网关路由前缀 /detection）
       - PEST_DETECTION_API_URL=http://detection-service:8001/detection/pest/detect
       - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
     volumes:
-      - ruralbrain-knowledge-base:/app/knowledge_base:ro
+      - ./knowledge_base:/app/knowledge_base
+      - ./src/rag:/app/src/rag
+      - ./service:/app/service
+      - ./src/agents:/app/src/agents
+      - ./src/utils:/app/src/utils
+      - ./src/config.py:/app/src/config.py
     # 使用 tmpfs 存储临时文件（内存存储，容器重启自动清空）
     tmpfs:
-      - /tmp/ruralbrain:size=500M,mode=0777
+      - /tmp/ruralbrain:size=500M,mode=077ver
     depends_on:
       - detection-service
-      - planning-service
     restart: unless-stopped
     networks:
       - ruralbrain-network
@@ -68,32 +71,6 @@ services:
           memory: 2G
         reservations:
           memory: 1G
-
-  # 规划咨询服务 (Planning Service)
-  planning-service:
-    image: zwxdockerbeginner/ruralbrain:planning-onnx
-    container_name: ruralbrain-planning-service
-    ports:
-      - "8003:8003"
-    env_file:
-      - .env
-    environment:
-      - PYTHONUNBUFFERED=1
-      - ENVIRONMENT=production
-      - SERVICE_PORT=8003
-      - SERVICE_HOST=0.0.0.0
-      - MODEL_PROVIDER=${MODEL_PROVIDER:-deepseek}
-    volumes:
-      - ruralbrain-knowledge-base:/app/knowledge_base:ro
-    restart: unless-stopped
-    networks:
-      - ruralbrain-network
-
-volumes:
-  # 知识库数据卷（与代码仓库解耦）
-  ruralbrain-knowledge-base:
-    driver: local
-    name: ruralbrain-knowledge-base
 
 networks:
   ruralbrain-network:

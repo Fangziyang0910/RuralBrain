@@ -20,6 +20,7 @@ class ChatRequest(BaseModel):
     thread_id: Optional[str] = Field(None, description="对话线程ID")
     mode: Optional[str] = Field("auto", description="聊天模式: auto/detection/planning")
     work_mode: Optional[str] = Field("auto", description="规划咨询工作模式: auto/fast/deep")
+    enable_knowledge_base: Optional[bool] = Field(None, description="是否启用知识库（规划咨询 skill）")
 
 
 class UploadResponse(BaseModel):

@@ -14,7 +14,7 @@
 **主要功能**：
 - 🤖 **V2 Agent 系统**：基于 Skills 架构的智能体，支持多模态交互
 - 🔍 **智能检测服务**：病虫害、大米品种、奶牛目标检测（统一网关）
-- 📚 **RAG 规划咨询**：基于知识库的乡村规划智能问答
+- 📚 **RAG 规划咨询**：基于知识库的乡村规划智能问答（作为 Skill 集成到主 Agent）
 - 🎯 **智能定价分析**：农产品定价因素分析和建议
 
 ---
@@ -36,6 +36,7 @@
 │  - 多模态输入（文本 + 图片）                             │
 │  - 流式对话展示                                         │
 │  - 工具调用可视化                                       │
+│  - 知识库开关（启用/禁用）                              │
 └────────────────────┬────────────────────────────────────┘
                      │
                      ▼
@@ -45,31 +46,28 @@
 │  ┌───────────────────────────────────────────────────┐ │
 │  │  意图识别 (Intent Router)                         │ │
 │  │   ├─ 有图片 + 检测关键词 → 检测流程               │ │
-│  │   ├─ 规划关键词 → 规划咨询流程                    │ │
-│  │   └─ 默认 → 通用对话                               │ │
+│  │   └─ 默认 → 统一 Agent 处理                      │ │
 │  └───────────────────────────────────────────────────┘ │
 │                     │                                     │
 │  ┌───────────────────────────────────────────────────┐ │
 │  │      Orchestrator Agent V2 (LangGraph)           │ │
 │  │  - Skills 架构（渐进式披露）                      │ │
-│  │  - 工具系统（检测、定价、营销等）                   │ │
+│  │  - 工具系统（检测、定价、营销、RAG 等）            │ │
 │  │  - 中间件（SkillMiddleware、ToolSelector）        │ │
+│ 100%  知识库开关控制 RAG 工具可用性
 │  └───────────────────────────────────────────────────┘ │
 └────────────────────┬────────────────────────────────────┘
                      │
                      ▼
-        ┌──────────────┴──────────────┐
-        │                              │
-        ▼                              ▼
-┌──────────────────┐        ┌──────────────────┐
-│  检测服务网关      │        │  规划咨询服务    │
-│  :8001            │        │  :8003           │
-│  (统一网关)       │        │  (RAG 知识库)    │
-├──────────────────┤        ├──────────────────┤
-│ • /detection/pest  │        │  • 7 个检索工具    │
-│ • /detection/rice  │        │  • ChromaDB        │
-│ • /detection/cow   │        │  • 向量检索        │
-└──────────────────┘        └──────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  检测服务网关      │        │  RAG 知识库        │
+│  :8001            │        │  (ChromaDB)        │
+│  (统一网关)       │        │  - 4 个检索工具      │
+├──────────────────┤        └──────────────────┘
+│ • /detection/pest  │        注意：RAG 工具由主 Agent 直接调用
+│ • /detection/rice  │
+│ • /detection/cow   │
+└──────────────────┘
 ```
 
 ### 核心逻辑流程
@@ -77,8 +75,7 @@
 **1. 用户请求 → 意图识别 → Agent 处理**
 
 - **有图片** → 检测流程（Agent 调用检测工具 → 网关 8001 → YOLO 推理）
-- **规划关键词** → 规划咨询流程（转发到 8003 → RAG 工具查询知识库）
-- **默认** → 通用对话（Agent 直接基于预训练知识回答，可能调用定价/营销工具）
+- **默认** → 通用对话（Agent 自主决定调用哪些技能和工具）
 
 **2. 工具调用链路**
 
@@ -87,12 +84,19 @@ Agent 调用工具
     ↓
 src/agents/tools/<tool>.py
     ↓
-HTTP 请求到外部服务
-    ↓
-- 检测工具 → http://localhost:8001/detection/<type>/predict
-- 定价工具 → 内置逻辑
-- 营销工具 → 内置逻辑
+- 检测工具 → HTTP 请求到 8001 网关
+- RAG 工具 → 直接调用 ChromaDB（知识库检索）
+- 定价/营销工具 → 内置逻辑
 ```
+
+**3. 知识库开关控制**
+
+- **前端开关**：用户可在前端界面开启/关闭知识库
+- **后端传递**：`enable_knowledge_base` 参数传递给 Agent
+- **Agent 判断**：
+  - 开启 → 可以调用 RAG 检索工具（`knowledge_search_tool`、`key_points_search_tool` 等）
+  - 关闭 → 仅用预训练知识回答，不调用 RAG 工具
+  - 未设置 → Agent 自主判断是否需要知识库
 
 ---
 
@@ -103,7 +107,6 @@ HTTP 请求到外部服务
 | **前端** | 3001 | `frontend/package.json` | http://localhost:3001 |
 | **后端主服务** | 8081 | `service/settings.py` + `.env` | http://localhost:8081/docs |
 | **检测服务网关** | 8001 | `src/algorithms/api/main.py` | http://localhost:8001/docs |
-| **规划咨询服务** | 8003 | `src/rag/service/main.py` | http://localhost:8003/docs |
 
 ### 检测服务路由（统一网关 8001）
 
@@ -133,7 +136,7 @@ RuralBrain/
 │   │   │   ├── configs/       # YAML 技能配置文件
 │   │   │   ├── registry.py    # 技能注册中心
 │   │   │   └── base.py        # Skill 数据模型
-│   │   ├── tools/             # Agent 工具集
+│   │   ├── tools/             # Agent 工具集（包含 RAG 工具）
 │   │   └── middleware/        # 中间件系统
 │   │
 │   ├── algorithms/            # 检测算法服务
@@ -141,8 +144,8 @@ RuralBrain/
 │   │   └── detection/        # 检测算法实现 + YOLO 模型
 │   │
 │   ├── rag/                   # RAG 知识库系统
-│   │   ├── core/              # 7 个核心检索工具
-│   │   └── service/           # FastAPI 服务入口（端口 8003）
+│   │   ├── core/              # 4 个核心检索工具
+│   │   └── config.py          # RAG 配置
 │   │
 │   └── config.py              # 全局配置
 │
@@ -161,7 +164,7 @@ RuralBrain/
 ### 环境管理
 
 ```bash
-# 必须使用 uv 运行 Python 代码
+# 必须使用 uv 运行aring Python 代码
 uv sync                              # 安装依赖
 uv run python <script>              # 运行脚本
 uv run pytest                       # 运行测试
@@ -319,7 +322,7 @@ bash scripts/dev/test_production.sh
 
 技能定义位于 `src/agents/skills/configs/`：
 - `detection.yaml` - 检测技能（病虫害、大米品种、牛只检测）
-- `planning.yaml` - 规划技能（乡村规划咨询）
+- `planning.yaml` - 规划技能（乡村规划咨询，直接引用 RAG 工具）
 - `pricing.yaml` - 定价技能（农产品定价分析）
 - `marketing.yaml` - 营销技能（营销策略建议）
 - `inspection.yaml` - 巡检技能（农场检查）
@@ -331,6 +334,12 @@ bash scripts/dev/test_production.sh
 - `pest_detection_tool` - 病虫害检测
 - `rice_detection_tool` - 大米品种识别
 - `cow_detection_tool` - 奶牛检测
+
+**RAG 工具**（知识库检索）：
+- `document_list` - 列出可用文档
+- `document_overview` - 获取文档摘要
+- `knowledge_search` - 全文检索
+- `key_points_search` - 搜索关键要点
 
 **内置工具**：
 - `pricing_tool` - 智能定价分析
@@ -349,19 +358,22 @@ bash scripts/dev/test_production.sh
 
 ## RAG 知识库系统
 
-- **端口**：8003
+- **集成方式**：作为 Skill 集成到主 Agent（独立端口 8003 已废弃）
 - **向量数据库**：ChromaDB
 - **嵌入模型**：sentence-transformers
 - **知识库位置**：`knowledge_base/chroma_db/`
 
-**7 个检索工具**（[src/rag/core/tools.py](src/rag/core/tools.py)）：
+**4 个检索工具**（[src/rag/core/tools.py](src/rag/core/tools.py)）：
 1. `list_documents` - 列出可用文档
 2. `get_document_overview` - 获取文档摘要
-3. `get_chapter_content` - 获取章节内容
-4. `search_key_points` - 搜索关键信息
-5. `search_knowledge` - 全文检索
-6. `get_document_full` - 获取完整文档
-7. `load_skill` - 加载技能（V2 特有）
+3. `search_knowledge` - 全文检索
+4. `search_key_points` - 搜索关键要点
+
+**知识库开关控制**：
+- 前端开关 → 后端参数 `enable_knowledge_base` → Agent 系统提示词
+- 开启：Agent 可调用 RAG 检索工具
+- 关闭：Agent 仅用预训练知识回答
+- 未设置：Agent 自主判断
 
 ---
 
@@ -456,7 +468,7 @@ bash scripts/dev/check.sh --test fast
 | [service/server.py](service/server.py) | 后端主服务入口，Agent 编排 | ⭐⭐⭐ |
 | [src/agents/orchestrator_agent_v2.py](src/agents/orchestrator_agent_v2.py) | V2 统一编排 Agent | ⭐⭐⭐ |
 | [src/algorithms/api/main.py](src/algorithms/api/main.py) | 检测服务统一网关 | ⭐⭐⭐ |
-| [src/rag/core/tools.py](src/rag/core/tools.py) | RAG 知识库的 7 个检索工具 | ⭐⭐⭐ |
+| [src/rag/core/tools.py](src/rag/core/tools.py) | RAG 知识库的 4 个检索工具 | ⭐⭐ |
 | [src/config.py](src/config.py) | 全局配置（模型管理等） | ⭐⭐ |
 | [.env](.env) | 环境变量配置 | ⭐⭐⭐ |
 
@@ -471,7 +483,7 @@ bash scripts/dev/check.sh --test fast
 | **Docker 热重载开发？** | **[docs/guides/development.md](docs/guides/development.md)** ⭐ |
 | 检测服务在哪个端口？ | [服务端口与 API 文档](#服务端口与-api-文档) |
 | 如何切换 Agent 版本？ | [模型管理 › Agent 版本切换](#模型管理) |
-| RAG 服务如何启动？ | [常用命令 › 知识库构建](#常用命令) |
+| RAG 服务如何启动？ | RAG 已集成到主 Agent，无需独立启动 |
 | 检测服务如何调用？ | [服务端口与 API 文档 › 检测服务路由](#服务端口与-api-文档) |
 | Docker ONNX 部署说明 | [常用命令 › Docker ONNX 部署](#常用命令) |
 
@@ -479,34 +491,23 @@ bash scripts/dev/check.sh --test fast
 
 ## 更新日志
 
-**最后更新**: 2026-02-22 | **版本**: v3.3
+**最后更新**: 2026-02-25 | **版本**: v4.0
 
-**v3.3 主要变更**（本次更新）：
+**v4.0 主要变更**（本次更新）：
+- RAG 知识库从独立服务（8003 端口）重构为 Skill 集成到主 Agent
+- 规划技能 `planning.yaml` 直接引用 RAG 检索工具
+- 移除服务层 `/chat/planning` 转发逻辑，统一到 `/chat/stream`
+- 移除 Docker 中的 `planning-service` 容器
+- 前端新增"知识库"开关，控制 RAG 工具可用性
+- 更新 `orchestrator_agent_v2.py` 系统提示词支持知识库开关
+- 更新 `service/schemas.py` 新增 `enable_knowledge_base` 参数
+
+**v3.3 主要变更**：
 - 实现动态工具注册系统（DynamicToolMiddleware），确保会话隔离
 - 合并开发脚本为统一的 `check.sh`（健康检查 + 功能测试）
 - 移除冗余中间件（ModeAwareMiddleware、ToolSelectorMiddleware）
 - 修复工具参数传递和异步上下文问题
 - 更新测试以适应严格渐进式披露架构
-
-**v3.2 主要变更**：
-- 强调 Docker 热重载开发工作流为标准开发方式
-- 更新 [docs/guides/development.md](docs/guides/development.md) - 清晰的代码更改验证流程
-- 更新 [docs/guides/getting-started.md](docs/guides/getting-started.md) - 强调 Docker 开发模式
-- 新增"日常开发工作流"章节指向详细开发文档
-
-**v3.1 主要变更**：
-- 删除重复的端口信息说明（统一到"服务端口与 API 文档"）
-- 删除重复的命令说明（合并到"常用命令"）
-- 删除独立的"检测服务架构"和"RAG 知识库系统"章节（已在系统架构中说明）
-- 简化"常见问题"为快速索引风格
-- 文档从 ~500 行精简至 ~350 行（-30%）
-
-**v3.0 主要变更**：
-- 文档结构重构：新增 `docs/decisions/`、`docs/architecture/`、`docs/guides/`
-- 删除 8 个冗余/过时文档
-
-**v2.2 变更**：
-- 新增 ONNX Runtime 轻量级 Docker 部署方案
 
 ---
 

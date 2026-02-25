@@ -24,6 +24,7 @@ export default function Home() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("");
+  const [enableKnowledgeBase, setEnableKnowledgeBase] = useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -283,6 +284,7 @@ export default function Home() {
             message,
             image_paths: imagePaths,
             thread_id: threadId,
+            enable_knowledge_base: enableKnowledgeBase,
           }),
         });
 
@@ -526,6 +528,20 @@ export default function Home() {
       <footer className="border-t border-stone-200 bg-white/95 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <form onSubmit={handleSubmit} className="space-y-3">
+            {/* 知识库开关 */}
+            <button
+              type="button"
+              onClick={() => setEnableKnowledgeBase(!enableKnowledgeBase)}
+              disabled={loading}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all border-2 shadow-sm hover:shadow-md ${
+                enableKnowledgeBase
+                  ? "bg-green-50 border-green-500 text-green-700"
+                  : "bg-white border-stone-300 text-stone-600"
+              }`}
+            >
+              知识库 {enableKnowledgeBase ? "✓" : ""}
+            </button>
+
             {/* 图片预览 */}
             {imagePreviews.length > 0 && (
               <div className="flex flex-wrap gap-3">
