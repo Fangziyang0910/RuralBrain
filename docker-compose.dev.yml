@@ -34,12 +34,12 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=development
-      - PLANNING_SERVICE_URL=http://planning-service:8003
       - PEST_DETECTION_API_URL=http://detection-service:8001/detection/pest/detect
       - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
     volumes:
-      - ruralbrain-knowledge-base:/app/knowledge_base:ro
+      - ./knowledge_base:/app/knowledge_base
+      - ./src/rag:/app/src/rag
       - ./service:/app/service
       - ./src/agents:/app/src/agents
       - ./src/utils:/app/src/utils
@@ -48,7 +48,6 @@ services:
       - /tmp/ruralbrain:size=500M,mode=0777
     depends_on:
       - detection-service
-      - planning-service
     restart: unless-stopped
     networks:
       - ruralbrain-network
@@ -70,36 +69,6 @@ services:
     restart: unless-stopped
     networks:
       - ruralbrain-network
-
-  # 规划咨询服务
-  planning-service:
-    image: zwxdockerbeginner/ruralbrain:planning-onnx
-    container_name: ruralbrain-planning-service
-    ports:
-      - "8003:8003"
-    env_file:
-      - .env
-    environment:
-      - PYTHONUNBUFFERED=1
-      - ENVIRONMENT=development
-      - SERVICE_PORT=8003
-      - SERVICE_HOST=0.0.0.0
-      - PLANNING_SERVICE_URL=http://planning-service:8003
-    volumes:
-      - ./knowledge_base:/app/knowledge_base
-      - ./src/rag:/app/src/rag
-      - ./src/agents:/app/src/agents
-      - ./src/utils:/app/src/utils
-      - ./src/config.py:/app/src/config.py
-      - ./src/config:/app/src/config
-    restart: unless-stopped
-    networks:
-      - ruralbrain-network
-
-volumes:
-  ruralbrain-knowledge-base:
-    driver: local
-    name: ruralbrain-knowledge-base
 
 networks:
   ruralbrain-network:

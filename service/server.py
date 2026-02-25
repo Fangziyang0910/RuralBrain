@@ -115,14 +115,6 @@ async def startup_event():
     logger.info("RuralBrain 服务启动完成")
 
 
-# -------- Planning Service 配置 --------
-PLANNING_SERVICE_URL = os.getenv(
-    "PLANNING_SERVICE_URL",
-    "http://localhost:8003"
-)
-PLANNING_SERVICE_TIMEOUT = int(os.getenv("PLANNING_SERVICE_TIMEOUT", "120"))
-
-
 # -------- 意图识别函数 --------
 def classify_intent(message: str, has_images: bool = False) -> str:
     """
@@ -133,20 +125,13 @@ def classify_intent(message: str, has_images: bool = False) -> str:
         has_images: 是否包含图片
 
     Returns:
-        意图类型: detection/planning
+        意图类型: detection/general
     """
     # 规则1: 如果有图片，优先检测
     if has_images:
         return "detection"
 
-    # 规则2: 规划相关关键词
-    planning_keywords = [
-        "规划", "发展", "策略", "旅游", "产业", "博罗", "罗浮山", "长宁镇",
-        "古城", "政策", "方案", "乡村", "振兴", "农业", "民宿", "文化",
-        "设计", "建设", "布局", "目标", "措施", "项目", "投资", "招商"
-    ]
-
-    # 规则3: 检测相关关键词
+    # 规则2: 检测相关关键词
     detection_keywords = [
         "识别", "检测", "害虫", "病害", "大米", "品种", "牛", "奶牛",
         "图片", "照片", "看", "什么", "分析", "诊断", "分类"
@@ -155,80 +140,14 @@ def classify_intent(message: str, has_images: bool = False) -> str:
     message_lower = message.lower()
 
     # 统计关键词匹配
-    planning_matches = sum(1 for kw in planning_keywords if kw in message)
     detection_matches = sum(1 for kw in detection_keywords if kw in message)
 
-    # 根据匹配数量判断
-    if planning_matches > detection_matches:
-        return "planning"
-    elif detection_matches > planning_matches:
+    # 如果检测相关关键词较多，返回 detection
+    if detection_matches >= 2:
         return "detection"
-    elif planning_matches > 0:
-        return "planning"
-    else:
-        # 默认为规划咨询
-        return "planning"
 
-
-async def forward_to_planning_service(
-    message: str,
-    thread_id: str = None,
-    mode: str = "auto"
-) -> AsyncGenerator[str, None]:
-    """
-    转发请求到 Planning Service
-
-    Args:
-        message: 用户消息
-        thread_id: 对话线程ID
-        mode: 工作模式
-
-    Yields:
-        SSE 事件数据
-    """
-    url = f"{PLANNING_SERVICE_URL}/api/v1/chat/planning"
-    request_data = {
-        "message": message,
-        "mode": mode,
-    }
-    if thread_id:
-        request_data["thread_id"] = thread_id
-
-    try:
-        async with httpx.AsyncClient(timeout=PLANNING_SERVICE_TIMEOUT) as client:
-            async with client.stream("POST", url, json=request_data) as response:
-                if response.status_code != 200:
-                    error_data = {
-                        "type": "error",
-                        "error": f"Planning Service 返回错误: {response.status_code}",
-                    }
-                    yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
-                    return
-
-                # 流式转发响应
-                async for line in response.aiter_lines():
-                    if line.startswith("data: "):
-                        # 直接转发 SSE 事件
-                        yield f"{line}\n"
-
-    except httpx.ConnectError:
-        error_data = {
-            "type": "error",
-            "error": "无法连接到 Planning Service，请确认服务已启动",
-        }
-        yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
-    except httpx.TimeoutException:
-        error_data = {
-            "type": "error",
-            "error": f"Planning Service 响应超时（{PLANNING_SERVICE_TIMEOUT}秒）",
-        }
-        yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
-    except Exception as e:
-        error_data = {
-            "type": "error",
-            "error": f"Planning Service 通信错误: {str(e)}",
-        }
-        yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+    # 默认为通用对话（Agent 会根据内容自主决定是否调用规划 skill）
+    return "general"
 
 
 # -------- API 路由定义--------
@@ -316,50 +235,6 @@ async def upload_image(files: list[UploadFile] = File(...)):
         )
 
 
-@app.post("/chat/planning")
-async def chat_planning(request: ChatRequest):
-    """
-    规划咨询对话接口（代理到 Planning Service）
-
-    Args:
-        request: 聊天请求
-
-    Returns:
-        SSE 流式响应
-    """
-    try:
-        # 生成或使用线程ID
-        thread_id = request.thread_id or str(uuid.uuid4())
-        mode = request.mode or "auto"
-
-        logger.info(f"收到规划咨询请求 [thread_id={thread_id}, mode={mode}]: {request.message}")
-
-        async def event_generator() -> AsyncGenerator[str, None]:
-            """SSE 事件生成器"""
-            async for event in forward_to_planning_service(
-                message=request.message,
-                thread_id=thread_id,
-                mode=mode
-            ):
-                yield event
-
-        return StreamingResponse(
-            event_generator(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "X-Accel-Buffering": "no",
-            },
-        )
-
-    except Exception as e:
-        logger.error(f"规划咨询请求失败: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
-
-
 @app.post("/chat/stream")
 async def chat_stream(request: ChatRequest):
     """
@@ -367,7 +242,7 @@ async def chat_stream(request: ChatRequest):
 
     Orchestrator Agent 会自动判断用户意图：
     - 有图片 → 调用图像检测
-    - 规划相关问题 → 调用规划知识库
+    - 规划相关问题 → 调用规划知识库（规划 skill）
     - 支持多步推理和场景切换
 
     Args:
@@ -390,12 +265,20 @@ async def chat_stream(request: ChatRequest):
         # 构建消息内容
         message_content = request.message
 
+        # 根据知识库开关添加系统指令
+        # 注意：显式设置 true/false 时才应用，未设置时 Agent 自主决定
+        if request.enable_knowledge_base is not None:
+            if request.enable_knowledge_base:
+                message_content = "【启用知识库】\n\n" + message_content
+            else:
+                message_content = "【关闭知识库】\n\n" + message_content
+
         if image_paths:
             # 如果有图片，在消息中包含所有图片路径
             paths_text = "\n".join([f"[图片路径 {i+1}: {path}]" for i, path in enumerate(image_paths)])
-            message_content = f"{request.message}\n\n{paths_text}"
+            message_content = f"{message_content}\n\n{paths_text}"
 
-        logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}")
+        logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}, 知识库: {request.enable_knowledge_base}")
         # 调试：打印完整的消息内容
         logger.info(f"发送给 Agent 的消息内容: {message_content[:500]}...")
 

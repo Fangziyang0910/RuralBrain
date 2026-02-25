@@ -48,11 +48,6 @@ class ToolLoader:
             "disease_prediction_tool": self._load_disease_prediction_tool,
         })
 
-        # ==================== 规划工具 ====================
-        self._tool_factories.update({
-            "planning_consult": self._load_planning_consult,
-        })
-
         # ==================== RAG 工具 ====================
         self._tool_factories.update({
             "document_list_tool": self._load_document_list_tool,
@@ -92,12 +87,6 @@ class ToolLoader:
     def _load_disease_prediction_tool(self) -> BaseTool:
         from .disease_prediction_tool import disease_prediction_tool
         return disease_prediction_tool
-
-    # ==================== 规划工具加载器 ====================
-
-    def _load_planning_consult(self) -> BaseTool:
-        from .planning_service_tool import planning_consult
-        return planning_consult
 
     # ==================== RAG 工具加载器 ====================
 
