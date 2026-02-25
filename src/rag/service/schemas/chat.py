@@ -32,26 +32,7 @@ class PlanningChatRequest(BaseModel):
     thread_id: Optional[str] = Field(None, description="对话线程ID")
 
 
-class DocumentListRequest(BaseModel):
-    """文档列表查询请求（预留扩展）"""
-    source_type: Optional[str] = Field(None, description="文档类型: policies/cases")
-
-
 # ==================== 响应模型 ====================
-class ToolCall(BaseModel):
-    """工具调用信息"""
-    name: str = Field(..., description="工具名称")
-    arguments: str = Field(..., description="调用参数")
-
-
-class PlanningChatResponse(BaseModel):
-    """规划咨询聊天响应（非流式）"""
-    response: str = Field(..., description="AI 回复内容")
-    tools_used: list[str] = Field(default_factory=list, description="使用的工具列表")
-    thread_id: str = Field(..., description="对话线程ID")
-    sources_count: int = Field(default=0, description="引用的文档数量")
-
-
 class DocumentInfo(BaseModel):
     """单个文档信息"""
     source: str = Field(..., description="文档文件名")

@@ -69,76 +69,33 @@ def extract_knowledge_sources(tool_output: str) -> list[dict]:
     return sources
 
 
-# ==================== 延迟加载 Agent ====================
+# ==================== 获取 V2 Orchestror Agent ====================
+# 使用 V2 Skills 架构（统一编排器），支持渐进式披露和动态工具注册
 
-_agent_cache = None
-_agent_lock = None
-
-
-def _get_agent_lock():
-    """获取 Agent 初始化锁（线程安全）"""
-    global _agent_lock
-    if _agent_lock is None:
-        _agent_lock = asyncio.Lock()
-    return _agent_lock
+_orchestrator_v2_agent = None
 
 
-def get_agent():
+def get_orchestrator_agent():
     """
-    获取 Planning Agent（单例模式，线程安全）
+    获取 V2 编排 Agent（单例模式）
+
+    V2 架构优势：
+    - 支持渐进式披露（Progressive Disclosure）
+    - 动态工具注册（Dynamic Tool Middleware）
+    - 统一的技能管理（Skills Registry）
 
     Returns:
-        配置好的 Agent 实例
+        Orchestrator Agent V2 实例
     """
-    global _agent_cache
-    if _agent_cache is not None:
-        return _agent_cache
+    global _orchestrator_v2_agent
+    if _orchestrator_v2_agent is not None:
+        logger.info("正在获取 V2 编排 Agent...")
+        from src.agents.orchestrator_agent_v2 import agent
 
-    # 异步环境需要使用 asyncio.Lock
-    import asyncio
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # 没有运行中的事件循环，同步创建
-        if _agent_cache is None:
-            logger.info("正在创建 Planning Agent（同步模式）...")
-            from src.agents.planning_agent import get_planning_agent
-            _agent_cache = get_planning_agent()
-            logger.info("Planning Agent 创建完成")
-        return _agent_cache
+        _orchestrator_v2_agent = agent
+        logger.info("✅ V2 编排 Agent 已加载")
 
-    # 异步上下文，需要通过锁保护
-    # 注意：这是一个同步函数，无法直接使用 asyncio.Lock
-    # 如果在异步上下文调用，建议使用异步版本的 get_agent_async
-    if _agent_cache is None:
-        logger.warning("get_agent() 在异步上下文中调用，建议使用 get_agent_async()")
-        logger.info("正在创建 Planning Agent...")
-        from src.agents.planning_agent import get_planning_agent
-        _agent_cache = get_planning_agent()
-        logger.info("Planning Agent 创建完成")
-
-    return _agent_cache
-
-
-async def get_agent_async():
-    """
-    获取 Planning Agent（异步版本，线程安全）
-
-    Returns:
-        配置好的 Agent 实例
-    """
-    global _agent_cache
-    if _agent_cache is not None:
-        return _agent_cache
-
-    async with _get_agent_lock():
-        # 双重检查
-        if _agent_cache is None:
-            logger.info("正在创建 Planning Agent（异步）...")
-            from src.agents.planning_agent import get_planning_agent
-            _agent_cache = get_planning_agent()
-            logger.info("Planning Agent 创建完成")
-        return _agent_cache
+    return _orchestrator_v2_agent
 
 
 # ==================== 核心端点 ====================
@@ -171,7 +128,7 @@ async def planning_chat(request: PlanningChatRequest):
     """规划咨询对话接口（流式）"""
     request_id = str(uuid.uuid4())
     try:
-        agent = await get_agent_async()
+        agent = get_orchestrator_agent()
         thread_id = request.thread_id or str(uuid.uuid4())
         config = {"configurable": {"thread_id": thread_id}}
 

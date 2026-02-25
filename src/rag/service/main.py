@@ -103,7 +103,7 @@ def root():
         "description": "乡村规划咨询服务 API",
         "status": "running",
         "endpoints": {
-            "health": "/health",
+            "health": f"{API_PREFIX}/health",
             "docs": "/docs",
             "api": API_PREFIX,
         },
@@ -114,26 +114,6 @@ def root():
             "chapters": f"{API_PREFIX}/knowledge/chapters/{{source}}",
         },
     }
-
-
-# ==================== 健康检查 ====================
-@app.get("/health", summary="健康检查", tags=["系统"])
-def health_check():
-    """
-    快速健康检查端点
-    """
-    from src.rag.config import CHROMA_PERSIST_DIR
-    from pathlib import Path
-
-    kb_loaded = Path(CHROMA_PERSIST_DIR).exists()
-
-    return {
-        "status": "healthy",
-        "service": SERVICE_NAME,
-        "version": SERVICE_VERSION,
-        "knowledge_base_loaded": kb_loaded,
-    }
-
 
 # ==================== 启动事件 ====================
 @app.on_event("startup")
@@ -155,13 +135,11 @@ async def startup_event():
 
     logger.info(f"{SERVICE_NAME} 启动完成")
 
-
 # ==================== 关闭事件 ====================
 @app.on_event("shutdown")
 async def shutdown_event():
     """应用关闭时的清理"""
     logger.info(f"{SERVICE_NAME} 正在关闭...")
-
 
 # ==================== 主程序入口 ====================
 if __name__ == "__main__":
