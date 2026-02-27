@@ -92,11 +92,12 @@ src/agents/tools/<tool>.py
 **3. 知识库开关控制**
 
 - **前端开关**：用户可在前端界面开启/关闭知识库
-- **后端传递**：`enable_knowledge_base` 参数传递给 Agent
-- **Agent 判断**：
-  - 开启 → 可以调用 RAG 检索工具（`knowledge_search_tool`、`key_points_search_tool` 等）
-  - 关闭 → 仅用预训练知识回答，不调用 RAG 工具
-  - 未设置 → Agent 自主判断是否需要知识库
+- **后端传递**：`enable_knowledge_base` 参数通过 config 传递给 Agent
+- **load_skill 内部判断**：
+  - 开启（True）→ 注册 RAG 检索工具供 Agent 调用
+  - 关闭（False）→ 不注册 RAG 工具，Agent 用通用知识回答
+  - 未设置（None）→ 默认行为，注册 RAG 工具
+- **规划技能统一接口**：`consult_planning_knowledge` 对外只有一个入口，内部自动处理知识库开关逻辑
 
 ---
 
@@ -491,15 +492,24 @@ bash scripts/dev/check.sh --test fast
 
 ## 更新日志
 
-**最后更新**: 2026-02-25 | **版本**: v4.0
+**最后更新**: 2026-02-27 | **版本**: v4.1
 
-**v4.0 主要变更**（本次更新）：
+**v4.1 主要变更**（本次更新）：
+- 知识库开关控制优化：通过 config 传递布尔值，而非消息指令
+- load_skill 内部处理知识库开关：规划技能保持统一接口
+  - 开启（True）：注册 RAG 检索工具
+  - 关闭（False）：不注册工具，用通用知识
+  - 未设置（None）：默认行为，注册 RAG 工具
+- 简化系统提示词，移除消息指令解析逻辑
+- 清理 Docker 配置：移除规划服务容器和相关引用
+
+**v4.0 主要变更**：
 - RAG 知识库从独立服务（8003 端口）重构为 Skill 集成到主 Agent
 - 规划技能 `planning.yaml` 直接引用 RAG 检索工具
 - 移除服务层 `/chat/planning` 转发逻辑，统一到 `/chat/stream`
 - 移除 Docker 中的 `planning-service` 容器
 - 前端新增"知识库"开关，控制 RAG 工具可用性
-- 更新 `orchestrator_agent_v2.py` 系统提示词支持知识库开关
+- 更新 `orchator_agent_v2.py` 系统提示词支持知识库开关
 - 更新 `service/schemas.py` 新增 `enable_knowledge_base` 参数
 
 **v3.3 主要变更**：

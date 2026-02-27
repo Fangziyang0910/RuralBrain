@@ -185,9 +185,14 @@ RuralBrain 采用**微服务架构** + **Agent 编排** + **智能路由**的设
 
 **说明**：
 - RAG 知识库功能已集成到 backend 服务中
-- 规划技能（`src/rag/service/`）作为 Skill 集成到 Agent 内部
+- 规划技能（`consult_planning_knowledge`）作为 Skill 集成到 Agent
 - 由 Agent 根据用户意图自动决定是否调用规划技能
-- 规划技能内部根据前端知识库开关决定是否使用 RAG 工具
+- 知识库开关控制机制：
+  - 前端按钮 → `enable_knowledge_base` 参数 → Agent config
+  - `load_skill` 从 config 读取布尔值，决定是否注册 RAG 工具
+  - 开启（True）：注册 4 个 RAG 检索工具
+  - 关闭（False）：不注册工具，用模型通用知识
+  - 未设置（None）：默认行为，注册 RAG 工具
 
 **旧架构**（已废弃）：
 - ~~planning-service (8003) - 曾作为独立容器部署，现已整合到 Agent 中~~
