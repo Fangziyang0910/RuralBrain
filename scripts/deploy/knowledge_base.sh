@@ -29,7 +29,8 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE="${BACKUP_DIR}/knowledge_base_${TIMESTAMP}.tar.gz"
 
 # 容器名称（用于数据传输）
-CONTAINER_NAME="ruralbrain-planning-service"
+# 注意：RAG 已集成到主 Agent，此脚本保留用于兼容性
+CONTAINER_NAME="ruralbrain-backend"
 
 # ============================================================================
 # 辅助函数

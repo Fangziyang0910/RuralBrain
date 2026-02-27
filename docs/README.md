@@ -122,7 +122,7 @@ RuralBrain V2 Agent 的核心设计理念：
     │   ├─ /detection/pest (病虫害)
     │   ├─ /detection/rice (大米)
     │   └─ /detection/cow (奶牛)
-    └─→ 规划服务 (8003)
+    
 ```
 
 详细文档：[微服务架构设计](architecture/microservices.md)

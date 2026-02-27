@@ -26,7 +26,7 @@ Write-Host ""
 # Define images and build order
 $buildOrder = @(
     @{ Name = "detection-service"; Dockerfile = "docker/Dockerfile.detection.onnx" },
-    @{ Name = "planning-service"; Dockerfile = "docker/Dockerfile.planning.onnx" },
+    # planning-service 已废弃（RAG 已集成到主 Agent）
     @{ Name = "backend"; Dockerfile = "docker/Dockerfile.backend.onnx" },
     @{ Name = "frontend"; Dockerfile = "docker/Dockerfile.frontend.onnx" }
 )

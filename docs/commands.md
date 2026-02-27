@@ -128,42 +128,6 @@ bash scripts/dev/build-onnx-images.sh  # Linux/macOS
 cd docker
 docker build -f Dockerfile.backend.onnx -t ruralbrain-backend:onnx .
 docker build -f Dockerfile.detection.onnx -t ruralbrain-detection-service:onnx .
-docker build -f Dockerfile.planning.onnx -t ruralbrain-planning-service:onnx .
-```
-
----
-
-## 3. 本地开发命令
-
-### 3.1 直接启动服务（不使用 Docker）
-
-| 服务 | 命令 |
-|------|------|
-| 后端服务 | `uv run python run_server.py` |
-| 前端服务 | `uv run python run_frontend.py` |
-| 检测服务网关 | `uv run python src/algorithms/api/main.py` |
-| 规划咨询服务 | `uv run python src/rag/service/main.py` |
-
-### 3.2 单服务调试
-
-```bash
-# 进入 docker 目录
-cd docker
-
-# 仅启动后端
-docker compose -f docker-compose.dev.yml up -d backend
-
-# 仅启动前端
-docker compose -f docker-compose.dev.yml up -d frontend
-
-# 仅启动检测服务
-docker compose -f docker-compose.dev.yml up -d detection-service
-
-# 仅启动规划服务
-docker compose -f docker-compose.dev.yml up -d planning-service
-```
-
-### 3.3 进入容器调试
 
 ```bash
 # 进入后端容器
@@ -174,9 +138,6 @@ docker exec -it ruralbrain-frontend sh
 
 # 进入检测服务容器
 docker exec -it ruralbrain-detection-service bash
-
-# 进入规划服务容器
-docker exec -it ruralbrain-planning-service bash
 ```
 
 ---
@@ -196,7 +157,6 @@ bash scripts/dev/check.sh --health --quick
 bash scripts/dev/check.sh --health --service backend
 bash scripts/dev/check.sh --health --service frontend
 bash scripts/dev/check.sh --health --service detection
-bash scripts/dev/check.sh --health --service planning
 
 # 详细输出
 bash scripts/dev/check.sh --health --verbose
@@ -238,9 +198,8 @@ bash scripts/dev/check.sh --health
 
 # 或手动检查端口
 lsof -i :3001  # 前端
-lsof -i :8081  # 后端
+lsof -i :8081  # 后端（包含 RAG 知识库）
 lsof -i :8001  # 检测服务
-lsof -i :8003  # 规划服务
 ```
 
 ---
@@ -267,7 +226,8 @@ uv run python src/rag/build.py
 
 ```yaml
 # docker-compose.dev.yml
-planning-service:
+# backend 服务会自动挂载知识库：
+backend:
   volumes:
     - ./knowledge_base:/app/knowledge_base  # 自动挂载
 ```
@@ -294,8 +254,6 @@ cd docker && docker compose -f docker-compose.dev.yml logs -f
 # 特定服务
 docker compose -f docker-compose.dev.yml logs -f backend
 docker compose -f docker-compose.dev.yml logs -f frontend
-docker compose -f docker-compose.dev.yml logs -f detection-service
-docker compose -f docker-compose.dev.yml logs -f planning-service
 ```
 
 ### 6.2 常见问题
@@ -326,9 +284,8 @@ docker compose -f docker-compose.dev.yml build <service>
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | **前端界面** | http://localhost:3001 | Web 用户界面 |
-| **后端 API 文档** | http://localhost:8081/docs | Swagger 文档 |
+| **后端 API 文档** | http://localhost:8081/docs | Swagger 文档（包含 RAG 知识库） |
 | **检测服务文档** | http://localhost:8001/docs | 统一检测网关文档 |
-| **规划服务文档** | http://localhost:8003/docs | RAG 服务文档 |
 
 ### 检测服务路由
 
@@ -349,9 +306,8 @@ http://localhost:8001
 | 服务 | 端口 | 配置位置 |
 |------|------|----------|
 | 前端 | 3000/3001 | `frontend/package.json` + `docker-compose.dev.yml` |
-| 后端主服务 | 8081 | `service/settings.py` + `.env` |
+| 后端主服务 | 8081 | `service/settings.py` + `.env`（包含 RAG 知识库） |
 | 检测服务网关 | 8001 | `src/algorithms/api/main.py` |
-| 规划咨询服务 | 8003 | `src/rag/service/main.py` |
 
 ---
 

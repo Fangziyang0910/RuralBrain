@@ -23,9 +23,7 @@ MODEL_CONFIGS = {
 # LangSmith 配置
 LANGSMITH_TRACING = os.getenv("LANGSMITH_TRACING", "false").lower() == "true"
 
-# 服务配置
-PLANNING_SERVICE_URL = os.getenv("PLANNING_SERVICE_URL", "http://localhost:8003")
-
+# 检测服务配置
 DETECTION_ENDPOINTS = {
     "pest": os.getenv("PEST_DETECTION_API_URL", "http://localhost:8001/detection/pest/detect"),
     "rice": os.getenv("RICE_DETECTION_API_URL", "http://localhost:8001/detection/rice/predict"),

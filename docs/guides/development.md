@@ -47,9 +47,8 @@ DEEPSEEK_API_KEY=your_api_key_here
 | 服务 | 开发环境端口 | 生产环境端口 | 说明 |
 |------|-------------|-------------|------|
 | 前端 | 3001 | 3001 | Next.js 应用 |
-| 后端 | 8081 | 8081 | FastAPI + Agent V2 |
+| 后端 | 8081 | 8081 | FastAPI + Agent V2（包含 RAG 知识库） |
 | 检测服务 | 8001 | 8001 | 统一检测网关 |
-| 规划服务 | 8003 | 8003 | RAG 知识库服务 |
 
 ---
 
@@ -96,9 +95,8 @@ bash scripts/dev/check.sh --quick
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | 前端界面 | http://localhost:3001 | Web 用户界面 |
-| 后端 API 文档 | http://localhost:8081/docs | API 调试 |
+| 后端 API 文档 | http://localhost:8081/docs | API 调试（包含 RAG 知识库） |
 | 检测服务 API 文档 | http://localhost:8001/docs | 检测调试 |
-| 规划服务 API 文档 | http://localhost:8003/docs | 规划调试 |
 
 ### 1.5 常用操作
 
@@ -151,7 +149,6 @@ docker compose -f docker-compose.dev.yml up -d frontend
 | 前端 | Next.js 开发模式监听文件变化 | 1-2秒 |
 | 后端 | Uvicorn `--reload` 模式 | 1-3秒 |
 | 检测服务 | Uvicorn `--reload` 模式 | 1-3秒 |
-| 规划服务 | Uvicorn `--reload` 模式 | 1-3秒 |
 
 ### 2.2 验证热重载生效
 
@@ -224,7 +221,7 @@ bash scripts/dev/check.sh --health --verbose
 bash scripts/dev/check.sh --service backend
 bash scripts/dev/check.sh --service frontend
 bash scripts/dev/check.sh --service detection
-bash scripts/dev/check.sh --service planning
+# bash scripts/dev/check.sh --service planning  # 已移除（RAG 已集成到主 Agent）
 ```
 
 ### 3.3 功能测试脚本
@@ -400,7 +397,7 @@ bash scripts/dev/switch_to_development.sh
 2. 检查服务间连通性：
    ```bash
    docker exec ruralbrain-backend curl http://detection-service:8001/health
-   docker exec ruralbrain-backend curl http://planning-service:8003/health
+   # RAG 已集成到主 Agent，无需单独检查
    ```
 
 ---
@@ -503,9 +500,8 @@ docker compose -f docker-compose.dev.yml ps
 
 | 服务 | 地址 | 用途 |
 |------|------|------|
-| 后端 API | http://localhost:8081/docs | 主服务调试 |
+| 后端 API | http://localhost:8081/docs | 主服务调试（包含 RAG 知识库） |
 | 检测服务 API | http://localhost:8001/docs | 检测服务调试 |
-| 规划服务 API | http://localhost:8003/docs | 规划服务调试 |
 | 前端界面 | http://localhost:3001 | 用户界面 |
 
 ### 服务端口说明
@@ -513,9 +509,8 @@ docker compose -f docker-compose.dev.yml ps
 | 服务 | 开发环境端口 | 生产环境端口 | 说明 |
 |------|-------------|-------------|------|
 | 前端 | 3001 | 3001 | Next.js 应用 |
-| 后端 | 8081 | 8081 | FastAPI + Agent V2 |
+| 后端 | 8081 | 8081 | FastAPI + Agent V2（包含 RAG 知识库） |
 | 检测服务 | 8001 | 8001 | 统一检测网关 |
-| 规划服务 | 8003 | 8003 | RAG 知识库服务 |
 
 ---
 

@@ -107,10 +107,9 @@ bash scripts/dev/check.sh --test fast
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | 前端界面 | http://localhost:3001 | Web 用户界面 |
-| 后端 API | http://localhost:8081 | FastAPI 主服务 |
+| 后端 API | http://localhost:8081 | FastAPI 主服务（包含 RAG 知识库） |
 | API 文档 | http://localhost:8081/docs | Swagger 文档 |
 | 检测服务 | http://localhost:8001 | 统一检测服务网关 |
-| 规划咨询 | http://localhost:8003 | RAG 知识库服务 |
 
 ### 停止服务
 
@@ -186,8 +185,8 @@ uv run python service/server.py
 # 检测服务网关（端口 8001）
 uv run python src/algorithms/api/main.py
 
-# 规划服务（端口 8003）
-uv run python src/rag/service/main.py
+# 规划服务（已集成到主 Agent）
+# RAG 知识库功能已集成到主 Agent (8081)，无需单独启动
 
 # 前端（端口 3001）
 cd frontend
@@ -202,7 +201,7 @@ npm run dev
 
 ```bash
 # Docker 环境下构建
-docker exec ruralbrain-planning-service python /app/src/rag/build.py
+docker exec ruralbrain-backend python /app/src/rag/build.py
 
 # 或使用 uv 运行（如果本地有 uv）
 uv run python src/rag/build.py

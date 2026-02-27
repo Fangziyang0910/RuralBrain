@@ -30,7 +30,7 @@ RESOURCES_DIR="$PROJECT_ROOT/tests/resources"
 FRONTEND_URL="http://localhost:3001"
 BACKEND_URL="http://localhost:8081"
 DETECTION_URL="http://localhost:8001"
-PLANNING_URL="http://localhost:8003"
+# PLANNING_URL - 已废弃（RAG 已集成到主 Agent）
 
 # 帮助信息
 show_help() {
@@ -217,14 +217,9 @@ check_service_health() {
             ;;
         planning)
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "${YELLOW}规划咨询服务 (端口 8003)${NC}"
+            echo -e "${YELLOW}规划咨询服务 (已集成到主 Agent)${NC}"
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            check_container_status "ruralbrain-planning-service" 2>/dev/null || \
-            check_container_status "ruralbrain-planning-service-dev" 2>/dev/null || true
-            check_http "规划服务健康" "$PLANNING_URL/health" "200"
-            if [ "$VERBOSE" = true ]; then
-                check_http "API 文档" "$PLANNING_URL/docs" "200"
-            fi
+            echo -e "RAG 知识库已集成到主 Agent (8081 端口)，无需单独检查"
             echo ""
             ;;
     esac
@@ -242,12 +237,8 @@ check_connectivity() {
         echo -e "后端 → 检测服务: ${YELLOW}⚠ 未连通${NC}"
     fi
 
-    # 检查后端是否能访问规划服务
-    if docker exec ruralbrain-backend curl -s -f http://planning-service:8003/health > /dev/null 2>&1; then
-        echo -e "后端 → 规划服务: ${GREEN}✓ 连通${NC}"
-    else
-        echo -e "后端 → 规划服务: ${YELLOW}⚠ 未连通${NC}"
-    fi
+    # RAG 已集成到主 Agent，无需单独检查连通性
+    echo -e "后端 → RAG 知识库: ${GREEN}✓ 已集成${NC}"
 
     echo ""
 }
@@ -352,12 +343,7 @@ test_service_connectivity() {
         echo -e "  ${RED}✗ 后端 → 检测服务 不连通${NC}"
         ALL_OK=false
     fi
-    if docker exec ruralbrain-backend curl -s -f http://planning-service:8003/health > /dev/null 2>&1; then
-        [ "$VERBOSE" = true ] && echo -e "  ${GREEN}✓ 后端 → 规划服务${NC}"
-    else
-        echo -e "  ${RED}✗ 后端 → 规划服务 不连通${NC}"
-        ALL_OK=false
-    fi
+    # 规划服务已整合到主 Agent，不再独立检查
     $ALL_OK
 }
 

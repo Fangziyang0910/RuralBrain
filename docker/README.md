@@ -12,12 +12,13 @@
 docker/
 ├── Dockerfile.backend.onnx       # 后端服务镜像（ONNX Runtime）
 ├── Dockerfile.detection.onnx      # 检测服务统一网关镜像（YOLO 模型）
-├── Dockerfile.planning.onnx       # 规划服务镜像（RAG + ChromaDB）
 ├── Dockerfile.frontend.onnx       # 前端生产镜像（优化构建）
 ├── Dockerfile.frontend.dev        # 前端开发镜像（支持热重载）
 ├── nginx.conf                     # Nginx 配置（可选）
 └── README.md                      # 本文档
 ```
+
+**注意**：规划服务（`src/rag/service/`）不再作为独立容器部署，其功能已集成到主 Agent 中。
 
 **Docker Compose 配置文件**（位于项目根目录）：
 - `docker-compose.dev.yml` - 开发环境（热重载）
@@ -45,7 +46,6 @@ cp .env.example .env
 # 2. 拉取镜像（可选，启动时会自动拉取）
 docker pull zwxdockerbeginner/ruralbrain:backend-onnx
 docker pull zwxdockerbeginner/ruralbrain:detection-onnx
-docker pull zwxdockerbeginner/ruralbrain:planning-onnx
 
 # 3. 启动开发环境（在项目根目录执行）
 docker compose -f docker-compose.dev.yml up -d
@@ -91,16 +91,10 @@ bash scripts/dev/build-onnx-images.sh
 - **功能**: 病虫害/大米/奶牛检测统一网关
 - **包含**: YOLO 模型文件（需要挂载）
 
-### 规划服务镜像
-
-- **镜像名**: `ruralbrain-planning-service:onnx`
-- **基于**: Python 3.13 slim + ONNX Runtime
-- **功能**: RAG 知识库检索 + ChromaDB
-
 ### 前端镜像
 
 | 镜像 | 文件 | 大小 | 用途 |
-|------|------|------|------|
+|------|------|------|---------|
 | `ruralbrain-frontend:dev` | Dockerfile.frontend.dev | ~1.8GB | 开发环境（热重载） |
 | `ruralbrain-frontend:onnx` | Dockerfile.frontend.onnx | ~1.0GB | 生产环境 |
 
@@ -115,7 +109,6 @@ bash scripts/dev/build-onnx-images.sh
 | 前端 | Next.js HMR | `frontend/` |
 | 后端 | uvicorn --reload | `service/`, `src/agents/`, `src/utils/`, `src/config.py` |
 | 检测服务 | uvicorn --reload | `src/algorithms/` |
-| 规划服务 | uvicorn --reload | `src/rag/`, `src/agents/`, `src/utils/`, `src/config.py` |
 
 ### 热重载工作流程
 
@@ -131,9 +124,8 @@ bash scripts/dev/build-onnx-images.sh
 | 服务 | 地址 | 说明 |
 |------|------|------|
 | 前端 | http://localhost:3001 | Next.js 应用 |
-| 后端 API | http://localhost:8081/docs | FastAPI 文档 |
+| 后端 API | http://localhost:8081/docs | FastAPI 文档（包含 RAG 知识库） |
 | 检测服务 | http://localhost:8001/docs | 统一检测网关 |
-| 规划服务 | http://localhost:8003/docs | RAG 服务 |
 
 **检测服务路由**（统一网关端口 8001）：
 - `/detection/pest/*` - 病虫害检测
@@ -156,7 +148,6 @@ docker compose -f docker-compose.dev.yml logs
 docker compose -f docker-compose.dev.yml logs -f backend
 docker compose -f docker-compose.dev.yml logs -f frontend
 docker compose -f docker-compose.dev.yml logs -f detection-service
-docker compose -f docker-compose.dev.yml logs -f planning-service
 ```
 
 ### 重启服务
@@ -180,9 +171,6 @@ docker exec -it ruralbrain-frontend sh
 
 # 进入检测服务容器
 docker exec -it ruralbrain-detection-service bash
-
-# 进入规划服务容器
-docker exec -it ruralbrain-planning-service bash
 ```
 
 ---
@@ -291,5 +279,6 @@ docker compose -f docker-compose.onnx.yml down
 
 ---
 
-**最后更新**: 2026-02-15
-**版本**: v3.0
+**最后更新**: 2026-02-26
+**版本**: v3.1
+**维护者**: RuralBrain Team

@@ -111,8 +111,8 @@ docker pull zwxdockerbeginner/ruralbrain:backend-onnx
 # 拉取检测服务
 docker pull zwxdockerbeginner/ruralbrain:detection-onnx
 
-# 拉取规划服务
-docker pull zwxdockerbeginner/ruralbrain:planning-onnx
+# 规划服务已集成到主 Agent，无需单独拉取
+# docker pull zwxdockerbeginner/ruralbrain:planning-onnx  # 已废弃
 
 # 拉取前端生产版
 docker pull zwxdockerbeginner/ruralbrain:frontend-onnx
@@ -178,13 +178,7 @@ docker run -d \
   -v $(pwd)/src/algorithms/detection/models:/app/algorithms/detection/models:ro \
   zwxdockerbeginner/ruralbrain:detection-onnx
 
-# 启动规划服务
-docker run -d \
-  --name ruralbrain-planning \
-  -p 8003:8003 \
-  --env-file .env \
-  -v $(pwd)/knowledge_base:/app/knowledge_base:ro \
-  zwxdockerbeginner/ruralbrain:planning-onnx
+# 规划服务已集成到主 Agent，无需单独启动
 
 # 启动前端（生产版）
 docker run -d \
@@ -417,15 +411,6 @@ RuralBrain/
 └── docker-compose.onnx.yml
 ```
 
-**volume 配置**：
-```yaml
-# docker-compose.dev.yml
-services:
-  planning-service:
-    volumes:
-      - ./knowledge_base:/app/knowledge_base:ro  # 挂载本地知识库
-```
-
 **重要**：
 - 知识库已添加到 `.gitignore`，不会推送到 GitHub
 - 每个协作者需要自己构建或获取知识库
@@ -435,12 +420,11 @@ services:
 
 ### Q4: 开发环境和生产环境的镜像有区别吗？
 
-**A**: 后端、检测、规划服务的镜像**完全相同**
+**A**: 后端、检测服务的镜像**完全相同**
 
 **共享镜像**：
 - `backend-onnx`：开发和生产使用同一个镜像
 - `detection-onnx`：开发和生产使用同一个镜像
-- `planning-onnx`：开发和生产使用同一个镜像
 
 **不同镜像**：
 - `frontend-onnx`：生产环境（1.02GB，优化构建）
@@ -463,13 +447,11 @@ docker compose -f docker-compose.dev.yml logs -f
 # 查看特定服务日志
 docker compose -f docker-compose.dev.yml logs -f backend
 docker compose -f docker-compose.dev.yml logs -f detection-service
-docker compose -f docker-compose.dev.yml logs -f planning-service
 docker compose -f docker-compose.dev.yml logs -f frontend
 
 # 或使用容器名称
 docker logs -f ruralbrain-backend
 docker logs -f ruralbrain-detection-service
-docker logs -f ruralbrain-planning-service
 docker logs -f ruralbrain-frontend
 ```
 

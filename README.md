@@ -25,7 +25,7 @@
                             ↓           ├─ /detection/pest (病虫害)
                             ↓           ├─ /detection/rice (大米)
                             ↓           └─ /detection/cow (奶牛)
-                       规划服务 (8003) ← RAG 知识库
+                       RAG 知识库 (集成到主 Agent)
 ```
 
 ## 技术栈
@@ -77,7 +77,7 @@ uv run python run_server.py      # 后端
 uv run python run_frontend.py    # 前端
 ```
 
-> ⚠️ **注意**: 以上仅启动核心服务。完整功能（规划咨询、图像检测）需要额外启动检测服务（8001）和规划服务（8003）。详见 [快速开始指南](docs/guides/getting-started.md)。
+> ⚠️ **注意**: 以上仅启动核心服务。完整功能（规划咨询、图像检测）需要额外启动检测服务（8001）。详见 [快速开始指南](docs/guides/getting-started.md)。
 
 > 📖 **详细命令**：查看 [统一命令参考](docs/commands.md) 获取完整的部署、测试和故障排查命令。
 
@@ -86,17 +86,15 @@ uv run python run_frontend.py    # 前端
 | 服务 | 端口 | 说明 |
 |------|------|------|
 | 前端 | 3001 | Next.js 应用 |
-| 后端 API | 8081 | FastAPI 主服务 |
+| 后端 API | 8081 | FastAPI 主服务（包含 RAG 知识库） |
 | 检测服务网关 | 8001 | 统一检测服务（病虫害/大米/奶牛） |
-| 规划咨询 | 8003 | RAG 服务 |
 
 > 📍 **完整端口配置**：详见 [统一命令参考 - 服务端口分配](docs/commands.md#附录服务端口分配)
 
 ## API 文档
 
-- **后端 API**：http://localhost:8081/docs
+- **后端 API**：http://localhost:8081/docs（包含 RAG 知识库功能）
 - **检测服务网关**：http://localhost:8001/docs
-- **规划咨询**：http://localhost:8003/docs
 
 ## 模型管理
 

@@ -27,8 +27,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 默认配置
-DEFAULT_API_URL = "http://localhost:8003"
-API_ENDPOINT = "/api/knowledge/update"
+# 注意：RAG 已集成到主 Agent，API 地址已变更
+DEFAULT_API_URL = "http://localhost:8081"
+API_ENDPOINT = "/api/v1/knowledge/update"
 
 
 class KnowledgeUpdater:
@@ -146,7 +147,7 @@ def main():
   python update_knowledge.py --source-dir ./data/policies --category policies
 
   # 使用自定义 API 地址
-  python update_knowledge.py --source ./data/doc.pdf --api-url http://localhost:8003
+  python update_knowledge.py --source ./data/doc.pdf --api-url http://localhost:8081 # RAG 已集成到主 Agent
         """
     )
 

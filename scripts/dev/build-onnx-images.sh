@@ -18,13 +18,13 @@ fi
 # 定义镜像列表
 declare -A images=(
     ["detection-service"]="Dockerfile.detection.onnx"
-    ["planning-service"]="Dockerfile.planning.onnx"
+    # ["planning-service"]="Dockerfile.planning.onnx"  # 已废弃（RAG 已集成到主 Agent）
     ["backend"]="Dockerfile.backend.onnx"
     ["frontend"]="Dockerfile.frontend.onnx"
 )
 
 # 构建顺序（按依赖关系）
-order=("detection-service" "planning-service" "backend" "frontend")
+order=("detection-service" "backend" "frontend")
 
 echo "构建顺序: ${order[*]}"
 echo ""
