@@ -42,7 +42,7 @@ def load_skill(
 
     Args:
         skill_name: 要加载的技能名称
-        config: RunnableConfig（自动注入，用于获取 thread_id）
+        config: RunnableConfig（自动注入，用于获取 thread_id 和 enable_knowledge_base）
 
     Returns:
         技能的完整内容和已注册的工具列表。如果技能名称不存在，将返回当前可用的技能名称列表。
@@ -65,10 +65,21 @@ def load_skill(
     # 2. 加载技能内容
     content = skill.content or f"# {skill.name}\n\n{skill.description}"
 
-    # 3. 注册关联的工具（动态工具注册）
+    # 3. 获取知识库开关状态（从 config）
+    kb_enabled = None
+    if config:
+        kb_enabled = config.get("configurable", {}).get("enable_knowledge_base")
+
+    # 4. 注册关联的工具（动态工具注册）
     # 注意：register_tools_by_skill 会自动从调用上下文获取 thread_id
     registered_tools_info = ""
-    if skill.tool_names:
+
+    # 规划技能特殊处理：受知识库开关控制
+    if skill_name == "consult_planning_knowledge" and kb_enabled == False:
+        # 知识库关闭：不注册 RAG 工具，使用通用知识
+        registered_tools_info = "\n\n⚠️ 知识库已关闭，使用通用知识回答"
+        logger.info(f"技能 {skill_name} 加载（知识库关闭，不注册工具）")
+    elif skill.tool_names:
         try:
             middleware = get_dynamic_middleware()
 

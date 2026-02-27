@@ -260,18 +260,15 @@ async def chat_stream(request: ChatRequest):
 
         # 获取 Orchestrator Agent
         agent = get_agent()
-        config = {"configurable": {"thread_id": thread_id}}
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+                "enable_knowledge_base": request.enable_knowledge_base,
+            }
+        }
 
         # 构建消息内容
         message_content = request.message
-
-        # 根据知识库开关添加系统指令
-        # 注意：显式设置 true/false 时才应用，未设置时 Agent 自主决定
-        if request.enable_knowledge_base is not None:
-            if request.enable_knowledge_base:
-                message_content = "【启用知识库】\n\n" + message_content
-            else:
-                message_content = "【关闭知识库】\n\n" + message_content
 
         if image_paths:
             # 如果有图片，在消息中包含所有图片路径
