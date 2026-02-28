@@ -36,8 +36,10 @@ _kb_switch_state: Dict[str, Optional[bool]] = {}
 
 def set_kb_switch_state(thread_id: str, enabled: Optional[bool]):
     """设置知识库开关状态"""
+    # 确保 thread_id 是字符串类型
+    thread_id = str(thread_id)
     _kb_switch_state[thread_id] = enabled
-    logger.debug(f"设置知识库开关: thread_id={thread_id}, enabled={enabled}")
+    logger.info(f"设置知识库开关: thread_id={thread_id}, enabled={enabled}")
 
 def get_kb_switch_state(thread_id: str) -> Optional[bool]:
     """获取知识库开关状态"""
