@@ -81,28 +81,10 @@
 3. **防御式编程**：大量异常处理和日志记录
 4. **全局单例模式**：避免重复初始化
 
-**改进空间**：
-```python
-# 当前：工具只在会话内生效，会话结束后不清理
-# 问题：长时间运行可能导致内存泄漏
-
-# 建议改进：添加会话过期清理机制
-class DynamicToolMiddleware:
-    def __init__(self, tool_loader=None, session_ttl=3600):
-        self._session_last_active: Dict[str, float] = {}
-        self._session_ttl = session_ttl
-
-    async def clean_expired_sessions(self):
-        """定期清理过期会话的工具"""
-        now = time.time()
-        expired = [
-            thread_id
-            for thread_id, last_active in self._session_last_active.items()
-            if now - last_active > self._session_ttl
-        ]
-        for thread_id in expired:
-            self.clear_session_tools(thread_id)
-```
+**说明**：
+- 会话清理机制（过期会话的工具、对话历史、知识库开关状态）应通过独立的 **SessionManager** 统一管理
+- 这属于通用的会话生命周期管理功能，不属于动态工具注册的特定改进
+- 详见：[会话管理设计方案](../architecture/session-management.md)（待创建）
 
 ---
 
@@ -268,8 +250,8 @@ business_advisory:
 │           ╱                                                ╲       │
 │          ╱──────────────────────────────────────────────────────╲  │
 │         ╱                                                        ╲ │
-│        ╱       1. Dynamic Tool Registration (优化)              ╲│
-│       ╱           (实施成本: 1 天)                                │
+│        ╱       1. SessionManager 实现                          ╲│
+│       ╱           (实施成本: 1 天 | 统一会话生命周期管理)       │
 │      ╱                                                            │
 │     ╱────────────────────────────────────────────────────────────│
 │    ╱                                                              │
@@ -285,32 +267,37 @@ business_advisory:
 
 ### Phase 1：Dynamic Tool Registration 优化（1 天）
 
-**目标**：完善会话管理，避免内存泄漏
+**目标**：实现通用的会话管理机制，统一管理会话生命周期
 
 **任务清单**：
 ```yaml
-任务 1: 添加会话活跃时间追踪
-  文件: src/agents/middleware/dynamic_tool_middleware.py
+任务 1: 创建 SessionManager 模块
+  文件: src/agents/session.py（或 src/agents/middleware/session_manager.py）
+  功能:
+    - 会话活跃时间追踪
+    - 过期会话判断
+    - 统一清理接口
+
+任务 2: 实现统一清理机制
+  涉及文件:
+    - src/agents/session.py
+    - src/agents/middleware/dynamic_tool_middleware.py
+    - src/agents/orchestrator_agent_v2.py
+  清理范围:
+    - 动态工具列表 (_registered_tools)
+    - 知识库开关状态 (_kb_switch_state)
+    - 对话历史 (InMemorySaver checkpoint)
+
+任务 3: 集成到 Agent 生命周期
   改动:
-    - 添加 _session_last_active: Dict[str, float]
-    - 在 register_tools 时更新时间戳
-
-任务 2: 实现会话过期清理机制
-  文件: src/agents/middleware/dynamic_tool_middleware.py
-  新增方法:
-    - clean_expired_sessions(ttl: int)
-    - _update_session_activity(thread_id: str)
-
-任务 3: 添加单元测试
-  文件: tests/unit/middleware/test_dynamic_tool_middleware.py
-  覆盖场景:
-    - 会话隔离验证
-    - 过期清理逻辑
-    - 边界条件
+    - 在每个请求时更新会话活跃时间
+    - 启动后台清理任务（定期检查）
+    - 暴露 checkpointer 供 SessionManager 使用
 ```
 
 **预期收益**：
-- 避免长时间运行的内存问题
+- 避免长时间运行的内存泄漏
+- 统一管理会话资源，确保清理完整性
 - 为生产环境做好准备
 
 ---
@@ -388,12 +375,12 @@ business_advisory:
 | 排名 | 模式 | 优先级 | 实施成本 | 预期收益 | 建议 |
 |------|------|--------|----------|----------|------|
 | 🥇 | **Reference Awareness** | ⭐⭐⭐ | 2-3 天 | Token ↓90% + 可维护性 ↑300% | **立即实施** |
-| 🥈 | **Dynamic Tool 优化** | ⭐⭐ | 1 天 | 生产环境稳定性 | **近期完成** |
+| 🥈 | **SessionManager 实现** | ⭐⭐ | 1 天 | 生产环境稳定性 | **近期完成** |
 | 🥉 | **Hierarchical Skills** | - | 5-7 天 | 收益不明确 | **暂缓** |
 
 **关键建议**：
 1. **优先实施 Reference Awareness**：与 RuralBrain 的 RAG 服务完美契合，能显著减少 token 消耗
-2. **快速优化 Dynamic Tool**：主要是会话清理，工作量小但价值高
+2. **实现 SessionManager**：统一的会话生命周期管理，避免内存泄漏，工作量小但价值高
 3. **暂不考虑 Hierarchical Skills**：当前规模未达阈值，过度设计风险大于收益
 
 ---
