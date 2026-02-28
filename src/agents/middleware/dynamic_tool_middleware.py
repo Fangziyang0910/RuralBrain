@@ -31,6 +31,18 @@ _global_middleware: Optional["DynamicToolMiddleware"] = None
 # 默认 thread_id，用于没有明确指定 thread_id 的场景
 DEFAULT_THREAD_ID = "default"
 
+# 知识库开关状态（thread_id -> enable_knowledge_base）
+_kb_switch_state: Dict[str, Optional[bool]] = {}
+
+def set_kb_switch_state(thread_id: str, enabled: Optional[bool]):
+    """设置知识库开关状态"""
+    _kb_switch_state[thread_id] = enabled
+    logger.debug(f"设置知识库开关: thread_id={thread_id}, enabled={enabled}")
+
+def get_kb_switch_state(thread_id: str) -> Optional[bool]:
+    """获取知识库开关状态"""
+    return _kb_switch_state.get(thread_id)
+
 
 class DynamicToolMiddleware(AgentMiddleware):
     """

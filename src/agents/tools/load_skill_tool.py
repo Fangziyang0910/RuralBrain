@@ -13,7 +13,7 @@
 - 不需要手动传递 thread_id 参数
 """
 import logging
-from typing import Any, Optional
+from typing import Optional
 
 from langchain.tools import tool
 from langchain_core.runnables import RunnableConfig
@@ -51,7 +51,7 @@ def load_skill(
         >>> load_skill("pest_detection")
         "已加载技能: pest_detection\\n\\n已注册工具: pest_detection_tool\\n\\n[技能内容...]"
     """
-    from ..middleware.dynamic_tool_middleware import get_dynamic_middleware
+    from ..middleware.dynamic_tool_middleware import get_dynamic_middleware, get_kb_switch_state
     from ..skills.registry import get_registry
 
     registry = get_registry()
@@ -65,10 +65,18 @@ def load_skill(
     # 2. 加载技能内容
     content = skill.content or f"# {skill.name}\n\n{skill.description}"
 
-    # 3. 获取知识库开关状态（从 config）
+    # 3. 获取知识库开关状态（从全局状态）
+    # 首先尝试从 config 获取 thread_id
     kb_enabled = None
+    thread_id = None
+
     if config:
-        kb_enabled = config.get("configurable", {}).get("enable_knowledge_base")
+        thread_id = config.get("configurable", {}).get("thread_id")
+
+    if thread_id:
+        # 从中间件的全局状态获取知识库开关
+        kb_enabled = get_kb_switch_state(thread_id)
+        logger.info(f"知识库开关状态: thread_id={thread_id}, kb_enabled={kb_enabled}, skill_name={skill_name}")
 
     # 4. 注册关联的工具（动态工具注册）
     # 注意：register_tools_by_skill 会自动从调用上下文获取 thread_id

@@ -30,6 +30,7 @@ from service.settings import (
     ALLOWED_EXTENSIONS,
 )
 from service.schemas import ChatRequest, UploadResponse
+from src.agents.middleware.dynamic_tool_middleware import set_kb_switch_state
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -278,6 +279,14 @@ async def chat_stream(request: ChatRequest):
         logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}, 知识库: {request.enable_knowledge_base}")
         # 调试：打印完整的消息内容
         logger.info(f"发送给 Agent 的消息内容: {message_content[:500]}...")
+
+        # 保存知识库开关状态到中间件（供 load_skill 工具使用）
+        logger.info(f"准备设置知识库开关: thread_id={thread_id}, enable_knowledge_base={request.enable_knowledge_base}")
+        if request.enable_knowledge_base is not None:
+            set_kb_switch_state(thread_id, request.enable_knowledge_base)
+            logger.info(f"设置知识库开关: thread_id={thread_id}, enabled={request.enable_knowledge_base}")
+        else:
+            logger.info(f"知识库开关未设置 (None)，跳过状态设置")
 
         async def event_generator() -> AsyncGenerator[str, None]:
             """SSE 事件生成器"""
