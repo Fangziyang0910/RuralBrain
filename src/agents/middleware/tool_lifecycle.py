@@ -102,14 +102,14 @@ class ToolLifecycle(BaseModel):
             self.current_ttl -= 1
         return self.current_ttl
 
-    def mark_used(self, round: int) -> None:
+    def mark_used(self, round_num: int) -> None:
         """
         标记工具已被使用
 
         Args:
-            round: 当前轮次
+            round_num: 当前轮次
         """
-        self.last_used_round = round
+        self.last_used_round = round_num
 
     def get_status(self) -> dict:
         """
