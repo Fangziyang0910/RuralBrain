@@ -4,6 +4,81 @@
 
 ---
 
+## [2026-03-01] - 工具生命周期 TTL 管理系统
+
+### 🎯 架构优化
+
+**工具自适应生命周期管理（TTL）**
+
+实现工具 TTL（Time To Live）机制：闲置工具自动卸载，活跃工具自动续期。
+
+**核心改进**：
+- 新增 `src/agents/middleware/tool_lifecycle.py` - TTL 核心模块
+- DynamicToolMiddleware 集成 TTL 机制（轮次衰减、使用续期、自动卸载）
+- 支持关键工具"钉住"（永不卸载）
+- 配置驱动：环境变量 + 技能 YAML 配置
+
+**TTL 机制**：
+1. 工具注册时赋予初始 TTL（默认 3 轮）
+2. 每轮对话所有工具 TTL - 1
+3. 工具被调用时续期（base_ttl + extension）
+4. TTL 过期自动移除，钉住工具永不卸载
+
+**新增配置**：
+```bash
+DEFAULT_TOOL_TTL=3          # 工具默认生命周期（轮数）
+DEFAULT_TOOL_EXTENSION=2    # 续期增量（轮数）
+ENABLE_TOOL_TTL=true        # 是否启用 TTL
+```
+
+### 🛠️ 测试更新
+
+- 新增 `tests/unit/test_tool_lifecycle.py`
+- 新增 `tests/integration/test_tool_ttl_integration.py`
+- 新增 `tests/integration/test_tool_ttl_scenarios.py`
+
+### 📝 代码优化
+
+- 简化工具注册代码，消除 `ENABLE_TOOL_TTL` 分支重复
+- 修复工具注册时 `last_used_round` 初始值错误
+- 修复 TTL 禁用时 `_unregister_tool` 的 `AttributeError`
+
+---
+
+## [2026-02-27] - 知识库开关控制优化
+
+### 🎯 架构优化
+
+**知识库开关控制优化**
+
+通过 config 传递布尔值，而非消息指令，简化系统逻辑。
+
+**核心改进**：
+- ✅ `load_skill` 内部处理知识库开关：规划技能保持统一接口
+  - 开启（True）：注册 RAG 检索工具供 Agent 调用
+  - 关闭（False）：不注册 RAG 工具，Agent 用通用知识回答
+  - 未设置（None）：默认行为，注册 RAG 工具
+- ✅ 简化系统提示词，移除消息指令解析逻辑
+- ✅ 清理 Docker 配置：移除规划服务容器和相关引用
+
+---
+
+## [2026-02] - RAG 知识库集成重构
+
+### 🎯 架构优化
+
+**RAG 知识库从独立服务重构为 Skill 集成**
+
+- ✅ RAG 知识库从独立服务（8003 端口）重构为 Skill 集成到主 Agent
+- ✅ 规划技能 `planning.yaml` 直接引用 RAG 检索工具
+- ✅ 移除服务层 `/chat/planning` 转发逻辑，统一到 `/chat/stream`
+- ✅ 移除 Docker 中的 `planning-service` 容器
+- ✅ 前端新增"知识库"开关，控制 RAG 工具可用性
+- ✅ 更新 `orchestrator_agent_v2.py` 系统提示词支持知识库开关
+- ✅ 更新 `service/schemas.py` 新增 `enable_knowledge_base` 参数
+
+---
+
 ## [2026-02-22] - 动态工具注册与测试优化
 
 ### 🎯 架构优化

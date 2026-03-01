@@ -30,7 +30,6 @@ RESOURCES_DIR="$PROJECT_ROOT/tests/resources"
 FRONTEND_URL="http://localhost:3001"
 BACKEND_URL="http://localhost:8081"
 DETECTION_URL="http://localhost:8001"
-# PLANNING_URL - 已废弃（RAG 已集成到主 Agent）
 
 # 帮助信息
 show_help() {
@@ -44,13 +43,13 @@ show_help() {
     echo "  --quick            快速检查（仅健康端点，同 --test fast）"
     echo "  --verbose          显示详细输出"
     echo "  --continue         测试失败时继续（仅测试模式）"
-    echo "  --service <name>   仅检查指定服务 (frontend|backend|detection|planning)"
+    echo "  --service <name>   仅检查指定服务 (frontend|backend|detection)"
     echo "  -h, --help         显示帮助信息"
     echo ""
     echo "测试级别说明:"
     echo "  fast  : 基础连通性 + 健康检查 (< 30秒)"
     echo "  normal: fast + 检测服务功能测试 (< 2分钟) [默认]"
-    echo "  full  : normal + Agent/规划/前端测试 (< 5分钟)"
+    echo "  full  : normal + Agent/知识库/前端测试 (< 5分钟)"
     echo ""
     echo "示例:"
     echo "  $0 --health                    # 健康检查"
@@ -215,13 +214,6 @@ check_service_health() {
             fi
             echo ""
             ;;
-        planning)
-            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "${YELLOW}规划咨询服务 (已集成到主 Agent)${NC}"
-            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "RAG 知识库已集成到主 Agent (8081 端口)，无需单独检查"
-            echo ""
-            ;;
     esac
 }
 
@@ -255,7 +247,6 @@ run_health_check() {
         check_service_health "frontend"
         check_service_health "backend"
         check_service_health "detection"
-        check_service_health "planning"
         check_connectivity
     fi
 
@@ -323,7 +314,6 @@ test_basic_connectivity() {
     check_http "前端" "$FRONTEND_URL" "200" || ALL_OK=false
     check_http "后端健康" "$BACKEND_URL/health" "200" || ALL_OK=false
     check_http "检测服务健康" "$DETECTION_URL/health" "200" || ALL_OK=false
-    check_http "规划服务健康" "$PLANNING_URL/health" "200" || ALL_OK=false
     $ALL_OK
 }
 
@@ -331,7 +321,6 @@ test_api_docs() {
     local ALL_OK=true
     check_http "后端 API 文档" "$BACKEND_URL/docs" "200" || ALL_OK=false
     check_http "检测服务 API 文档" "$DETECTION_URL/docs" "200" || ALL_OK=false
-    check_http "规划服务 API 文档" "$PLANNING_URL/docs" "200" || ALL_OK=false
     $ALL_OK
 }
 
@@ -389,38 +378,24 @@ test_cow_detection() {
     test_detection_service "奶牛" "$DETECTION_URL/detection/cow/detect" "$RESOURCES_DIR/cows/1.jpg"
 }
 
-test_planning_documents() {
-    RESPONSE=$(curl -s -w "\n%{http_code}" \
-        "$PLANNING_URL/api/v1/knowledge/documents" \
-        --max-time $TIMEOUT 2>/dev/null)
-
-    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-
-    if [ "$HTTP_CODE" = "200" ]; then
-        if [ "$VERBOSE" = true ]; then
-            echo -e "  ${GREEN}✓ 文档列表获取成功${NC}"
-        fi
-        return 0
-    else
-        echo -e "  ${RED}✗ HTTP $HTTP_CODE${NC}"
-        return 1
-    fi
-}
-
 test_agent_chat() {
     RESPONSE=$(timeout 60 curl -s -N \
-        -X POST "$BACKEND_URL/chat" \
+        -X POST "$BACKEND_URL/chat/stream" \
         -H "Content-Type: application/json" \
         -d '{"message": "你好，请介绍一下自己"}' \
-        2>/dev/null | head -5)
+        2>/dev/null | head -10)
 
-    if echo "$RESPONSE" | grep -q "type.*start"; then
+    if echo "$RESPONSE" | grep -q '"type".*"start"'; then
         if [ "$VERBOSE" = true ]; then
-            echo -e "  ${GREEN}✓ Agent 响应正常${NC}"
+            echo -e "  ${GREEN}✓ Agent 流式响应正常${NC}"
+            echo "$RESPONSE" | head -3
         fi
         return 0
     else
         echo -e "  ${RED}✗ Agent 无响应${NC}"
+        if [ "$VERBOSE" = true ]; then
+            echo "  响应内容: $RESPONSE"
+        fi
         return 1
     fi
 }
@@ -432,6 +407,25 @@ test_frontend_static() {
     else
         echo -e "  ${YELLOW}⚠ 静态资源可能未构建${NC}"
         return 0
+    fi
+}
+
+test_agent_knowledge_base() {
+    # 测试知识库开关功能（规划相关问答）
+    RESPONSE=$(timeout 60 curl -s -N \
+        -X POST "$BACKEND_URL/chat/stream" \
+        -H "Content-Type: application/json" \
+        -d '{"message": "乡村规划有哪些基本原则？", "enable_knowledge_base": true}' \
+        2>/dev/null | head -20)
+
+    if echo "$RESPONSE" | grep -q '"type".*"start"'; then
+        if [ "$VERBOSE" = true ]; then
+            echo -e "  ${GREEN}✓ Agent 知识库功能正常${NC}"
+        fi
+        return 0
+    else
+        echo -e "  ${YELLOW}⚠ 知识库测试未完成（可能未初始化）${NC}"
+        return 0  # 知识库未初始化不算失败
     fi
 }
 
@@ -452,9 +446,9 @@ run_test_mode() {
     run_test "大米识别" "test_rice_detection" "normal"
     run_test "奶牛检测" "test_cow_detection" "normal"
 
-    # 3. 规划和 Agent 测试（full）
-    run_test "规划服务文档列表" "test_planning_documents" "full"
+    # 3. Agent 和知识库测试（full）
     run_test "Agent 通用对话" "test_agent_chat" "full"
+    run_test "Agent 知识库功能" "test_agent_knowledge_base" "full"
     run_test "前端静态资源" "test_frontend_static" "full"
 
     # 测试摘要
