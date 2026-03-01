@@ -49,9 +49,9 @@ SKILL_RELOAD_STRATEGY: SkillReloadStrategy = os.getenv("SKILL_RELOAD_STRATEGY", 
 SKILL_RELOAD_INTERVAL = int(os.getenv("SKILL_RELOAD_INTERVAL", "300"))  # 秒
 
 # 工具 TTL 配置
-DEFAULT_TOOL_TTL = 3  # 默认工具生命周期（轮数）
-DEFAULT_TOOL_EXTENSION = 2  # 默认续期增量（轮数）
-ENABLE_TOOL_TTL = True  # 是否启用 TTL 机制
+DEFAULT_TOOL_TTL = int(os.getenv("DEFAULT_TOOL_TTL", "3"))  # 默认工具生命周期（轮数）
+DEFAULT_TOOL_EXTENSION = int(os.getenv("DEFAULT_TOOL_EXTENSION", "2"))  # 默认续期增量（轮数）
+ENABLE_TOOL_TTL = os.getenv("ENABLE_TOOL_TTL", "true").lower() == "true"  # 是否启用 TTL 机制
 
 
 def get_model_config(provider: ModelProvider) -> dict:
