@@ -316,8 +316,9 @@ class DynamicToolMiddleware(AgentMiddleware):
                         base_ttl=ttl_config.base_ttl,
                         extension=ttl_config.extension,
                         pinned=ttl_config.pinned,
-                        registration_round=current_round,
-                        last_used_round=current_round
+                        registration_round=current_round
+                        # last_used_round 使用默认值 None，不在注册时设置
+                        # 只有工具实际被调用时（_renew_tool）才会更新
                     )
                     session_lifecycles[name] = lifecycle
 
