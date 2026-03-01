@@ -53,8 +53,9 @@
 │  │      Orchestrator Agent V2 (LangGraph)           │ │
 │  │  - Skills 架构（渐进式披露）                      │ │
 │  │  - 工具系统（检测、定价、营销、RAG 等）            │ │
-│  │  - 中间件（SkillMiddleware、ToolSelector）        │ │
-│ 100%  知识库开关控制 RAG 工具可用性
+│  │  - 中间件（SkillMiddleware、DynamicTool + TTL）   │ │
+│ 100%  知识库开关控制 RAG 工具可用性                   │ │
+│  │  - 工具生命周期管理（TTL、自动卸载）              │ │
 │  └───────────────────────────────────────────────────┘ │
 └────────────────────┬────────────────────────────────────┘
                      │
@@ -99,6 +100,17 @@ src/agents/tools/<tool>.py
   - 未设置（None）→ 默认行为，注册 RAG 工具
 - **规划技能统一接口**：`consult_planning_knowledge` 对外只有一个入口，内部自动处理知识库开关逻辑
 
+**4. 工具生命周期管理（TTL）**
+
+- **TTL 机制**：工具注册后拥有生命周期（TTL），闲置工具自动卸载
+- **轮次衰减**：每轮对话开始时，所有已注册工具 TTL - 1
+- **使用续期**：工具被调用时 TTL 续期（base_ttl + extension）
+- **钉住工具**：支持设置 `pinned: true`，关键工具永不卸载
+- **配置方式**：
+  - 全局配置：环境变量 `DEFAULT_TOOL_TTL`、`DEFAULT_TOOL_EXTENSION`
+  - 技能配置：YAML 中 `ttl_config` 字段
+  - 开关控制：`ENABLE_TOOL_TTL` 环境变量
+
 ---
 
 ## 服务端口与 API 文档
@@ -139,6 +151,8 @@ RuralBrain/
 │   │   │   └── base.py        # Skill 数据模型
 │   │   ├── tools/             # Agent 工具集（包含 RAG 工具）
 │   │   └── middleware/        # 中间件系统
+│   │       ├── dynamic_tool_middleware.py  # 动态工具注册中间件
+│   │       └── tool_lifecycle.py           # 工具生命周期 TTL 管理
 │   │
 │   ├── algorithms/            # 检测算法服务
 │   │   ├── api/               # ⭐ 统一 API 网关（端口 8001）
@@ -355,6 +369,32 @@ bash scripts/dev/test_production.sh
 - 功能：从 YAML 配置文件加载所有技能，提供统一的技能查询接口
 - 支持热重载：可通过 `SKILL_RELOAD_STRATEGY` 配置重新加载策略
 
+### 工具生命周期管理（TTL）
+
+- **文件**：`src/agents/middleware/tool_lifecycle.py`
+- **功能**：实现工具自适应 TTL（Time To Live）机制
+
+**核心机制**：
+1. **工具注册**：赋予初始 TTL（默认 3 轮）
+2. **轮次衰减**：每轮对话所有工具 TTL - 1
+3. **使用续期**：工具被调用时续期（base_ttl + extension）
+4. **自动卸载**：TTL 过期的工具自动移除
+5. **钉住保护**：关键工具可设置 `pinned: true` 永不卸载
+
+**配置方式**：
+- **全局配置**（环境变量）：
+  - `DEFAULT_TOOL_TTL=3` - 默认工具生命周期（轮数）
+  - `DEFAULT_TOOL_EXTENSION=2` - 默认续期增量（轮数）
+  - `ENABLE_TOOL_TTL=true` - 是否启用 TTL 机制
+- **技能配置**（YAML）：
+  ```yaml
+  pest_detection:
+    ttl_config:
+      base_ttl: 2      # 基础生命周期
+      extension: 1      # 使用后续期
+      pinned: false    # 是否钉住
+  ```
+
 ---
 
 ## RAG 知识库系统
@@ -387,8 +427,16 @@ bash scripts/dev/test_production.sh
 
 ### 配置位置
 
-- 环境变量：`.env` 文件
-- 模型配置：`src/config.py`
+- **环境变量**：`.env` 文件
+- **模型配置**：`src/config.py`
+- **TTL 配置**：`src/config.py` + 技能 YAML 文件
+
+**环境变量配置项**：
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `DEFAULT_TOOL_TTL` | 3 | 工具默认生命周期（轮数） |
+| `DEFAULT_TOOL_EXTENSION` | 2 | 工具使用后续期增量（轮数） |
+| `ENABLE_TOOL_TTL` | true | 是否启用 TTL 机制 |
 
 ### Agent 架构
 
@@ -468,6 +516,8 @@ bash scripts/dev/check.sh --test fast
 |------|------|--------|
 | [service/server.py](service/server.py) | 后端主服务入口，Agent 编排 | ⭐⭐⭐ |
 | [src/agents/orchestrator_agent_v2.py](src/agents/orchestrator_agent_v2.py) | V2 统一编排 Agent | ⭐⭐⭐ |
+| [src/agents/middleware/tool_lifecycle.py](src/agents/middleware/tool_lifecycle.py) | 工具生命周期 TTL 管理 | ⭐⭐ |
+| [src/agents/middleware/dynamic_tool_middleware.py](src/agents/middleware/dynamic_tool_middleware.py) | 动态工具注册中间件 | ⭐⭐⭐ |
 | [src/algorithms/api/main.py](src/algorithms/api/main.py) | 检测服务统一网关 | ⭐⭐⭐ |
 | [src/rag/core/tools.py](src/rag/core/tools.py) | RAG 知识库的 4 个检索工具 | ⭐⭐ |
 | [src/config.py](src/config.py) | 全局配置（模型管理等） | ⭐⭐ |
@@ -490,35 +540,4 @@ bash scripts/dev/check.sh --test fast
 
 ---
 
-## 更新日志
-
-**最后更新**: 2026-02-27 | **版本**: v4.1
-
-**v4.1 主要变更**（本次更新）：
-- 知识库开关控制优化：通过 config 传递布尔值，而非消息指令
-- load_skill 内部处理知识库开关：规划技能保持统一接口
-  - 开启（True）：注册 RAG 检索工具
-  - 关闭（False）：不注册工具，用通用知识
-  - 未设置（None）：默认行为，注册 RAG 工具
-- 简化系统提示词，移除消息指令解析逻辑
-- 清理 Docker 配置：移除规划服务容器和相关引用
-
-**v4.0 主要变更**：
-- RAG 知识库从独立服务（8003 端口）重构为 Skill 集成到主 Agent
-- 规划技能 `planning.yaml` 直接引用 RAG 检索工具
-- 移除服务层 `/chat/planning` 转发逻辑，统一到 `/chat/stream`
-- 移除 Docker 中的 `planning-service` 容器
-- 前端新增"知识库"开关，控制 RAG 工具可用性
-- 更新 `orchator_agent_v2.py` 系统提示词支持知识库开关
-- 更新 `service/schemas.py` 新增 `enable_knowledge_base` 参数
-
-**v3.3 主要变更**：
-- 实现动态工具注册系统（DynamicToolMiddleware），确保会话隔离
-- 合并开发脚本为统一的 `check.sh`（健康检查 + 功能测试）
-- 移除冗余中间件（ModeAwareMiddleware、ToolSelectorMiddleware）
-- 修复工具参数传递和异步上下文问题
-- 更新测试以适应严格渐进式披露架构
-
----
-
-**相关文档**：[docs/README.md](docs/README.md) | [docs/commands.md](docs/commands.md)
+**相关文档**：[docs/README.md](docs/README.md) | [docs/commands.md](docs/commands.md) | [docs/CHANGELOG.md](docs/CHANGELOG.md)
