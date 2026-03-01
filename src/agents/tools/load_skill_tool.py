@@ -110,20 +110,13 @@ def load_skill(
         try:
             middleware = get_dynamic_middleware()
 
-            # 注册工具到当前会话（thread_id 自动获取），传递 TTL 配置（仅在 TTL 启用时）
-            if ENABLE_TOOL_TTL:
-                count = middleware.register_tools_by_skill(
-                    skill_name,
-                    skill.tool_names,
-                    ttl_config=ttl_config
-                    # thread_id 现在由 register_tools_by_skill 自动获取
-                )
-            else:
-                count = middleware.register_tools_by_skill(
-                    skill_name,
-                    skill.tool_names
-                    # thread_id 现在由 register_tools_by_skill 自动获取
-                )
+            # 注册工具到当前会话（thread_id 自动获取），传递 TTL 配置（None 当 TTL 禁用时）
+            count = middleware.register_tools_by_skill(
+                skill_name,
+                skill.tool_names,
+                ttl_config=ttl_config
+                # thread_id 现在由 register_tools_by_skill 自动获取
+            )
 
             if count > 0:
                 if ENABLE_TOOL_TTL and ttl_config:
