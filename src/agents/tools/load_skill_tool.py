@@ -67,17 +67,29 @@ def load_skill(
     content = skill.content or f"# {skill.name}\n\n{skill.description}"
 
     # 3. 获取知识库开关状态（从全局状态）
-    # 首先尝试从 config 获取 thread_id
+    # 使用 langgraph.get_config() 获取当前 runnable 上下文的 config
     kb_enabled = None
     thread_id = None
 
-    if config:
-        thread_id = config.get("configurable", {}).get("thread_id")
+    try:
+        from langgraph.config import get_config as get_runnable_config
+        current_config = get_runnable_config()
+        if current_config:
+            thread_id = current_config.get("configurable", {}).get("thread_id")
+            # 确保 thread_id 是字符串类型（与中间件保持一致）
+            if thread_id:
+                thread_id = str(thread_id)
+    except RuntimeError as e:
+        logger.debug(f"无法获取 runnable config: {e}")
+    except Exception as e:
+        logger.warning(f"获取 thread_id 时出错: {e}")
 
     if thread_id:
         # 从中间件的全局状态获取知识库开关
         kb_enabled = get_kb_switch_state(thread_id)
         logger.info(f"知识库开关状态: thread_id={thread_id}, kb_enabled={kb_enabled}, skill_name={skill_name}")
+    else:
+        logger.warning(f"无法获取 thread_id，使用默认行为（启用知识库）")
 
     # 4. 获取 TTL 配置（仅在 TTL 启用时）
     ttl_config = None

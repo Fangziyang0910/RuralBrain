@@ -4,8 +4,9 @@
 
 - **仓库地址**: https://hub.docker.com/r/zwxdockerbeginner/ruralbrain
 - **维护者**: zwxbeginner
-- **版本**: v2.2.0
-- **最后更新**: 2026-02
+- **版本**: v2.2.1
+- **最后更新**: 2026-03-01
+- **重要变更**: 使用 v2 镜像（ONNX 优化版本，体积大幅减少）
 
 ---
 
@@ -15,14 +16,15 @@
 
 | 标签 | 说明 | 大小 | 使用场景 |
 |------|------|------|---------|
-| `backend-onnx` | 后端主服务（FastAPI + Agents） | 394MB | 开发/生产 |
-| `latest` | 指向 `backend-onnx`（最新稳定版） | 394MB | 默认拉取 |
+| `backend-onnx-v2` | 后端主服务（FastAPI + Agents，ONNX 优化版） | 393MB | 开发/生产 |
+| `latest` | 指向 `backend-onnx-v2`（最新稳定版） | 394MB | 默认拉取 |
 
 **功能**：
 - Orchestrator Agent V2 编排
 - 意图识别和路由
 - 工具调用管理
 - 流式对话支持
+- **优化**：使用千问 API 进行 Embedding（或本地模型降级）
 
 ---
 
@@ -30,10 +32,10 @@
 
 | 标签 | 说明 | 大小 | 使用场景 |
 |------|------|------|---------|
-| `frontend-onnx` | 前端生产版本（优化构建） | 1.02GB | 生产环境 |
+| `frontend-onnx-v2` | 前端生产版本（优化构建） | 1.02GB | 生产环境 |
 | `frontend-dev` | 前端开发版本（支持热重载） | 1.81GB | 开发环境 |
 
-**frontend-onnx 特点**：
+**frontend-onnx-v2 特点**：
 - 多阶段构建优化
 - 生产环境启动（`npm start`）
 - 镜像体积小
@@ -49,7 +51,7 @@
 
 | 标签 | 说明 | 大小 | 使用场景 |
 |------|------|------|---------|
-| `detection-onnx` | 检测服务统一网关（YOLO 模型） | 13.7GB | 开发/生产 |
+| `detection-onnx-v2` | 检测服务统一网关（YOLO 模型，ONNX 优化版） | 1.52GB | 开发/生产 |
 
 **功能**：
 - 病虫害检测（`/detection/pest/detect`）
@@ -57,10 +59,10 @@
 - 奶牛目标检测（`/detection/cow/detect`）
 - ONNX Runtime 推理引擎
 
-**包含模型**：
-- 病虫害检测 YOLO 模型
-- 大米品种识别模型
-- 奶牛检测 YOLO 模型
+**优化**：
+- 完全移除 PyTorch 和 ultralytics（体积减少 85%）
+- 直接使用 ONNX Runtime 进行推理
+- 构建时间从 20-30 分钟降至 3-5 分钟
 
 ---
 
@@ -106,21 +108,21 @@
 
 ```bash
 # 拉取后端服务
-docker pull zwxdockerbeginner/ruralbrain:backend-onnx
+docker pull zwxdockerbeginner/ruralbrain:backend-onnx-v2
 
 # 拉取检测服务
-docker pull zwxdockerbeginner/ruralbrain:detection-onnx
+docker pull zwxdockerbeginner/ruralbrain:detection-onnx-v2
 
 # 规划服务已集成到主 Agent，无需单独拉取
 # docker pull zwxdockerbeginner/ruralbrain:planning-onnx  # 已废弃
 
 # 拉取前端生产版
-docker pull zwxdockerbeginner/ruralbrain:frontend-onnx
+docker pull zwxdockerbeginner/ruralbrain:frontend-onnx-v2
 
 # 拉取前端开发版
 docker pull zwxdockerbeginner/ruralbrain:frontend-dev
 
-# 或拉取最新版本（指向 backend-onnx）
+# 或拉取最新版本（指向 backend-onnx-v2）
 docker pull zwxdockerbeginner/ruralbrain:latest
 ```
 
@@ -343,14 +345,14 @@ dev                       # 开发版本
 ```
 
 **常用标签**：
-- `latest`：最新稳定版（指向 backend-onnx）
-- `backend-onnx`：后端 ONNX 版本
-- `detection-onnx`：检测服务 ONNX 版本
-- `planning-onnx`：规划服务 ONNX 版本
-- `frontend-onnx`：前端生产版本
+- `latest`：最新稳定版（指向 backend-onnx-v2）
+- `backend-onnx-v2`：后端 ONNX 版本（v2 优化版）
+- `detection-onnx-v2`：检测服务 ONNX 版本（v2 优化版）
+- `planning-onnx`：规划服务 ONNX 版本（已废弃，已整合到主 Agent）
+- `frontend-onnx-v2`：前端生产版本（v2 优化版）
 - `frontend-dev`：前端开发版本（热重载）
-- `v2.2.0`：语义化版本号
-- `2026-02-11`：日期版本号（可选）
+- `v2.2.1`：语义化版本号
+- `2026-03-01`：日期版本号（可选）
 
 ---
 
