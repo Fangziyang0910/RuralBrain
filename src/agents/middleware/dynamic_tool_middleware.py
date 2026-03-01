@@ -9,10 +9,12 @@ https://docs.langchain.com/oss/python/langchain/agents
 
 会话级别工具管理：
 - 每个 thread_id 独立管理工具集
-- 工具注册后在同一 thread_id 的对话中永久生效
+- 工具注册后在同一 thread_id 的对话中生效
+- 支持工具生命周期（TTL）管理
 - 不同 thread_id 之间工具隔离
 """
 import logging
+from collections import defaultdict
 from typing import Callable, Dict, List, Optional, TYPE_CHECKING
 
 from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
@@ -22,6 +24,7 @@ from langgraph.config import get_config
 
 if TYPE_CHECKING:
     from ..tools.tool_loader import ToolLoader
+from .tool_lifecycle import TTLConfig, ToolLifecycle
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +75,11 @@ class DynamicToolMiddleware(AgentMiddleware):
         self._registered_tools: Dict[str, Dict[str, BaseTool]] = {}
         # 记录每个会话已注册的技能：{thread_id: [skill_names]}
         self._registered_skills: Dict[str, List[str]] = {}
-        logger.info("DynamicToolMiddleware 初始化完成（会话级别工具管理）")
+        # 工具生命周期管理：{thread_id: {tool_name: ToolLifecycle}}
+        self._tool_lifecycles: Dict[str, Dict[str, ToolLifecycle]] = {}
+        # 轮次计数器：{thread_id: current_round}
+        self._round_counters: Dict[str, int] = defaultdict(int)
+        logger.info("DynamicToolMiddleware 初始化完成（会话级别工具管理，支持 TTL）")
 
     def set_tool_loader(self, tool_loader: "ToolLoader"):
         """
@@ -84,12 +91,115 @@ class DynamicToolMiddleware(AgentMiddleware):
         self._tool_loader = tool_loader
         logger.debug("ToolLoader 已设置")
 
+    def _increment_round(self, thread_id: str) -> int:
+        """
+        增加轮次计数器
+
+        Args:
+            thread_id: 会话 ID
+
+        Returns:
+            当前轮次
+        """
+        self._round_counters[thread_id] += 1
+        current_round = self._round_counters[thread_id]
+        logger.debug(f"轮次: {thread_id} -> round {current_round}")
+        return current_round
+
+    def _decrement_all_tools(self, thread_id: str):
+        """
+        所有已注册工具 TTL 减 1，移除过期工具
+
+        Args:
+            thread_id: 会话 ID
+        """
+        if thread_id not in self._tool_lifecycles:
+            return
+
+        session_lifecycles = self._tool_lifecycles[thread_id]
+        expired_tools = []
+
+        for tool_name, lifecycle in session_lifecycles.items():
+            lifecycle.decrement()
+            if lifecycle.is_expired():
+                expired_tools.append(tool_name)
+
+        # 移除过期工具
+        for tool_name in expired_tools:
+            self._unregister_tool(thread_id, tool_name)
+
+        if expired_tools:
+            logger.info(f"卸载过期工具: {expired_tools} (thread_id={thread_id})")
+
+    def _renew_tool(self, thread_id: str, tool_name: str):
+        """
+        续期工具 TTL
+
+        Args:
+            thread_id: 会话 ID
+            tool_name: 工具名称
+        """
+        if thread_id not in self._tool_lifecycles:
+            return
+
+        session_lifecycles = self._tool_lifecycles[thread_id]
+        if tool_name in session_lifecycles:
+            lifecycle = session_lifecycles[tool_name]
+            current_round = self._round_counters[thread_id]
+            lifecycle.renew()
+            lifecycle.mark_used(current_round)
+            logger.debug(f"续期工具: {tool_name} (TTL={lifecycle.current_ttl})")
+
+    def _unregister_tool(self, thread_id: str, tool_name: str):
+        """
+        从会话中移除工具
+
+        Args:
+            thread_id: 会话 ID
+            tool_name: 工具名称
+        """
+        if thread_id in self._registered_tools:
+            self._registered_tools[thread_id].pop(tool_name, None)
+        if thread_id in self._tool_lifecycles:
+            self._tool_lifecycles[thread_id].pop(tool_name, None)
+        logger.debug(f"移除工具: {tool_name} (thread_id={thread_id})")
+
     def before_agent(self, state, runtime):
-        """Agent 执行前的钩子（同步版本）"""
+        """
+        Agent 执行前的钩子（同步版本）
+
+        进行 TTL 衰减：每轮对话开始时，所有已注册工具 TTL - 1
+        """
+        try:
+            config = get_config()
+            thread_id = config.get("configurable", {}).get("thread_id")
+            if thread_id:
+                thread_id = str(thread_id)
+                # 增加轮次
+                self._increment_round(thread_id)
+                # TTL 衰减
+                self._decrement_all_tools(thread_id)
+        except (RuntimeError, KeyError):
+            pass
         return None
 
     async def abefore_agent(self, state, runtime):
-        """Agent 执行前的钩子（异步版本）"""
+        """
+        Agent 执行前的钩子（异步版本）
+
+        进行 TTL 衰减：每轮对话开始时，所有已注册工具 TTL - 1
+        """
+        try:
+            config = get_config()
+            thread_id = config.get("configurable", {}).get("thread_id")
+            if thread_id:
+                thread_id = str(thread_id)
+                # 增加轮次
+                self._increment_round(thread_id)
+                # TTL 衰减
+                self._decrement_all_tools(thread_id)
+        except (RuntimeError, KeyError):
+            pass
         return None
 
     def _get_thread_id(self, request: ModelRequest) -> str:
@@ -123,7 +233,8 @@ class DynamicToolMiddleware(AgentMiddleware):
         tool_names: List[str],
         tools: List[BaseTool],
         skill_name: str = "",
-        thread_id: Optional[str] = None
+        thread_id: Optional[str] = None,
+        ttl_config: Optional[TTLConfig] = None
     ):
         """
         注册工具到指定会话
@@ -133,6 +244,7 @@ class DynamicToolMiddleware(AgentMiddleware):
             tools: 工具实例列表
             skill_name: 关联的技能名称（可选，用于日志和跟踪）
             thread_id: 会话 ID，如果为 None 则自动从上下文获取
+            ttl_config: TTL 配置（如果为 None，使用默认值）
         """
         # 如果未指定 thread_id，尝试从调用上下文自动获取
         if thread_id is None:
@@ -152,32 +264,58 @@ class DynamicToolMiddleware(AgentMiddleware):
         # 确保该 thread_id 的工具字典存在
         if thread_id not in self._registered_tools:
             self._registered_tools[thread_id] = {}
-
         if thread_id not in self._registered_skills:
             self._registered_skills[thread_id] = []
+        if thread_id not in self._tool_lifecycles:
+            self._tool_lifecycles[thread_id] = {}
+
+        # 如果未提供 TTL 配置，使用默认值
+        if ttl_config is None:
+            ttl_config = TTLConfig()
 
         session_tools = self._registered_tools[thread_id]
+        session_lifecycles = self._tool_lifecycles[thread_id]
+        current_round = self._round_counters[thread_id]
         registered_count = 0
 
         for name, tool in zip(tool_names, tools):
             if name not in session_tools:
                 session_tools[name] = tool
+                # 创建生命周期记录
+                lifecycle = ToolLifecycle(
+                    tool_name=name,
+                    skill_name=skill_name or "unknown",
+                    current_ttl=ttl_config.base_ttl,
+                    base_ttl=ttl_config.base_ttl,
+                    extension=ttl_config.extension,
+                    pinned=ttl_config.pinned,
+                    registration_round=current_round,
+                    last_used_round=current_round
+                )
+                session_lifecycles[name] = lifecycle
                 registered_count += 1
-                logger.debug(f"注册工具: {name} (技能: {skill_name or '未知'}, thread_id: {thread_id})")
+
+                ttl_info = f"TTL={ttl_config.base_ttl}" if not ttl_config.pinned else "pinned=True"
+                logger.debug(f"注册工具: {name} (技能: {skill_name or '未知'}, {ttl_info}, thread_id: {thread_id})")
             else:
-                logger.debug(f"工具已存在，跳过: {name} (thread_id: {thread_id})")
+                # 工具已存在，更新其生命周期
+                if name in session_lifecycles:
+                    session_lifecycles[name].renew()
+                logger.debug(f"工具已存在，续期: {name} (thread_id: {thread_id})")
 
         if skill_name and skill_name not in self._registered_skills[thread_id]:
             self._registered_skills[thread_id].append(skill_name)
 
         if registered_count > 0:
-            logger.info(f"注册了 {registered_count} 个工具 (技能: {skill_name or '未知'}, thread_id: {thread_id})")
+            ttl_info = f"TTL={ttl_config.base_ttl}" if not ttl_config.pinned else "pinned=True"
+            logger.info(f"注册了 {registered_count} 个工具 (技能: {skill_name or '未知'}, {ttl_info}, thread_id: {thread_id})")
 
     def register_tools_by_skill(
         self,
         skill_name: str,
         tool_names: List[str],
-        thread_id: Optional[str] = None
+        thread_id: Optional[str] = None,
+        ttl_config: Optional[TTLConfig] = None
     ) -> int:
         """
         根据技能名称注册关联的工具
@@ -186,6 +324,7 @@ class DynamicToolMiddleware(AgentMiddleware):
             skill_name: 技能名称
             tool_names: 工具名称列表
             thread_id: 会话 ID，如果为 None 则自动从上下文获取
+            ttl_config: TTL 配置（如果为 None，使用默认值）
 
         Returns:
             成功注册的工具数量
@@ -213,7 +352,7 @@ class DynamicToolMiddleware(AgentMiddleware):
         if thread_id is None:
             thread_id = DEFAULT_THREAD_ID
 
-        self.register_tools(tool_names, tools, skill_name, thread_id)
+        self.register_tools(tool_names, tools, skill_name, thread_id, ttl_config)
 
         # 返回该会话中成功注册的工具数量
         if thread_id in self._registered_tools:
@@ -261,6 +400,7 @@ class DynamicToolMiddleware(AgentMiddleware):
 
         这是 LangChain Runtime tool registration 的第二个关键钩子。
         如果调用的工具是动态注册的，需要提供正确的工具实例。
+        同时进行工具续期：工具被使用时 TTL 续期。
         """
         tool_name = request.tool_call.get("name")
 
@@ -273,6 +413,10 @@ class DynamicToolMiddleware(AgentMiddleware):
             if tool_name in session_tools:
                 # 这是一个动态工具，提供正确的工具实例
                 tool = session_tools[tool_name]
+
+                # 工具续期
+                self._renew_tool(thread_id, tool_name)
+
                 logger.debug(f"wrap_tool_call: 执行动态工具 {tool_name} (thread_id: {thread_id})")
                 return handler(request.override(tool=tool))
 

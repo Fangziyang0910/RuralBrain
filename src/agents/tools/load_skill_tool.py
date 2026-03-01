@@ -39,6 +39,7 @@ def load_skill(
     **动态工具注册：**
     加载技能后，该技能关联的工具将自动注册到当前会话，Agent 可以直接调用这些工具。
     工具注册是会话级别的（按 thread_id 隔离），不同会话之间工具状态独立。
+    工具有生命周期（TTL），闲置工具会自动卸载，使用中的工具会续期。
 
     Args:
         skill_name: 要加载的技能名称
@@ -49,7 +50,7 @@ def load_skill(
 
     Examples:
         >>> load_skill("pest_detection")
-        "已加载技能: pest_detection\\n\\n已注册工具: pest_detection_tool\\n\\n[技能内容...]"
+        "已加载技能: pest_detection\\n\\n已注册工具: pest_detection_tool (TTL=5)\\n\\n[技能内容...]"
     """
     from ..middleware.dynamic_tool_middleware import get_dynamic_middleware, get_kb_switch_state
     from ..skills.registry import get_registry
@@ -78,7 +79,10 @@ def load_skill(
         kb_enabled = get_kb_switch_state(thread_id)
         logger.info(f"知识库开关状态: thread_id={thread_id}, kb_enabled={kb_enabled}, skill_name={skill_name}")
 
-    # 4. 注册关联的工具（动态工具注册）
+    # 4. 获取 TTL 配置
+    ttl_config = skill.get_ttl_config()
+
+    # 5. 注册关联的工具（动态工具注册）
     # 注意：register_tools_by_skill 会自动从调用上下文获取 thread_id
     registered_tools_info = ""
 
@@ -91,16 +95,18 @@ def load_skill(
         try:
             middleware = get_dynamic_middleware()
 
-            # 注册工具到当前会话（thread_id 自动获取）
+            # 注册工具到当前会话（thread_id 自动获取），传递 TTL 配置
             count = middleware.register_tools_by_skill(
                 skill_name,
-                skill.tool_names
+                skill.tool_names,
+                ttl_config=ttl_config
                 # thread_id 现在由 register_tools_by_skill 自动获取
             )
 
             if count > 0:
-                registered_tools_info = f"\n\n✅ 已注册工具: {', '.join(skill.tool_names)}"
-                logger.info(f"技能 {skill_name} 注册了 {count} 个工具")
+                ttl_info = f"TTL={ttl_config.base_ttl}" if not ttl_config.pinned else "已钉住"
+                registered_tools_info = f"\n\n✅ 已注册工具: {', '.join(skill.tool_names)} ({ttl_info})"
+                logger.info(f"技能 {skill_name} 注册了 {count} 个工具 ({ttl_info})")
             else:
                 registered_tools_info = "\n\n⚠️ 工具已存在或加载失败"
                 logger.warning(f"技能 {skill_name} 工具注册失败")
