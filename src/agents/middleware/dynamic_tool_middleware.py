@@ -566,6 +566,14 @@ class DynamicToolMiddleware(AgentMiddleware):
             self._registered_tools[thread_id].clear()
         if thread_id in self._registered_skills:
             self._registered_skills[thread_id].clear()
+
+        # 清除 TTL 相关数据（仅在 TTL 启用时）
+        if ENABLE_TOOL_TTL:
+            if thread_id in self._tool_lifecycles:
+                self._tool_lifecycles[thread_id].clear()
+            if thread_id in self._round_counters:
+                self._round_counters.pop(thread_id)
+
         logger.info(f"已清空会话 {thread_id} 的所有动态注册工具")
 
     def clear_tools(self):
@@ -576,6 +584,12 @@ class DynamicToolMiddleware(AgentMiddleware):
         """
         self._registered_tools.clear()
         self._registered_skills.clear()
+
+        # 清除 TTL 相关数据（仅在 TTL 启用时）
+        if ENABLE_TOOL_TTL:
+            self._tool_lifecycles.clear()
+            self._round_counters.clear()
+
         logger.info("已清空所有会话的动态注册工具")
 
     def is_tool_registered(self, tool_name: str, thread_id: Optional[str] = None) -> bool:
