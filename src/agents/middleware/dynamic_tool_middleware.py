@@ -169,7 +169,8 @@ class DynamicToolMiddleware(AgentMiddleware):
         """
         if thread_id in self._registered_tools:
             self._registered_tools[thread_id].pop(tool_name, None)
-        if thread_id in self._tool_lifecycles:
+        # 仅在 TTL 启用时处理生命周期数据
+        if ENABLE_TOOL_TTL and thread_id in self._tool_lifecycles:
             self._tool_lifecycles[thread_id].pop(tool_name, None)
         logger.debug(f"移除工具: {tool_name} (thread_id={thread_id})")
 
