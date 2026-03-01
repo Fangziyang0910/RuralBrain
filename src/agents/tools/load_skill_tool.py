@@ -79,8 +79,11 @@ def load_skill(
         kb_enabled = get_kb_switch_state(thread_id)
         logger.info(f"知识库开关状态: thread_id={thread_id}, kb_enabled={kb_enabled}, skill_name={skill_name}")
 
-    # 4. 获取 TTL 配置
-    ttl_config = skill.get_ttl_config()
+    # 4. 获取 TTL 配置（仅在 TTL 启用时）
+    ttl_config = None
+    from ...config import ENABLE_TOOL_TTL
+    if ENABLE_TOOL_TTL:
+        ttl_config = skill.get_ttl_config()
 
     # 5. 注册关联的工具（动态工具注册）
     # 注意：register_tools_by_skill 会自动从调用上下文获取 thread_id
@@ -95,18 +98,29 @@ def load_skill(
         try:
             middleware = get_dynamic_middleware()
 
-            # 注册工具到当前会话（thread_id 自动获取），传递 TTL 配置
-            count = middleware.register_tools_by_skill(
-                skill_name,
-                skill.tool_names,
-                ttl_config=ttl_config
-                # thread_id 现在由 register_tools_by_skill 自动获取
-            )
+            # 注册工具到当前会话（thread_id 自动获取），传递 TTL 配置（仅在 TTL 启用时）
+            if ENABLE_TOOL_TTL:
+                count = middleware.register_tools_by_skill(
+                    skill_name,
+                    skill.tool_names,
+                    ttl_config=ttl_config
+                    # thread_id 现在由 register_tools_by_skill 自动获取
+                )
+            else:
+                count = middleware.register_tools_by_skill(
+                    skill_name,
+                    skill.tool_names
+                    # thread_id 现在由 register_tools_by_skill 自动获取
+                )
 
             if count > 0:
-                ttl_info = f"TTL={ttl_config.base_ttl}" if not ttl_config.pinned else "已钉住"
-                registered_tools_info = f"\n\n✅ 已注册工具: {', '.join(skill.tool_names)} ({ttl_info})"
-                logger.info(f"技能 {skill_name} 注册了 {count} 个工具 ({ttl_info})")
+                if ENABLE_TOOL_TTL and ttl_config:
+                    ttl_info = f"TTL={ttl_config.base_ttl}" if not ttl_config.pinned else "已钉住"
+                    registered_tools_info = f"\n\n✅ 已注册工具: {', '.join(skill.tool_names)} ({ttl_info})"
+                    logger.info(f"技能 {skill_name} 注册了 {count} 个工具 ({ttl_info})")
+                else:
+                    registered_tools_info = f"\n\n✅ 已注册工具: {', '.join(skill.tool_names)}"
+                    logger.info(f"技能 {skill_name} 注册了 {count} 个工具")
             else:
                 registered_tools_info = "\n\n⚠️ 工具已存在或加载失败"
                 logger.warning(f"技能 {skill_name} 工具注册失败")
