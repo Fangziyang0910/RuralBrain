@@ -23,12 +23,13 @@ class RiceService:
         self._detector = None
         self._initialized = False
         self._init_lock = threading.Lock()
+        # YOLO 模型返回 0-based 索引，使用整数键映射
         self.name_map = {
-            '1': '糯米',
-            '2': '丝苗米',
-            '3': '泰国香米',
-            '4': '五常大米',
-            '5': '珍珠大米',
+            0: '糯米',
+            1: '丝苗米',
+            2: '泰国香米',
+            3: '五常大米',
+            4: '珍珠大米',
         }
 
     def _load_model(self):
@@ -43,8 +44,9 @@ class RiceService:
             if not os.path.exists(self.weights_path):
                 raise FileNotFoundError(f'Model weights not found at {self.weights_path}')
 
-            # 定义类别名称
-            class_names = list(self.name_map.values())
+            # YOLO11-seg 模型有 6 个类别（含 background）
+            # 0: background, 1-5: 各类大米品种
+            class_names = ['背景', '糯米', '丝苗米', '泰国香米', '五常大米', '珍珠大米']
 
             # 创建 ONNX YOLO 检测器
             self._detector = ONNXYOLODetector(

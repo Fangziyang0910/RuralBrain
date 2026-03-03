@@ -22,7 +22,7 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # 安装最小依赖 - 后端服务必需的包
-# 不包含 torch、ultralytics、chromadb 等重量级依赖
+# 不包含 torch、ul ultralytics、chromadb 等重量级依赖
 # 注意：不指定具体版本，让 pip 自动选择与 Python 3.13 兼容的最新版本
 RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     fastapi \
@@ -36,6 +36,10 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     langchain-deepseek \
     langgraph \
     langsmith \
+    langchain-chroma \
+    langchain-community \
+    sentence-transformers \
+    chromadb \
     rich \
     --no-cache-dir
 

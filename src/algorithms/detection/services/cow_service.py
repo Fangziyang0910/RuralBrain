@@ -43,7 +43,24 @@ class CowModelService:
                     raise FileNotFoundError(f"模型文件不存在: {model_path}")
 
                 # 定义类别名称
-                class_names = ["荷斯坦牛", "娟姗牛", "西门塔尔牛"]
+                # 注意：当前 ONNX 模型是 COCO 预训练模型（80 类）
+                # class_id=19 是 "cow"，其他类别在 80 个 COCO 类中
+                # 如果需要细分的奶牛品种，需要使用重新训练的模型
+                # 使用 COCO 的 80 个标准类别名称
+                coco_classes = [
+                    'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat',
+                    'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat',
+                    'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack',
+                    'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
+                    'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
+                    'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple',
+                    'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake',
+                    'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop',
+                    'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink',
+                    'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier',
+                    'toothbrush'
+                ]
+                class_names = coco_classes
 
                 # 创建 ONNX YOLO 检测器（内置 NMS）
                 # 降低置信度阈值提高召回率，但 NMS 会过滤重复检测
@@ -125,6 +142,7 @@ class CowModelService:
             detailed_detections = []
 
             for det in detections:
+                class_id = det.get('class_id', -1)
                 class_name = det['class_name']
                 confidence = det['confidence']
                 box = det.get('box', [0, 0, 0, 0])
@@ -137,28 +155,29 @@ class CowModelService:
                 center_x = float((x1 + x2) / 2)
                 center_y = float((y1 + y2) / 2)
 
-                # 统计每个类别的数量（基于NMS后的结果）
-                if class_name not in class_counts:
-                    class_counts[class_name] = 0
-                class_counts[class_name] += 1
+                # 只统计 cow 类别（class_id=19），忽略其他 COCO 类别
+                if class_id == 19:  # COCO 中的 cow 类别
+                    if class_name not in class_counts:
+                        class_counts[class_name] = 0
+                    class_counts[class_name] += 1
 
-                # 添加到详细检测结果
-                detailed_detection = {
-                    "class_name": class_name,
-                    "confidence": confidence,
-                    "bbox": [float(x1), float(y1), float(x2), float(y2)],
-                    "center": [center_x, center_y],
-                    "size": {
-                        "width": cow_width,
-                        "height": cow_height,
-                        "area": cow_width * cow_height
-                    },
-                    "relative_position": {
-                        "x": center_x / width if width > 0 else 0,
-                        "y": center_y / height if height > 0 else 0
+                    # 添加到详细检测结果
+                    detailed_detection = {
+                        "class_name": class_name,
+                        "confidence": confidence,
+                        "bbox": [float(x1), float(y1), float(x2), float(y2)],
+                        "center": [center_x, center_y],
+                        "size": {
+                            "width": cow_width,
+                            "height": cow_height,
+                            "area": cow_width * cow_height
+                        },
+                        "relative_position": {
+                            "x": center_x / width if width > 0 else 0,
+                            "y": center_y / height if height > 0 else 0
+                        }
                     }
-                }
-                detailed_detections.append(detailed_detection)
+                    detailed_detections.append(detailed_detection)
 
             # 转换为API期望的格式
             for class_name, count in class_counts.items():
@@ -213,8 +232,8 @@ class CowService:
     def get_supported_cows():
         """获取支持的奶牛品种"""
         return {
-            "supported_cows": ["荷斯坦牛", "娟姗牛", "西门塔尔牛"],
-            "total_classes": 3
+            "supported_cows": ["cow"],  # COCO 预训练模型只检测 "cow" 类别
+            "total_classes": 80  # COCO 数据集有 80 个类别
         }
 
     @staticmethod

@@ -44,6 +44,7 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     python-dotenv \
     requests \
     rich \
+    pillow \
     --no-cache-dir
 
 # 创建模型目录
@@ -53,6 +54,10 @@ RUN mkdir -p /app/algorithms/detection/models/{pest,cow,rice}
 COPY src/algorithms/detection/models/pest/*.onnx /app/algorithms/detection/models/pest/
 COPY src/algorithms/detection/models/cow/*.onnx /app/algorithms/detection/models/cow/
 COPY src/algorithms/detection/models/rice/**/*.onnx /app/algorithms/detection/models/rice/
+
+# 复制类别标签文件（修复 class_xx 问题）
+COPY src/algorithms/detection/models/pest/classes.txt /app/algorithms/detection/models/pest/
+COPY src/algorithms/detection/models/cow/classes.txt /app/algorithms/detection/models/cow/
 
 # 复制检测服务代码
 COPY src/algorithms /app/algorithms
