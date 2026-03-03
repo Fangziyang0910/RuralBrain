@@ -5,12 +5,38 @@ import React, { useState, useCallback, useRef, useEffect, FormEvent } from "reac
 import { ChatMessageBubble, type Message } from "@/components/ChatMessageBubble";
 import { Button } from "@/components/ui/button";
 import { ImagePreviewCard } from "@/components/ui/ImagePreviewCard";
+import { FeatureDemoCard, type DemoConfig } from "@/components/FeatureDemoCard";
 import { Upload, Send, Loader2, Mic } from "lucide-react";
 import { useASR } from "@/hooks/useASR";
 
 const API_BASE = "/api";
 
 type WorkMode = "auto" | "fast" | "deep";
+
+// 演示功能配置
+const demoConfigs: DemoConfig[] = [
+  {
+    title: "病虫害检测",
+    icon: "🐛",
+    description: "智能识别农作物病虫害，分析危害程度并提供科学防治方案",
+    exampleQuery: "请帮我检测这张图片中的病虫害，并给出防治建议",
+    demoImage: "/demo/pest-input.jpg",
+  },
+  {
+    title: "大米品种识别",
+    icon: "🍚",
+    description: "识别大米品种，分析品质特征，提供烹饪建议和储存方法",
+    exampleQuery: "请帮我识别这张图片中的大米品种",
+    demoImage: "/demo/rice-input.jpg",
+  },
+  {
+    title: "奶牛检测",
+    icon: "🐄",
+    description: "识别牛只品种和数量，提供养殖管理、疫病防控和繁殖建议",
+    exampleQuery: "请帮我数一下这张图片中有多少头牛",
+    demoImage: "/demo/cow-input.jpg",
+  },
+];
 
 // export default 导出这个函数，让其他文件可以使用
 export default function Home() {
@@ -445,6 +471,50 @@ export default function Home() {
     [threadId]
   );
 
+  // 处理演示卡片点击 - 从 URL 加载示例图片并发送
+  const handleDemoClick = useCallback(
+    async (query: string, imageUrl?: string) => {
+      console.log("演示卡片点击:", query, imageUrl);
+
+      if (imageUrl) {
+        try {
+          console.log("正在加载演示图片:", imageUrl);
+          // 从 URL 获取图片
+          const response = await fetch(imageUrl);
+
+          if (!response.ok) {
+            throw new Error(`图片加载失败: ${response.status}`);
+          }
+
+          const blob = await response.blob();
+          console.log("图片加载成功, size:", blob.size, "type:", blob.type);
+
+          // 获取文件扩展名
+          const contentType = blob.type || "image/jpeg";
+          let extension = "jpg";
+          if (contentType.includes("png")) extension = "png";
+          else if (contentType.includes("webp")) extension = "webp";
+
+          // 创建 File 对象
+          const filename = `demo_${Date.now()}.${extension}`;
+          const file = new File([blob], filename, { type: contentType });
+          console.log("File 对象创建成功:", filename);
+
+          // 发送消息和图片
+          await handleSendMessage(query, [file]);
+        } catch (error) {
+          console.error("加载演示图片失败:", error);
+          // 如果图片加载失败，仍然发送文本消息（不带图片）
+          await handleSendMessage(query);
+        }
+      } else {
+        // 没有图片，直接发送文本消息
+        await handleSendMessage(query);
+      }
+    },
+    [handleSendMessage]
+  );
+
   return (
     <div
       className="flex flex-col h-screen dynamic-texture page-load-animate"
@@ -506,6 +576,23 @@ export default function Home() {
               <p className="text-stone-500 text-sm mb-8">
                 支持图像识别、规划咨询、科学方案等功能
               </p>
+
+              {/* 功能演示卡片区域 */}
+              <div className="w-full max-w-3xl mb-8">
+                <p className="text-stone-600 text-sm font-medium mb-4 text-center">
+                  ✨ 点击下方卡片快速体验功能
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {demoConfigs.map((config) => (
+                    <FeatureDemoCard
+                      key={config.title}
+                      config={config}
+                      onClick={(query, imageUrl) => handleDemoClick(query, imageUrl)}
+                      disabled={loading}
+                    />
+                  ))}
+                </div>
+              </div>
 
               {/* 提示文字 */}
               <p className="text-stone-500 text-sm">
