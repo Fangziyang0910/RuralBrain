@@ -115,7 +115,72 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
         age_info = f"{age}月龄" if age else "未知"
         temp_info = f"{temperature}°C" if temperature else "未测量"
 
-        prompt = f"""你是一位专业的兽医专家，请根据以下信息进行疾病预测分析。
+        # 检查信息完整性
+        missing_info = []
+        if not age:
+            missing_info.append("年龄")
+        if not temperature:
+            missing_info.append("体温")
+        if not other_signs:
+            missing_info.append("其他体征（如粪便、呼吸、皮肤状态等）")
+        if len(symptoms) < 10:  # 症状描述过于简单
+            missing_info.append("更详细的症状描述")
+
+        # 如果缺失关键信息，先生成追问
+        if missing_info and len(missing_info) >= 2:
+            prompt = f"""你是一位专业的兽医助手。用户描述了一头{animal_type}出现健康问题，但提供的信息不够详细。
+
+## 已知信息
+- 动物类型：{animal_type}
+- 症状描述：{symptoms}
+- 年龄：{age_info}
+- 体温：{temp_info}
+{f"- 其他体征：{other_signs}" if other_signs else ""}
+
+## 你的任务
+为了做出准确的疾病预测，你需要向用户追问缺失的关键信息。请以友好、专业的方式输出追问问题。
+
+输出格式（严格按此格式）：
+
+### 🩺 需要了解更多信息
+
+为了更准确地分析病情，请帮我补充以下信息：
+
+1. **年龄**
+   - 这头{animal_type}大概多大？是幼崽还是成年？
+   - 年龄对疾病诊断很重要，不同年龄段的易感疾病不同
+
+2. **体温**
+   - 有没有测量体温？大约多少度？
+   - 正常{animal_type}体温是38-39.5°C，发热是重要的疾病信号
+
+3. **其他症状**
+   - 除了不吃东西和凶，还有其他异常吗？比如：
+     - 粪便是否正常？（拉稀/便秘）
+     - 呼吸是否顺畅？（有无咳嗽、喘气）
+     - 皮肤有无异常？（有无红点、溃疡）
+     - 有没有呕吐？
+
+4. **群体情况**
+   - 是只有这一头发病，还是其他{animal_type}也有类似症状？
+   - 最近有没有新引进的{animal_type}？
+
+5. **环境变化**
+   - 最近有没有更换饲料？
+   - 猪舍环境有没有变化？（温度、湿度等）
+   - 最近有没有进行过疫苗接种？
+
+请提供这些信息，我会为您提供更准确的疾病预测和建议。
+
+---
+注意：
+- 直接输出追问文本，不要有其他内容
+- 使用友好、专业的语气
+- 强调补充信息对准确诊断的重要性"""
+
+        else:
+            # 信息相对完整，进行完整的疾病预测分析
+            prompt = f"""你是一位专业的兽医专家，请根据以下信息进行疾病预测分析。
 
 ## 动物信息
 - 动物类型：{animal_type}
@@ -161,7 +226,6 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
 注意：
 - 直接输出报告文本，不要使用 JSON 格式
 - 不要包含代码块标记
-- 如果信息不足，请在建议中说明需要补充的信息
 - 紧急程度根据疾病传染性、严重程度判断"""
 
         # 调用模型
