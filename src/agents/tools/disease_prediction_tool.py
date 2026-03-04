@@ -3,7 +3,6 @@
 收集动物的基本信息、症状描述及患处图片/视频，为 Agent 的 LLM
 提供充分的决策依据，让 LLM 自己进行可靠的医疗建议或就医指南以及预测补充。
 """
-import json
 import os
 from datetime import datetime
 from typing import Optional
@@ -95,7 +94,7 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
                       other_signs: Optional[str] = None) -> dict:
     """使用 DeepSeek LLM 进行疾病预测
 
-    通过构造专业的兽医诊断提示词，让 LLM 分析症状并预测可能的疾病。
+    通过构造专业的兽医诊断提示词，让 LLM 分析症状并返回格式化的报告。
 
     Args:
         animal_type: 动物类型
@@ -105,7 +104,7 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
         other_signs: 其他体征描述
 
     Returns:
-        预测结果字典，包含可能的疾病列表及概率
+        预测结果字典，包含格式化的报告文本和结构化数据
     """
     try:
         # 初始化模型管理器
@@ -113,81 +112,106 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
         model = model_manager.get_chat_model(temperature=0.3)
 
         # 构造诊断提示词
-        age_info = f"- 年龄：{age}月龄" if age else "- 年龄：未知"
-        temp_info = f"- 体温：{temperature}°C" if temperature else "- 体温：未测量"
-        signs_info = f"- 其他体征：{other_signs}" if other_signs else ""
+        age_info = f"{age}月龄" if age else "未知"
+        temp_info = f"{temperature}°C" if temperature else "未测量"
 
         prompt = f"""你是一位专业的兽医专家，请根据以下信息进行疾病预测分析。
 
 ## 动物信息
 - 动物类型：{animal_type}
-{age_info}
-{temp_info}
+- 年龄：{age_info}
+- 体温：{temp_info}
 - 症状描述：{symptoms}
-{signs_info}
+{f"- 其他体征：{other_signs}" if other_signs else ""}
 
 ## 分析要求
-请根据以上信息，分析可能的疾病，并按以下格式返回：
+请直接输出一份结构清晰、易读的疾病预测分析报告，按以下格式组织：
 
-1. **可能的疾病**（按概率从高到低排序，至少列出3种）
-   - 疾病名称：概率（如 75%）
-   - 简要说明原因
+---
+### 🩺 疾病预测分析
 
-2. **关键依据**
-   - 列出判断的主要依据（症状、体征等）
+#### 可能的疾病
+1. **疾病名称**（可能性：XX%）
+   - 判断依据：说明原因
 
-3. **建议措施**
-   - 提供初步的处理建议
-   - 是否需要紧急就医
-   - 护理要点
+2. **疾病名称**（可能性：XX%）
+   - 判断依据：说明原因
 
-请以 JSON 格式返回，格式如下：
-{{
-  "predictions": [
-    {{"disease": "疾病名称", "probability": 75, "reason": "判断原因"}},
-    {{"disease": "疾病名称", "probability": 60, "reason": "判断原因"}},
-    {{"disease": "疾病名称", "probability": 45, "reason": "判断原因"}}
-  ],
-  "key_evidence": ["依据1", "依据2", "依据3"],
-  "recommendations": ["建议1", "建议2", "建议3"],
-  "urgency": "高/中/低"
-}}
+3. **疾病名称**（可能性：XX%）
+   - 判断依据：说明原因
+
+#### 关键症状依据
+- 症状1
+- 症状2
+- 症状3
+
+#### 紧急程度
+🚨 高/⚠️ 中/ℹ️ 低
+
+#### 处理建议
+1. 建议内容
+2. 建议内容
+3. 建议内容
+
+#### ⚠️ 重要提醒
+添加任何需要注意的特殊事项
+
+---
 
 注意：
-- 只返回 JSON，不要有其他文字
-- 概率范围为 0-100
-- urgency 为"高"、"中"或"低"之一
-- 如果症状描述过于简单，请在 recommendations 中说明需要更多信息"""
+- 直接输出报告文本，不要使用 JSON 格式
+- 不要包含代码块标记
+- 如果信息不足，请在建议中说明需要补充的信息
+- 紧急程度根据疾病传染性、严重程度判断"""
 
         # 调用模型
         response = model.invoke([HumanMessage(content=prompt)])
-        response_text = response.content.strip()
+        report_text = response.content.strip()
 
-        # 尝试解析 JSON
-        # 移除可能的 markdown 代码块标记
-        if "```json" in response_text:
-            response_text = response_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in response_text:
-            response_text = response_text.split("```")[1].split("```")[0].strip()
+        # 清理可能的 markdown 代码块标记
+        report_text = report_text.replace("```json", "").replace("```", "").strip()
 
-        result = json.loads(response_text)
-
-        # 添加元数据
-        result["model_used"] = "deepseek-llm"
-        result["analysis_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        return result
+        # 返回结构化结果
+        return {
+            "success": True,
+            "report": report_text,
+            "model_used": "deepseek-llm",
+            "analysis_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            # 保留原始输入供后续处理
+            "input": {
+                "animal_type": animal_type,
+                "symptoms": symptoms,
+                "age": age,
+                "temperature": temperature,
+                "other_signs": other_signs
+            }
+        }
 
     except Exception as e:
         # 如果 LLM 调用失败，降级到简单规则
         return {
-            "error": f"LLM预测失败: {str(e)}",
-            "predictions": [
-                {"disease": "需要进一步检查", "probability": 50, "reason": "AI分析暂时不可用，建议咨询专业兽医"}
-            ],
-            "key_evidence": [f"症状: {symptoms}"],
-            "recommendations": ["建议联系专业兽医进行诊断", "注意观察动物状态变化"],
-            "urgency": "中"
+            "success": False,
+            "error": str(e),
+            "report": f"""### 🩺 疾病预测分析
+
+#### 可能的疾病
+**需要进一步检查**（可能性：50%）
+- AI 分析暂时不可用，建议咨询专业兽医
+
+#### 关键症状依据
+- {symptoms}
+
+#### 紧急程度
+⚠️ 中
+
+#### 处理建议
+1. 建议联系专业兽医进行诊断
+2. 注意观察动物状态变化
+3. 如有恶化及时就医
+
+#### ⚠️ 重要提醒
+本分析仅供参考，不能替代专业兽医诊断。""",
+            "model_used": "fallback"
         }
 
 
@@ -214,23 +238,11 @@ def disease_prediction_tool(
         media_path: 患处图片或视频路径，支持 .jpg, .jpeg, .png, .bmp, .mp4, .avi, .mov，可选
 
     Returns:
-        JSON格式的预测报告，包含：
-        - predictions: 可能的疾病及概率
-        - image_analysis: 图片/视频分析结果（如果有）
+        格式化的疾病预测分析报告
     """
     try:
         # 使用 LLM 进行疾病预测
         result = _predict_with_llm(animal_type, symptoms, age, temperature, other_signs)
-
-        # 添加输入信息到结果
-        result["input"] = {
-            "animal_type": animal_type,
-            "symptoms": symptoms,
-            "age": age,
-            "temperature": temperature,
-            "other_signs": other_signs,
-            "media_path": media_path
-        }
 
         # 如果提供了图片/视频，进行分析
         if media_path:
@@ -239,15 +251,30 @@ def disease_prediction_tool(
 
             # 当前使用简单模拟
             image_result = _simple_image_analyze(media_path, animal_type)
-            result["image_analysis"] = image_result
 
-        return json.dumps(result, ensure_ascii=False)
+            # 将图片分析结果附加到报告中
+            if image_result.get("error"):
+                image_note = f"\n\n#### 📷 图片分析结果\n图片分析失败：{image_result['error']}"
+            else:
+                media_type = image_result.get("media_type", "image")
+                detected = ", ".join(image_result.get("detected_symptoms", []))
+                areas = ", ".join(image_result.get("affected_areas", []))
+                severity = image_result.get("severity", "未知")
+
+                image_note = f"""
+#### 📷 图片/视频分析结果
+- 文件类型：{media_type}
+- 检测到的症状：{detected}
+- 患处区域：{areas}
+- 严重程度评估：{severity}"""
+
+            result["report"] = result.get("report", "") + image_note
+
+        # 直接返回格式化的报告文本
+        return result.get("report", "分析失败，请重试。")
 
     except Exception as e:
-        return json.dumps({
-            "success": False,
-            "error": str(e)
-        }, ensure_ascii=False)
+        return f"### ⚠️ 分析失败\n\n疾病预测工具遇到错误：{str(e)}\n\n请稍后重试或直接咨询专业兽医。"
 
 
 if __name__ == "__main__":
@@ -271,6 +298,9 @@ if __name__ == "__main__":
     ]
 
     for i, case in enumerate(test_cases, 1):
-        print(f"\n=== 测试用例 {i} ===")
+        print(f"\n{'='*50}")
+        print(f"测试用例 {i}")
+        print(f"{'='*50}")
         result = disease_prediction_tool.invoke(case)
         print(result)
+        print(f"{'='*50}\n")
