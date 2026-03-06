@@ -11,10 +11,15 @@
 - get_chapter_content 已删除 - 功能通过 search_knowledge 的 context_mode 实现
 - get_full_document 已删除 - 功能通过 search_knowledge 的 expanded 模式实现
 - retrieve_knowledge_detailed 已删除 - 冗余工具
+
+优化版本更新：
+- 添加评分过滤功能（使用 similarity_search_with_score）
+- 支持多种检索策略（similarity、mmr、similarity_score_threshold）
+- 与标准 Retriever 接口兼容
 """
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Literal
 
 from langchain_core.documents import Document
 from langchain_core.tools import Tool, tool
@@ -22,11 +27,18 @@ from langchain_core.tools import Tool, tool
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.rag.config import DEFAULT_TOP_K
+from src.rag.config import (
+    DEFAULT_TOP_K,
+    RETRIEVE_SCORE_THRESHOLD,
+    RETRIEVE_SEARCH_TYPE,
+)
 from src.rag.core.context_manager import get_context_manager
 from src.rag.core.cache import get_vector_cache
 
 logger = logging.getLogger(__name__)
+
+# 支持的检索策略
+SearchType = Literal["similarity", "mmr", "similarity_score_threshold"]
 
 
 # ==================== 辅助函数 ====================
@@ -126,9 +138,15 @@ def get_document_overview(source: str, include_chapters: bool = True) -> str:
         return format_error("获取文档概览", e)
 
 
-def search_knowledge(query: str, top_k: int = 5, context_mode: str = "standard") -> str:
+def search_knowledge(
+    query: str,
+    top_k: int = 5,
+    context_mode: str = "standard",
+    search_type: SearchType = RETRIEVE_SEARCH_TYPE,
+    score_threshold: Optional[float] = None,
+) -> str:
     """
-    检索知识库（支持多种上下文模式）
+    检索知识库（支持多种上下文模式和检索策略）
 
     **何时使用：**
     - 需要查找特定信息时
@@ -142,6 +160,11 @@ def search_knowledge(query: str, top_k: int = 5, context_mode: str = "standard")
       - "minimal": 仅匹配片段（最少 Token）- 最快
       - "standard": 片段 + 短上下文（300 字，默认）
       - "expanded": 片段 + 长上下文（500 字）- 最详细
+    - search_type (SearchType | optional): 检索策略
+      - "similarity": 基础相似度检索
+      - "mmr": 最大边际相关性检索（增加多样性）
+      - "similarity_score_threshold": 带评分过滤的检索（推荐）
+    - score_threshold (float | optional): 相似度阈值（0-1），默认使用配置值
 
     **返回：**
     - 匹配的文档片段列表，包含来源、位置、内容
@@ -150,7 +173,7 @@ def search_knowledge(query: str, top_k: int = 5, context_mode: str = "standard")
         cache = get_vector_cache()
 
         # 检查缓存
-        context_params = {"top_k": top_k, "context_mode": context_mode}
+        context_params = {"top_k": top_k, "context_mode": context_mode, "search_type": search_type}
         cached = cache.get_cached_query(query, context_params)
         if cached is not None:
             return cached
@@ -159,11 +182,47 @@ def search_knowledge(query: str, top_k: int = 5, context_mode: str = "standard")
         context_chars_map = {"minimal": 0, "standard": 300, "expanded": 500}
         context_chars = context_chars_map.get(context_mode, 300)
 
-        results: list[Document] = db.similarity_search(query, k=top_k)
+        # 根据检索策略选择检索方法
+        threshold = score_threshold or RETRIEVE_SCORE_THRESHOLD
+
+        if search_type == "similarity_score_threshold":
+            # 使用带评分过滤的检索
+            results_with_scores = db.similarity_search_with_score(query, k=top_k)
+
+            # 过滤低分结果
+            results = []
+            for doc, score in results_with_scores:
+                # Chroma 返回距离分数，转换为相似度（越小越相似）
+                similarity_score = 1.0 - score
+
+                if similarity_score >= threshold:
+                    doc.metadata["score"] = similarity_score
+                    results.append(doc)
+                    logger.debug(f"文档通过过滤: 相似度={similarity_score:.3f}, 阈值={threshold}")
+                else:
+                    logger.debug(f"文档被过滤: 相似度={similarity_score:.3f}, 阈值={threshold}")
+
+            logger.info(f"评分过滤: 原始 {len(results_with_scores)} 个，过滤后 {len(results)} 个")
+
+        elif search_type == "mmr":
+            # 使用 MMR 检索（增加多样性）
+            from src.rag.config import MMR_LAMBDA_MULT
+            results = db.max_marginal_relevance_search(
+                query=query,
+                k=top_k,
+                fetch_k=top_k * 3,  # 先获取更多候选
+                lambda_mult=MMR_LAMBDA_MULT,
+            )
+            logger.info(f"MMR 检索: 返回 {len(results)} 个结果")
+
+        else:  # similarity
+            # 基础相似度检索
+            results = db.similarity_search(query, k=top_k)
 
         if not results:
             return "⚠️  知识库中未找到相关信息。"
 
+        # 格式化结果
         fragments = []
 
         for idx, doc in enumerate(results, 1):
@@ -171,8 +230,13 @@ def search_knowledge(query: str, top_k: int = 5, context_mode: str = "standard")
             page = doc.metadata.get("page", doc.metadata.get("paragraph", "未知"))
             doc_type = doc.metadata.get("type", "未知类型")
             start_index = doc.metadata.get("start_index", 0)
+            score = doc.metadata.get("score")
 
             fragment = [f"【知识片段 {idx}】", f"来源: {source}", f"位置: 第{page} {doc_type}"]
+
+            # 显示评分（如果有）
+            if score is not None:
+                fragment.append(f"相似度: {score:.3f}")
 
             if context_mode == "minimal":
                 fragment.append(f"内容: {doc.page_content}")
@@ -278,11 +342,16 @@ def document_overview_tool(source: str, include_chapters: bool = True) -> str:
     return get_document_overview(source, include_chapters)
 
 @tool
-def knowledge_search_tool(query: str, top_k: int = 5, context_mode: str = "standard") -> str:
+def knowledge_search_tool(
+    query: str,
+    top_k: int = 5,
+    context_mode: str = "standard",
+    search_type: str = RETRIEVE_SEARCH_TYPE,
+) -> str:
     """
-    检索知识库（支持多种上下文模式）。
+    检索知识库（支持多种上下文模式和检索策略）。
 
-    基于查询检索相关文档片段，支持不同详细程度的上下文。
+    基于查询检索相关文档片段，支持不同详细程度的上下文和多种检索策略。
 
     Args:
         query: 查询问题或关键词（必需）
@@ -291,11 +360,15 @@ def knowledge_search_tool(query: str, top_k: int = 5, context_mode: str = "stand
             - "minimal": 仅匹配片段（最少 Token）
             - "standard": 片段 + 短上下文（300 字，默认）
             - "expanded": 片段 + 长上下文（500 字，用于深度检索）
+        search_type: 检索策略（可选，默认 "similarity_score_threshold"）
+            - "similarity": 基础相似度检索
+            - "mmr": 最大边际相关性检索（增加结果多样性）
+            - "similarity_score_threshold": 带评分过滤的检索（推荐）
 
     Returns:
         匹配的文档片段列表，包含来源、位置、内容
     """
-    return search_knowledge(query, top_k, context_mode)
+    return search_knowledge(query, top_k, context_mode, search_type)
 
 @tool
 def key_points_search_tool(query: str, sources: Optional[str] = None) -> str:

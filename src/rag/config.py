@@ -67,6 +67,13 @@ ADD_START_INDEX = os.getenv("ADD_START_INDEX", "true").lower() == "true"
 DEFAULT_TOP_K = int(os.getenv("DEFAULT_TOP_K", "5"))
 RETRIEVE_SCORE_THRESHOLD = float(os.getenv("RETRIEVE_SCORE_THRESHOLD", "0.7"))
 
+# 检索策略配置
+# 支持的策略: "similarity"（相似度）, "mmr"（最大边际相关性）, "similarity_score_threshold"（带阈值过滤）
+RETRIEVE_SEARCH_TYPE = os.getenv("RETRIEVE_SEARCH_TYPE", "similarity_score_threshold")
+
+# MMR 检索参数（用于最大边际相关性检索，增加结果多样性）
+MMR_LAMBDA_MULT = float(os.getenv("MMR_LAMBDA_MULT", "0.7"))  # 多样性权重，0-1，越高越多样化
+
 # ==================== 日志配置 ====================
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
