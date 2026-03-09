@@ -120,13 +120,17 @@ def cow_detection_tool(image_path: str) -> str:
 
     Returns:
         检测结果字符串，示例：
-        - 成功："检测结果: 荷斯坦牛(3只)、娟姗牛(2只)，共计5只奶牛"
+        - 成功："检测结果: cow(5只)，共计5只奶牛"
         - 未检测到："检测完成，未发现奶牛。"
         - 失败："检测失败: [错误原因]"
 
     Examples:
         >>> cow_detection_tool("test_images/cows1.jpg")
-        "检测结果: 荷斯坦牛(3只)、娟姗牛(2只)，共计5只奶牛"
+        "检测结果: cow(5只)，共计5只奶牛"
+
+    注意：
+        当前模型使用 COCO 预训练数据集，仅支持检测"cow"类别，
+        不支持品种识别（如荷斯坦、娟姗牛等）。
     """
     try:
         image_base64 = encode_image_to_base64_with_validation(image_path)
