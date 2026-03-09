@@ -79,7 +79,10 @@ async def root():
             "detection": {
                 "pest": "/detection/pest/detect",
                 "rice": "/detection/rice/predict",
-                "cow": "/detection/cow/detect"
+                "cow": "/detection/cow/detect",
+                "pest_supported": "/detection/pest/supported-pests",
+                "rice_supported": "/detection/rice/supported-rice-types",
+                "cow_supported": "/detection/cow/supported-cows"
             },
             "docs": "/docs",
             "health": "/health"
