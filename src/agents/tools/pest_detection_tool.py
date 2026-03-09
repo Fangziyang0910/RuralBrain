@@ -103,15 +103,6 @@ def format_detection_result(api_response: dict[str, Any]) -> str:
 def pest_detection_tool(image_path: str) -> str:
     """调用害虫检测服务分析图片中的害虫种类和数量。
 
-    该工具会：
-    1. 读取指定路径的图片文件
-    2. 将图片发送到害虫检测服务（基于 YOLOv8 模型）进行分析
-    3. 自动保存带标注框的检测结果图像到本地（pest_detection_results 目录）
-    4. 返回害虫检测的文字摘要结果
-
-    注意：检测结果图像会自动保存，但不会在返回结果中包含图像路径，
-    以避免占用过多 token。
-
     Args:
         image_path: 图片文件的本地路径，支持格式：jpg、jpeg、png、bmp、webp
 
@@ -120,10 +111,6 @@ def pest_detection_tool(image_path: str) -> str:
         - 成功："检测结果: 瓜实蝇(3只)、斜纹夜蛾(1只)"
         - 未检测到："检测完成，未发现害虫。"
         - 失败："检测失败: [错误原因]"
-
-    Examples:
-        >>> pest_detection_tool("test_images/pest1.jpg")
-        "检测结果: 瓜实蝇(3只)、斜纹夜蛾(1只)"
     """
     try:
         image_base64 = encode_image_to_base64_with_validation(image_path)

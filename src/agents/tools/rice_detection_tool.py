@@ -100,15 +100,6 @@ def format_detection_result(api_response: dict[str, Any]) -> str:
 def rice_detection_tool(image_path: str, task_type: str = "品种分类") -> str:
     """调用大米识别服务分析图片中的大米品种。
 
-    该工具会：
-    1. 读取指定路径的图片文件
-    2. 将图片发送到大米识别服务进行分析
-    3. 自动保存带标注框的检测结果图像到本地（rice_detection_results 目录）
-    4. 返回大米品种识别的文字摘要结果
-
-    注意：检测结果图像会自动保存，但不会在返回结果中包含图像路径，
-    以避免占用过多 token。
-
     Args:
         image_path: 图片文件的本地路径，支持格式：jpg、jpeg、png、bmp、webp
         task_type: 任务类型，默认为"品种分类"
@@ -118,10 +109,6 @@ def rice_detection_tool(image_path: str, task_type: str = "品种分类") -> str
         - 成功："识别成功。检测结果: 丝苗米(25粒)、珍珠米(18粒)"
         - 未检测到："识别完成，但在图片中未检测到明显的大米颗粒。"
         - 失败："识别服务报错: [错误原因]"
-
-    Examples:
-        >>> rice_detection_tool("test_images/rice1.jpg")
-        "识别成功。检测结果: 丝苗米(25粒)、珍珠米(18粒)"
     """
     try:
         img_base64 = encode_image_to_base64_with_validation(image_path)
