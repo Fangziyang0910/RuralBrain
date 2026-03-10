@@ -165,20 +165,39 @@ def get_embeddings():
     """
     provider = EMBEDDING_PROVIDER.lower()
 
-    # 千问 API（默认，使用 OpenAI 兼容格式）
+    # 千问 API（使用 httpx 直接调用）
     if provider == "dashscope":
         if QWEN_API_KEY:
             try:
-                from langchain_openai import OpenAIEmbeddings
+                import httpx
+                from langchain_core.embeddings import Embeddings
                 import logging
                 logging.info(f"使用千问 Embedding: {QWEN_EMBEDDING_MODEL}")
-                return OpenAIEmbeddings(
-                    model=QWEN_EMBEDDING_MODEL,
-                    openai_api_key=QWEN_API_KEY,
-                    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
-                )
-            except ImportError:
-                pass
+
+                class DashScopeEmbeddings(Embeddings):
+                    """千问 Embeddings 封装"""
+                    def __init__(self):
+                        self.client = httpx.Client(
+                            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+                            headers={"Authorization": f"Bearer {QWEN_API_KEY}"}
+                        )
+
+                    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+                        response = self.client.post(
+                            "/embeddings",
+                            json={"input": texts, "model": QWEN_EMBEDDING_MODEL}
+                        )
+                        response.raise_for_status()
+                        # 千问 API 返回格式：{"data": [{"embedding": [...]}]}
+                        return [item["embedding"] for item in response.json()["data"]]
+
+                    def embed_query(self, text: str) -> list[float]:
+                        return self.embed_documents([text])[0]
+
+                return DashScopeEmbeddings()
+            except Exception as e:
+                import logging
+                logging.error(f"千问 Embedding 初始化失败: {e}")
         # 千问不可用，降级到本地模型
         import logging
         logging.warning("千问 API 密钥未配置或依赖缺失，降级到本地 Embedding 模型")

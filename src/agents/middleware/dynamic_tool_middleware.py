@@ -593,6 +593,59 @@ class DynamicToolMiddleware(AgentMiddleware):
 
         logger.info("已清空所有会话的动态注册工具")
 
+    def unregister_tools_by_names(
+        self,
+        tool_names: List[str],
+        thread_id: Optional[str] = None
+    ) -> int:
+        """
+        根据工具名称列表移除工具
+
+        Args:
+            tool_names: 要移除的工具名称列表
+            thread_id: 会话 ID，如果为 None 则自动从上下文获取
+
+        Returns:
+            成功移除的工具数量
+        """
+        # 如果未指定 thread_id，尝试从调用上下文自动获取
+        if thread_id is None:
+            try:
+                config = get_config()
+                thread_id = config.get("configurable", {}).get("thread_id")
+                if thread_id:
+                    thread_id = str(thread_id)
+                    logger.debug(f"从上下文自动获取 thread_id: {thread_id}")
+            except (RuntimeError, KeyError) as e:
+                logger.debug(f"无法从上下文获取 thread_id: {e}，使用默认值")
+
+        # 如果仍然无法获取，使用默认值
+        if thread_id is None:
+            thread_id = DEFAULT_THREAD_ID
+
+        if thread_id not in self._registered_tools:
+            logger.info(f"会话 {thread_id} 不存在，无需移除工具")
+            return 0
+
+        session_tools = self._registered_tools[thread_id]
+        removed_count = 0
+
+        for tool_name in tool_names:
+            if tool_name in session_tools:
+                session_tools.pop(tool_name)
+                removed_count += 1
+
+                # 清除 TTL 相关数据（仅在 TTL 启用时）
+                if ENABLE_TOOL_TTL and thread_id in self._tool_lifecycles:
+                    self._tool_lifecycles[thread_id].pop(tool_name, None)
+
+                logger.debug(f"移除工具: {tool_name} (thread_id: {thread_id})")
+
+        if removed_count > 0:
+            logger.info(f"移除了 {removed_count} 个工具 (thread_id: {thread_id}): {tool_names}")
+
+        return removed_count
+
     def is_tool_registered(self, tool_name: str, thread_id: Optional[str] = None) -> bool:
         """
         检查工具是否已注册
