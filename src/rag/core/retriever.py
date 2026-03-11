@@ -163,11 +163,10 @@ class RuralBrainRetriever(BaseRetriever):
         # 过滤低分结果
         filtered_results = []
         for doc, score in results_with_scores:
-            # 注意：Chroma 返回的距离分数是越小越相似
-            # 我们需要检查是否在阈值内（距离 < (1 - threshold)）
-            # 或者如果配置的是相似度，则需要进行转换
-            # 这里假设分数是距离度量，需要转换成相似度
-            similarity_score = 1.0 - score  # 假设 Cosine Distance，转换为相似度
+            # Cosine Distance 转 Cosine Similarity: similarity = 1 - distance
+            # 注意：此公式仅适用于 Cosine Distance
+            # 如果使用 L2 Distance，需要使用不同的转换方式
+            similarity_score = 1.0 - score
 
             # 检查是否超过阈值
             if similarity_score >= self.score_threshold:
@@ -182,6 +181,13 @@ class RuralBrainRetriever(BaseRetriever):
             f"评分过滤完成: 原始 {len(results_with_scores)} 个结果，"
             f"过滤后 {len(filtered_results)} 个结果"
         )
+
+        # 如果过滤后结果为空，给出提示
+        if not filtered_results and results_with_scores:
+            logger.warning(
+                f"所有结果都被过滤（阈值={self.score_threshold}），"
+                f"建议降低 RETRIEVE_SCORE_THRESHOLD 或检查距离度量配置"
+            )
 
         # 可选：扩展上下文
         if self.enable_context:

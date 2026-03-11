@@ -22,6 +22,21 @@ VECTOR_DB_TYPE: Literal["chroma", "faiss", "qdrant"] = os.getenv(
 CHROMA_PERSIST_DIR = KNOWLEDGE_BASE_DIR / "chroma_db"
 CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "rural_planning")
 
+# Chroma 距离度量配置
+# 支持的距离度量: "l2"（欧几里得距离，默认）, "ip"（内积）, "cosine"（余弦距离，推荐）
+# 使用 cosine 距离可以让相似度分数转换更直观（1 - distance = similarity）
+CHROMA_DISTANCE_METRIC = os.getenv("CHROMA_DISTANCE_METRIC", "cosine")
+
+# Chroma Collection 元数据（包含距离度量配置）
+def get_chroma_collection_metadata() -> dict:
+    """
+    获取 Chroma Collection 元数据
+
+    Returns:
+        包含距离度量配置的元数据字典
+    """
+    return {"hnsw:space": CHROMA_DISTANCE_METRIC}
+
 # FAISS 配置（可选）
 FAISS_INDEX_PATH = KNOWLEDGE_BASE_DIR / "faiss_index"
 
@@ -172,17 +187,16 @@ def get_embeddings():
     """
     provider = EMBEDDING_PROVIDER.lower()
 
-    # 千问 API（默认，使用 OpenAI 兼容格式）
+    # 千问 API（默认，使用 DashScopeEmbeddings）
     if provider == "dashscope":
         if QWEN_API_KEY:
             try:
-                from langchain_openai import OpenAIEmbeddings
+                from langchain_community.embeddings import DashScopeEmbeddings
                 import logging
-                logging.info(f"使用千问 Embedding: {QWEN_EMBEDDING_MODEL}")
-                return OpenAIEmbeddings(
+                logging.info(f"使用阿里云百炼 Embedding: {QWEN_EMBEDDING_MODEL}")
+                return DashScopeEmbeddings(
                     model=QWEN_EMBEDDING_MODEL,
-                    openai_api_key=QWEN_API_KEY,
-                    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+                    dashscope_api_key=QWEN_API_KEY
                 )
             except ImportError:
                 pass

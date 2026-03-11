@@ -190,9 +190,9 @@ def search_knowledge(
             results_with_scores = db.similarity_search_with_score(query, k=top_k)
 
             # 过滤低分结果
+            # 注意：此公式仅适用于 Cosine Distance
             results = []
             for doc, score in results_with_scores:
-                # Chroma 返回距离分数，转换为相似度（越小越相似）
                 similarity_score = 1.0 - score
 
                 if similarity_score >= threshold:
@@ -203,6 +203,13 @@ def search_knowledge(
                     logger.debug(f"文档被过滤: 相似度={similarity_score:.3f}, 阈值={threshold}")
 
             logger.info(f"评分过滤: 原始 {len(results_with_scores)} 个，过滤后 {len(results)} 个")
+
+            # 如果过滤后结果为空，给出提示
+            if not results and results_with_scores:
+                logger.warning(
+                    f"所有结果都被过滤（阈值={threshold}），"
+                    f"建议降低 RETRIEVE_SCORE_THRESHOLD 或检查距离度量配置"
+                )
 
         elif search_type == "mmr":
             # 使用 MMR 检索（增加多样性）

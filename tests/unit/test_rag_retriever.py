@@ -21,6 +21,10 @@ if sys.platform == 'win32':
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+# 加载环境变量（必须在导入 src.rag.config 之前）
+from dotenv import load_dotenv
+load_dotenv(project_root / ".env")
+
 from src.rag.core.retriever import (
     RuralBrainRetriever,
     get_retriever,
