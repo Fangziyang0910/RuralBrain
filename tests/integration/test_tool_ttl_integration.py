@@ -12,6 +12,7 @@
 """
 import asyncio
 import sys
+import pytest
 from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
 from collections import defaultdict
@@ -463,6 +464,7 @@ def test_pinned_tool_behavior():
     return True
 
 
+@pytest.mark.asyncio
 async def test_async_ttl_behavior():
     """测试 11: 异步模式下的 TTL 行为"""
     print("\n" + "=" * 60)

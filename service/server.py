@@ -41,6 +41,95 @@ SSE_HEADERS = {
     "X-Accel-Buffering": "no",
 }
 
+
+# ==================== 推理过程过滤器 ====================
+
+class ThinkingProcessFilter:
+    """
+    过滤 Agent 推理过程的冗余输出
+
+    限制"让我..."类推理句子的数量，减少前端显示的冗余信息。
+    """
+    # 匹配"让我..."类句子的正则模式
+    THINKING_PATTERNS = [
+        r"^(让我|现在让我|接下来让我|首先让我)",
+        r"^(我来帮您|我来)",
+        r"^(很好！|很好，|好的，)",
+        r"^(让我先|让我先查看|让我先尝试)",
+    ]
+
+    # 最多允许的推理句子数量
+    MAX_THINKING_SENTENCES = 2
+
+    def __init__(self):
+        self.thinking_sentence_count = 0
+        self.current_sentence = ""
+        self.sentence_buffer = ""
+        self.in_final_answer = False
+
+    def process(self, content: str) -> tuple[str, bool]:
+        """
+        处理流式内容，返回（过滤后的内容，是否应发送）
+
+        Args:
+            content: 流式输入的字符片段
+
+        Returns:
+            (过滤后的内容, 是否应该发送到前端)
+        """
+        if self.in_final_answer:
+            # 已进入最终回答阶段，直接输出
+            return content, True
+
+        self.current_sentence += content
+
+        # 检查是否到达句子边界
+        if self._is_sentence_boundary(self.current_sentence[-1:]):
+            sentence = self.current_sentence
+            self.current_sentence = ""
+
+            # 检查是否是推理句子
+            if self._is_thinking_sentence(sentence):
+                self.thinking_sentence_count += 1
+
+                # 超过阈值，过滤掉
+                if self.thinking_sentence_count > self.MAX_THINKING_SENTENCES:
+                    logger.info(f"过滤推理句子 (已超过 {self.MAX_THINKING_SENTENCES} 句): {sentence[:50]}...")
+                    return "", False
+
+            # 添加到缓冲
+            self.sentence_buffer += sentence
+
+            # 返回完整句子
+            return sentence, True
+
+        # 未到句子边界，返回空（继续累积）
+        return "", False
+
+    def mark_final_answer(self):
+        """标记进入最终回答阶段"""
+        self.in_final_answer = True
+        # 清空当前累积的内容
+        if self.current_sentence:
+            remaining = self.current_sentence
+            self.current_sentence = ""
+            return remaining
+        return ""
+
+    def _is_sentence_boundary(self, char: str) -> bool:
+        """检查字符是否是句子边界"""
+        return char in "。！？\n"
+
+    def _is_thinking_sentence(self, sentence: str) -> bool:
+        """检查句子是否是推理过程句子"""
+        import re
+        sentence = sentence.strip()
+        for pattern in self.THINKING_PATTERNS:
+            # 使用 search 而不是 match，以匹配任何位置
+            if re.search(pattern, sentence):
+                return True
+        return False
+
 app = FastAPI(
     title="RuralBrain API",
     description="乡村智慧大脑 - 图像检测对话服务",
@@ -265,7 +354,8 @@ async def chat_stream(request: ChatRequest):
             "configurable": {
                 "thread_id": thread_id,
                 "enable_knowledge_base": request.enable_knowledge_base,
-            }
+            },
+            "recursion_limit": 50,  # 防止递归限制
         }
 
         # 构建消息内容
@@ -294,6 +384,9 @@ async def chat_stream(request: ChatRequest):
                 # 发送开始事件
                 yield f"data: {json.dumps({'type': 'start', 'thread_id': thread_id}, ensure_ascii=False)}\n\n"
 
+                # 初始化推理过程过滤器
+                thinking_filter = ThinkingProcessFilter()
+
                 # 流式处理 agent 响应
                 full_content = ""
                 content_buffer = []
@@ -310,17 +403,21 @@ async def chat_stream(request: ChatRequest):
                     if kind == "on_chat_model_stream":
                         content = event["data"]["chunk"].content
                         if content:
-                            content_buffer.append(content)
-                            # 当缓冲达到大小时发送
-                            if len("".join(content_buffer)) >= BUFFER_SIZE:
-                                buffered_content = "".join(content_buffer)
-                                full_content += buffered_content
-                                event_data = {
-                                    "type": "content",
-                                    "content": buffered_content,
-                                }
-                                yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
-                                content_buffer = []
+                            # 应用推理过程过滤器
+                            filtered_content, should_send = thinking_filter.process(content)
+
+                            if should_send and filtered_content:
+                                content_buffer.append(filtered_content)
+                                # 当缓冲达到大小时发送
+                                if len("".join(content_buffer)) >= BUFFER_SIZE:
+                                    buffered_content = "".join(content_buffer)
+                                    full_content += buffered_content
+                                    event_data = {
+                                        "type": "content",
+                                        "content": buffered_content,
+                                    }
+                                    yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+                                    content_buffer = []
 
                     # 处理工具调用结束事件
                     elif kind == "on_tool_end":
