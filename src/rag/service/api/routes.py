@@ -105,7 +105,7 @@ async def health_check():
     """健康检查端点"""
     try:
         from pathlib import Path
-        from src.rag.config import CHROMA_PERSIST_DIR
+        from src.rag.config import CHROMA_PERSIST_DIR, get_chroma_collection_metadata
 
         kb_loaded = Path(CHROMA_PERSIST_DIR).exists()
 
@@ -390,7 +390,7 @@ async def _update_knowledge_base_impl(request: KnowledgeUpdateRequest) -> Knowle
     start_time = time.time()
 
     try:
-        from src.rag.config import CHROMA_PERSIST_DIR
+        from src.rag.config import CHROMA_PERSIST_DIR, get_chroma_collection_metadata
         from src.rag.utils.loaders import (
             load_documents_from_directory,
             DOCLoader,
@@ -535,6 +535,7 @@ async def _update_knowledge_base_impl(request: KnowledgeUpdateRequest) -> Knowle
             documents=splits,
             embedding=embeddings,
             persist_directory=CHROMA_PERSIST_DIR,
+            collection_metadata=get_chroma_collection_metadata(),  # 使用 Cosine 距离
         )
 
         # 清除缓存，确保新数据生效

@@ -4,6 +4,50 @@
 
 ---
 
+## [2026-03-11] - LangChain 标准检索器与距离度量优化
+
+### 🎯 架构优化
+
+**符合 LangChain 标准的自定义检索器**
+
+实现 `BaseRetriever` 接口，提供与 LangChain 生态完全兼容的检索器。
+
+**核心改进**：
+- 新增 `src/rag/core/retriever.py` - `RuralBrainRetriever` 标准检索器
+- 支持多种检索策略：similarity、mmr、similarity_score_threshold
+- 评分过滤功能：自动过滤低相似度结果
+- 上下文扩展：可选获取文档前后文
+
+**距离度量配置**：
+- 默认使用 `cosine` 距离（余弦距离）
+- 相似度计算更直观：`similarity = 1 - distance`
+- 新增 `get_chroma_collection_metadata()` 配置函数
+
+**新增配置**：
+```bash
+CHROMA_DISTANCE_METRIC=cosine           # 距离度量（推荐 cosine）
+RETRIEVE_SCORE_THRESHOLD=0.7            # 相似度阈值（0-1）
+RETRIEVE_SEARCH_TYPE=similarity_score_threshold  # 检索策略
+MMR_LAMBDA_MULT=0.7                     # MMR 多样性权重
+```
+
+### 🛠️ 代码变更
+
+| 文件 | 变更 |
+|------|------|
+| `src/rag/core/retriever.py` | 新增 - 标准检索器实现 |
+| `src/rag/config.py` | 修改 - 新增距离度量和检索策略配置 |
+| `src/rag/core/cache.py` | 修改 - 新增 `get_retriever()` 方法 |
+| `src/rag/core/tools.py` | 修改 - 支持多种检索策略 |
+| `src/rag/service/api/routes.py` | 修改 - 使用 cosine 距离配置 |
+
+### ✅ 测试更新
+
+- 新增 `tests/unit/test_rag_retriever.py` - 完整单元测试（7 个测试用例）
+- 测试覆盖：检索器创建、自定义配置、检索策略、评分过滤、MMR、缓存集成
+
+---
+
 ## [2026-03-01] - 工具生命周期 TTL 管理系统
 
 ### 🎯 架构优化

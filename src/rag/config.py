@@ -22,6 +22,21 @@ VECTOR_DB_TYPE: Literal["chroma", "faiss", "qdrant"] = os.getenv(
 CHROMA_PERSIST_DIR = KNOWLEDGE_BASE_DIR / "chroma_db"
 CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "rural_planning")
 
+# Chroma 距离度量配置
+# 支持的距离度量: "l2"（欧几里得距离，默认）, "ip"（内积）, "cosine"（余弦距离，推荐）
+# 使用 cosine 距离可以让相似度分数转换更直观（1 - distance = similarity）
+CHROMA_DISTANCE_METRIC = os.getenv("CHROMA_DISTANCE_METRIC", "cosine")
+
+# Chroma Collection 元数据（包含距离度量配置）
+def get_chroma_collection_metadata() -> dict:
+    """
+    获取 Chroma Collection 元数据
+
+    Returns:
+        包含距离度量配置的元数据字典
+    """
+    return {"hnsw:space": CHROMA_DISTANCE_METRIC}
+
 # FAISS 配置（可选）
 FAISS_INDEX_PATH = KNOWLEDGE_BASE_DIR / "faiss_index"
 
@@ -66,6 +81,13 @@ ADD_START_INDEX = os.getenv("ADD_START_INDEX", "true").lower() == "true"
 # Planning Agent 需要更多上下文，默认返回更多文档
 DEFAULT_TOP_K = int(os.getenv("DEFAULT_TOP_K", "5"))
 RETRIEVE_SCORE_THRESHOLD = float(os.getenv("RETRIEVE_SCORE_THRESHOLD", "0.7"))
+
+# 检索策略配置
+# 支持的策略: "similarity"（相似度）, "mmr"（最大边际相关性）, "similarity_score_threshold"（带阈值过滤）
+RETRIEVE_SEARCH_TYPE = os.getenv("RETRIEVE_SEARCH_TYPE", "similarity_score_threshold")
+
+# MMR 检索参数（用于最大边际相关性检索，增加结果多样性）
+MMR_LAMBDA_MULT = float(os.getenv("MMR_LAMBDA_MULT", "0.7"))  # 多样性权重，0-1，越高越多样化
 
 # ==================== 日志配置 ====================
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -165,39 +187,19 @@ def get_embeddings():
     """
     provider = EMBEDDING_PROVIDER.lower()
 
-    # 千问 API（使用 httpx 直接调用）
+    # 千问 API（默认，使用 DashScopeEmbeddings）
     if provider == "dashscope":
         if QWEN_API_KEY:
             try:
-                import httpx
-                from langchain_core.embeddings import Embeddings
+                from langchain_community.embeddings import DashScopeEmbeddings
                 import logging
-                logging.info(f"使用千问 Embedding: {QWEN_EMBEDDING_MODEL}")
-
-                class DashScopeEmbeddings(Embeddings):
-                    """千问 Embeddings 封装"""
-                    def __init__(self):
-                        self.client = httpx.Client(
-                            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-                            headers={"Authorization": f"Bearer {QWEN_API_KEY}"}
-                        )
-
-                    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-                        response = self.client.post(
-                            "/embeddings",
-                            json={"input": texts, "model": QWEN_EMBEDDING_MODEL}
-                        )
-                        response.raise_for_status()
-                        # 千问 API 返回格式：{"data": [{"embedding": [...]}]}
-                        return [item["embedding"] for item in response.json()["data"]]
-
-                    def embed_query(self, text: str) -> list[float]:
-                        return self.embed_documents([text])[0]
-
-                return DashScopeEmbeddings()
-            except Exception as e:
-                import logging
-                logging.error(f"千问 Embedding 初始化失败: {e}")
+                logging.info(f"使用阿里云百炼 Embedding: {QWEN_EMBEDDING_MODEL}")
+                return DashScopeEmbeddings(
+                    model=QWEN_EMBEDDING_MODEL,
+                    dashscope_api_key=QWEN_API_KEY
+                )
+            except ImportError:
+                pass
         # 千问不可用，降级到本地模型
         import logging
         logging.warning("千问 API 密钥未配置或依赖缺失，降级到本地 Embedding 模型")

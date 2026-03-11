@@ -400,14 +400,19 @@ bash scripts/dev/test_production.sh
 ## RAG 知识库系统
 
 - **集成方式**：作为 Skill 集成到主 Agent（独立端口 8003 已废弃）
-- **向量数据库**：ChromaDB
-- **嵌入模型**：sentence-transformers
+- **向量数据库**：ChromaDB（使用 cosine 距离）
+- **嵌入模型**：阿里云百炼 text-embedding-v4（优先），本地模型 BAAI/bge-small-zh-v1.5（降级）
 - **知识库位置**：`knowledge_base/chroma_db/`
+
+**标准检索器**（[src/rag/core/retriever.py](src/rag/core/retriever.py)）：
+- `RuralBrainRetriever` - 符合 LangChain `BaseRetriever` 接口
+- 支持检索策略：similarity、mmr、similarity_score_threshold
+- 评分过滤：自动过滤低相似度结果
 
 **4 个检索工具**（[src/rag/core/tools.py](src/rag/core/tools.py)）：
 1. `list_documents` - 列出可用文档
 2. `get_document_overview` - 获取文档摘要
-3. `search_knowledge` - 全文检索
+3. `search_knowledge` - 全文检索（支持多种检索策略）
 4. `search_key_points` - 搜索关键要点
 
 **知识库开关控制**：
@@ -415,6 +420,13 @@ bash scripts/dev/test_production.sh
 - 开启：Agent 可调用 RAG 检索工具
 - 关闭：Agent 仅用预训练知识回答
 - 未设置：Agent 自主判断
+
+**关键配置**：
+```bash
+CHROMA_DISTANCE_METRIC=cosine           # 距离度量
+RETRIEVE_SCORE_THRESHOLD=0.7            # 相似度阈值
+RETRIEVE_SEARCH_TYPE=similarity_score_threshold  # 检索策略
+```
 
 ---
 
@@ -519,7 +531,9 @@ bash scripts/dev/check.sh --test fast
 | [src/agents/middleware/tool_lifecycle.py](src/agents/middleware/tool_lifecycle.py) | 工具生命周期 TTL 管理 | ⭐⭐ |
 | [src/agents/middleware/dynamic_tool_middleware.py](src/agents/middleware/dynamic_tool_middleware.py) | 动态工具注册中间件 | ⭐⭐⭐ |
 | [src/algorithms/api/main.py](src/algorithms/api/main.py) | 检测服务统一网关 | ⭐⭐⭐ |
+| [src/rag/core/retriever.py](src/rag/core/retriever.py) | LangChain 标准检索器 | ⭐⭐ |
 | [src/rag/core/tools.py](src/rag/core/tools.py) | RAG 知识库的 4 个检索工具 | ⭐⭐ |
+| [src/rag/config.py](src/rag/config.py) | RAG 配置（距离度量、检索策略） | ⭐⭐ |
 | [src/config.py](src/config.py) | 全局配置（模型管理等） | ⭐⭐ |
 | [.env](.env) | 环境变量配置 | ⭐⭐⭐ |
 

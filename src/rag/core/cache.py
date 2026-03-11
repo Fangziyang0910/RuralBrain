@@ -124,6 +124,45 @@ class VectorStoreCache:
 
         return self._vectorstore
 
+    def get_retriever(
+        self,
+        search_type: str = "similarity_score_threshold",
+        k: int = 5,
+        score_threshold: Optional[float] = None,
+        enable_context: bool = True,
+        context: int = 300,
+    ):
+        """
+        获取标准检索器实例
+
+        Args:
+            search_type: 检索策略类型
+            k: 返回结果数量
+            score_threshold: 评分阈值
+            enable_context: 是否启用上下文扩展
+            context: 上下文扩展字符数
+
+        Returns:
+            RuralBrainRetriever 实例
+
+        示例：
+            cache = get_vector_cache()
+            retriever = cache.get_retriever(k=5)
+            results = retriever.invoke("乡村规划")
+        """
+        from src.rag.core.retriever import get_retriever
+
+        vectorstore = self.get_vectorstore()
+
+        return get_retriever(
+            vectorstore=vectorstore,
+            search_type=search_type,
+            k=k,
+            score_threshold=score_threshold,
+            enable_context=enable_context,
+            context=context,
+        )
+
     def cache_query_result(
         self,
         query: str,
