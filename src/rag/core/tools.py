@@ -54,6 +54,46 @@ def format_error(message: str, error: Exception) -> str:
     return f"❌ {message}时发生错误: {error}"
 
 
+def format_source_location(metadata: dict) -> str:
+    """
+    格式化文档来源位置信息
+
+    根据文档类型返回友好的位置描述：
+    - PDF/PPTX: "第 N 页"
+    - Markdown: "第 N 节 - 标题" 或 "第 N 节"
+    - DOC/DOCX/TXT: "第 N 段"
+
+    Args:
+        metadata: 文档元数据字典
+
+    Returns:
+        格式化的位置字符串
+    """
+    doc_type = metadata.get("type", "未知类型")
+
+    # PDF/PPTX 使用 page 字段
+    if doc_type in ["pdf", "pptx"]:
+        page = metadata.get("page", "未知")
+        return f"第{page}页"
+
+    # Markdown 使用 section + header 字段
+    if doc_type == "markdown":
+        section = metadata.get("section", "未知")
+        header = metadata.get("header", "")
+        if header and header != "文档开始":
+            return f"第{section}节 - {header}"
+        return f"第{section}节"
+
+    # DOC/DOCX/TXT 使用 paragraph 字段
+    if doc_type in ["doc", "docx", "text"]:
+        paragraph = metadata.get("paragraph", "未知")
+        return f"第{paragraph}段"
+
+    # 未知类型，尝试所有可能的字段
+    location = metadata.get("page") or metadata.get("section") or metadata.get("paragraph") or "未知"
+    return f"第{location}"
+
+
 # ==================== 工具函数 ====================
 
 def list_available_documents(query: str = "") -> str:
@@ -234,12 +274,14 @@ def search_knowledge(
 
         for idx, doc in enumerate(results, 1):
             source = doc.metadata.get("source", "未知来源")
-            page = doc.metadata.get("page", doc.metadata.get("paragraph", "未知"))
             doc_type = doc.metadata.get("type", "未知类型")
             start_index = doc.metadata.get("start_index", 0)
             score = doc.metadata.get("score")
 
-            fragment = [f"【知识片段 {idx}】", f"来源: {source}", f"位置: 第{page} {doc_type}"]
+            # 使用统一的位置格式化函数
+            location = format_source_location(doc.metadata)
+
+            fragment = [f"【知识片段 {idx}】", f"来源: {source}", f"位置: {location}"]
 
             # 显示评分（如果有）
             if score is not None:

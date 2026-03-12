@@ -510,11 +510,20 @@ async def _update_knowledge_base_impl(request: KnowledgeUpdateRequest) -> Knowle
         chunks_added = len(splits)
 
         if mode == "incremental":
-            # 检查已有文档，避免重复
+            # 安全加载已有索引（如果存在）
             cm = get_context_manager()
-            cm._ensure_loaded()
+            existing_sources = set()
 
-            existing_sources = set(cm.doc_index.keys())
+            if cm.index_path.exists():
+                try:
+                    cm.load()
+                    existing_sources = set(cm.doc_index.keys())
+                    logger.info(f"加载已有索引: {len(existing_sources)} 个文档")
+                except Exception as e:
+                    logger.warning(f"加载已有索引失败，将重建索引: {e}")
+            else:
+                logger.info("索引文件不存在，将创建新索引")
+
             new_sources = set()
 
             for doc in all_documents:
@@ -538,10 +547,12 @@ async def _update_knowledge_base_impl(request: KnowledgeUpdateRequest) -> Knowle
             collection_metadata=get_chroma_collection_metadata(),  # 使用 Cosine 距离
         )
 
-        # 清除缓存，确保新数据生效
+        # 7. 构建并保存文档索引
+        logger.info("正在构建文档索引...")
         cm = get_context_manager()
-        if hasattr(cm, '_loaded'):
-            cm._loaded = False
+        cm.build_index(all_documents, splits)
+        cm.save()
+        logger.info(f"文档索引已生成: {len(cm.doc_index)} 个文档")
 
         duration = time.time() - start_time
 
