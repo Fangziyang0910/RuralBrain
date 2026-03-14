@@ -182,12 +182,18 @@ class RuralBrainRetriever(BaseRetriever):
             f"过滤后 {len(filtered_results)} 个结果"
         )
 
-        # 如果过滤后结果为空，给出提示
+        # 如果过滤后结果为空，启用 fallback 机制
         if not filtered_results and results_with_scores:
             logger.warning(
                 f"所有结果都被过滤（阈值={self.score_threshold}），"
-                f"建议降低 RETRIEVE_SCORE_THRESHOLD 或检查距离度量配置"
+                f"启用 fallback 机制返回原始结果"
             )
+            # Fallback: 返回原始结果
+            for doc, score in results_with_scores:
+                similarity_score = 1.0 - score
+                doc.metadata["score"] = similarity_score
+                doc.metadata["low_similarity_warning"] = True
+                filtered_results.append(doc)
 
         # 可选：扩展上下文
         if self.enable_context:
