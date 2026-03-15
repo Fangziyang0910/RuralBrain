@@ -244,12 +244,17 @@ def search_knowledge(
 
             logger.info(f"评分过滤: 原始 {len(results_with_scores)} 个，过滤后 {len(results)} 个")
 
-            # 如果过滤后结果为空，给出提示
+            # Fallback: 如果过滤后结果为空，返回原始结果并添加警告
             if not results and results_with_scores:
                 logger.warning(
                     f"所有结果都被过滤（阈值={threshold}），"
-                    f"建议降低 RETRIEVE_SCORE_THRESHOLD 或检查距离度量配置"
+                    f"启用 fallback 机制返回原始结果"
                 )
+                for doc, score in results_with_scores:
+                    similarity_score = 1.0 - score
+                    doc.metadata["score"] = similarity_score
+                    doc.metadata["low_similarity_warning"] = True
+                    results.append(doc)
 
         elif search_type == "mmr":
             # 使用 MMR 检索（增加多样性）
@@ -286,6 +291,10 @@ def search_knowledge(
             # 显示评分（如果有）
             if score is not None:
                 fragment.append(f"相似度: {score:.3f}")
+
+            # 显示低相似度警告
+            if doc.metadata.get("low_similarity_warning"):
+                fragment.append("⚠️ 注意: 相似度较低，结果仅供参考")
 
             if context_mode == "minimal":
                 fragment.append(f"内容: {doc.page_content}")

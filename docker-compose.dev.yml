@@ -34,7 +34,6 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - ENVIRONMENT=development
-      - EMBEDDING_PROVIDER=local
       - PEST_DETECTION_API_URL=http://detection-service:8001/detection/pest/detect
       - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
@@ -45,6 +44,7 @@ services:
       - ./src/agents:/app/src/agents
       - ./src/utils:/app/src/utils
       - ./src/config.py:/app/src/config.py
+      - ./src/data:/app/src/data
     tmpfs:
       - /tmp/ruralbrain:size=500M,mode=0777
     depends_on:
