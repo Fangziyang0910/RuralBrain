@@ -31,6 +31,8 @@ from service.settings import (
 )
 from service.schemas import ChatRequest, UploadResponse
 from src.agents.middleware.dynamic_tool_middleware import set_kb_switch_state
+from src.rag.service.schemas.chat import KnowledgeUpdateRequest, KnowledgeUpdateResponse
+from src.rag.service.api.routes import _update_knowledge_base_impl
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -507,6 +509,24 @@ async def chat_stream(request: ChatRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         )
+
+
+# ==================== 知识库更新 API ====================
+
+@app.post("/api/v1/knowledge/update", response_model=KnowledgeUpdateResponse, tags=["知识库"])
+async def update_knowledge_base(request: KnowledgeUpdateRequest):
+    """
+    更新知识库（线程安全）
+
+    支持两种模式：
+    - **增量更新**（默认）：仅处理新增/变更文档，保留现有数据
+    - **全量重建**（force_rebuild=True）：清空后重新构建整个知识库
+
+    数据源选项：
+    - source: 单个文档路径
+    - source_dir: 文档目录（批量处理）
+    """
+    return await _update_knowledge_base_impl(request)
 
 
 @app.exception_handler(HTTPException)
