@@ -555,3 +555,70 @@ bash scripts/dev/check.sh --test fast
 ---
 
 **相关文档**：[docs/README.md](docs/README.md) | [docs/commands.md](docs/commands.md) | [docs/CHANGELOG.md](docs/CHANGELOG.md)
+
+---
+
+## Superpowers Skills（开发工作流）
+
+> 来源：[obra/superpowers](https://github.com/obra/superpowers)
+
+### 可用技能
+
+| 技能 | 触发场景 | 功能 |
+|------|---------|------|
+| **brainstorming** | 开始新功能开发前 | 通过对话提炼需求，生成设计文档 |
+| **writing-plans** | 设计文档批准后 | 生成详细实现计划 |
+| **test-driven-development** | 编写代码时 | RED-GREEN-REFACTOR 循环 |
+| **systematic-debugging** | 遇到 bug 时 | 4 阶段根因分析流程 |
+| **verification-before-completion** | 任务完成前 | 确保问题真正修复 |
+| **executing-plans** | 批量执行任务 | 带检查点的计划执行 |
+| **subagent-driven-development** | 复杂任务 | 两阶段审查快速迭代 |
+
+---
+
+## PUA Skills（抗放弃引擎）
+
+> 来源：[tanweai/pua](https://github.com/tanweai/pua)
+> 让 AI 不敢摆烂，穷尽所有方案才允许放弃。
+
+### 核心能力
+
+| 能力 | 说明 |
+|------|------|
+| **PUA 话术** | 让 AI 不敢放弃 |
+| **调试方法论** | 5 步调试法，让 AI 有能力不放弃 |
+| **能动性鞭策** | 让 AI 主动出击而非被动等待 |
+
+### 三条铁律
+
+1. **穷尽一切** — 没有穷尽所有方案前，禁止说"我无法解决"
+2. **先做后问** — 向用户提问前，必须先用工具自行排查
+3. **主动出击** — 不要只做到"刚好够用"，要端到端交付结果
+
+### 触发条件
+
+- 任务连续失败 2 次以上
+- 即将说"我无法解决" / 建议用户手动操作
+- 被动等待 — 不搜索、不读源码、只等指示
+- 用户不满："try harder" / "换个方法" / "你再试试"
+
+### 压力升级机制
+
+| 失败次数 | 等级 | 强制动作 |
+|---------|------|---------|
+| L1 | 温和失望 | 切换到本质不同的方案 |
+| L2 | 灵魂拷问 | 搜索完整错误 + 读源码 + 列出 3 个假设 |
+| L3 | 361 考核 | 完成 7 项检查清单 |
+| L4 | 毕业警告 | 最小 PoC + 隔离环境 + 不同技术栈 |
+
+### 可用技能
+
+| 技能 | 说明 |
+|------|------|
+| **pua** | 中文版 PUA 激励引擎 |
+| **pua-en** | 英文版 PIP 绩效改进计划 |
+| **high-agency** | v2 演进版，增加自我驱动引擎 |
+
+---
+
+技能定义位置：`.claude/skills/`
