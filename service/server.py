@@ -31,6 +31,8 @@ from service.settings import (
 )
 from service.schemas import ChatRequest, UploadResponse
 from src.agents.middleware.dynamic_tool_middleware import set_kb_switch_state
+from src.agents.context import AgentContext
+from src.config import AVAILABLE_MODELS, DEFAULT_MODEL_ID
 from src.rag.service.schemas.chat import KnowledgeUpdateRequest, KnowledgeUpdateResponse
 from src.rag.service.api.routes import _update_knowledge_base_impl
 
@@ -257,6 +259,30 @@ async def root():
 async def health_check():
     """健康检查"""
     return {"status": "healthy"}
+
+
+@app.get("/models")
+async def get_models():
+    """
+    获取可用模型列表
+
+    Returns:
+        models: 模型列表
+        default_model: 默认模型 ID
+    """
+    models = []
+    for model_id, config in AVAILABLE_MODELS.items():
+        models.append({
+            "id": model_id,
+            "name": config["name"],
+            "description": config["description"],
+            "is_multimodal": config["is_multimodal"],
+        })
+
+    return {
+        "models": models,
+        "default_model": DEFAULT_MODEL_ID,
+    }
 
 
 @app.post("/upload", response_model=UploadResponse)
