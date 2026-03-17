@@ -62,3 +62,31 @@ def get_model_config(provider: ModelProvider) -> dict:
     if provider not in MODEL_CONFIGS:
         raise ValueError(f"不支持的模型供应商: {provider}. 支持的供应商: {list(MODEL_CONFIGS.keys())}")
     return MODEL_CONFIGS[provider]
+
+
+# 用户可选的模型列表（扁平化）
+AVAILABLE_MODELS = {
+    "deepseek": {
+        "name": "DeepSeek",
+        "provider": "deepseek",
+        "model_name": "deepseek-chat",
+        "description": "DeepSeek 智能对话模型",
+        "is_multimodal": False,
+    },
+    "glm-4": {
+        "name": "GLM-4",
+        "provider": "glm",
+        "model_name": "glm-4",
+        "description": "智谱AI GLM-4 大模型",
+        "is_multimodal": False,
+    },
+    "qwen": {
+        "name": "Qwen3.5-Plus",
+        "provider": "qwen",
+        "model_name": "qwen3.5-plus",
+        "description": "通义千问多模态模型",
+        "is_multimodal": True,
+    },
+}
+
+DEFAULT_MODEL_ID = "deepseek"
