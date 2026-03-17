@@ -1,7 +1,8 @@
 """
-Qwen-VL-Plus 多模态模型测试脚本
+Qwen3.5-Plus 多模态模型测试脚本
 
-测试阿里云百炼 Qwen-VL-Plus 视觉语言模型的多模态能力。
+测试阿里云百炼 Qwen3.5-Plus 模型的多模态能力。
+Qwen3.5-Plus 原生支持多模态，无需单独的视觉模型。
 
 使用方法:
     uv run python tests/test_qwen_vl.py
@@ -27,10 +28,10 @@ load_dotenv(project_root / ".env")
 from src.utils import ModelManager, MultimodalHelper
 
 
-def test_model_manager_vision():
-    """测试 ModelManager 获取视觉模型"""
+def test_model_manager_qwen():
+    """测试 ModelManager 获取 Qwen 模型"""
     print("=" * 50)
-    print("测试 1: ModelManager 获取视觉模型")
+    print("测试 1: ModelManager 获取 Qwen 模型")
     print("=" * 50)
 
     # 检查 API Key
@@ -40,15 +41,11 @@ def test_model_manager_vision():
         return False
 
     try:
-        # 方式 1: 直接指定 qwen-vl provider
-        manager = ModelManager(provider="qwen-vl")
-        vision_model = manager.get_vision_model()
-        print(f"✓ 成功创建视觉模型: {vision_model.model_name}")
-
-        # 方式 2: 从任意 provider 获取视觉模型
-        manager2 = ModelManager(provider="deepseek")
-        vision_model2 = manager2.get_vision_model()
-        print(f"✓ 从 deepseek provider 获取视觉模型: {vision_model2.model_name}")
+        # Qwen3.5-Plus 原生支持多模态
+        manager = ModelManager(provider="qwen")
+        model = manager.get_chat_model()
+        print(f"✓ 成功创建 Qwen 模型: {model.model_name}")
+        print(f"  默认模型: {manager.config['default_model']}")
 
         return True
     except Exception as e:
@@ -93,10 +90,10 @@ def test_multimodal_helper():
         return False
 
 
-def test_vision_model_call():
-    """测试视觉模型调用（需要真实图片）"""
+def test_multimodal_model_call():
+    """测试多模态模型调用（需要真实图片）"""
     print("\n" + "=" * 50)
-    print("测试 3: 视觉模型调用（需要网络）")
+    print("测试 3: 多模态模型调用（需要网络）")
     print("=" * 50)
 
     # 检查 API Key
@@ -106,8 +103,8 @@ def test_vision_model_call():
         return None
 
     try:
-        manager = ModelManager(provider="qwen-vl")
-        vision_model = manager.get_vision_model()
+        manager = ModelManager(provider="qwen")
+        model = manager.get_chat_model()
 
         # 使用网络图片测试
         test_image_url = "https://dashscope.oss-cn-beijing.aliyuncs.com/images/dog_and_girl.jpeg"
@@ -117,8 +114,8 @@ def test_vision_model_call():
             image_url=test_image_url
         )
 
-        print("正在调用 Qwen-VL-Plus 模型...")
-        response = vision_model.invoke([message])
+        print("正在调用 Qwen3.5-Plus 模型...")
+        response = model.invoke([message])
 
         print(f"✓ 模型调用成功!")
         print(f"响应内容: {response.content[:200]}...")
@@ -134,19 +131,19 @@ def test_vision_model_call():
 def main():
     """运行所有测试"""
     print("\n" + "=" * 60)
-    print("Qwen-VL-Plus 多模态模型集成测试")
+    print("Qwen3.5-Plus 多模态模型集成测试")
     print("=" * 60 + "\n")
 
     results = []
 
     # 测试 1: ModelManager
-    results.append(("ModelManager 视觉模型", test_model_manager_vision()))
+    results.append(("ModelManager Qwen 模型", test_model_manager_qwen()))
 
     # 测试 2: MultimodalHelper
     results.append(("MultimodalHelper", test_multimodal_helper()))
 
     # 测试 3: 实际模型调用
-    results.append(("视觉模型调用", test_vision_model_call()))
+    results.append(("多模态模型调用", test_multimodal_model_call()))
 
     # 汇总结果
     print("\n" + "=" * 60)

@@ -3,7 +3,7 @@ import os
 from typing import Literal
 
 # 模型配置
-ModelProvider = Literal["deepseek", "glm", "qwen", "qwen-vl"]
+ModelProvider = Literal["deepseek", "glm", "qwen"]
 
 DEFAULT_PROVIDER: ModelProvider = os.getenv("MODEL_PROVIDER", "deepseek")
 DEFAULT_TEMPERATURE = float(os.getenv("MODEL_TEMPERATURE", "0.7"))
@@ -12,15 +12,11 @@ MODEL_MAX_TOKENS = int(os.getenv("MODEL_MAX_TOKENS", "2000"))
 MODEL_CONFIGS = {
     "deepseek": {"default_model": "deepseek-chat", "api_key_env": "DEEPSEEK_API_KEY"},
     "glm": {"default_model": "glm-4", "api_key_env": "ZHIPUAI_API_KEY"},
-    "qwen": {
-        "default_model": "qwen-plus",
-        "api_key_env": "QWEN_API_KEY",
-        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-    },
-    # 多模态视觉语言模型（Qwen-VL-Plus）
+    # 通义千问（Qwen3.5-Plus 原生支持多模态）
     # 使用阿里云百炼 OpenAI 兼容格式
-    "qwen-vl": {
-        "default_model": "qwen-vl-plus",
+    # 模型列表: https://help.aliyun.com/model-studio/getting-started/models
+    "qwen": {
+        "default_model": "qwen3.5-plus",
         "api_key_env": "QWEN_API_KEY",
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
     },

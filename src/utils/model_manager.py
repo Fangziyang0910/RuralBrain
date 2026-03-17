@@ -6,8 +6,7 @@
 支持的供应商:
 - deepseek: DeepSeek 文本模型
 - glm: 智谱AI (GLM) 文本模型
-- qwen: 通义千问文本模型（OpenAI 兼容格式）
-- qwen-vl: 通义千问视觉语言模型（Qwen-VL-Plus，OpenAI 兼容格式）
+- qwen: 通义千问（Qwen3.5-Plus 原生支持多模态）
 """
 import os
 from typing import Optional
@@ -29,8 +28,9 @@ class ModelManager:
         >>> model = manager.get_chat_model()
         >>> # 或者使用自定义配置
         >>> model = manager.get_chat_model(temperature=0.7, model="deepseek-chat")
-        >>> # 获取多模态视觉模型
-        >>> vision_model = manager.get_vision_model()
+        >>> # Qwen3.5-Plus 原生支持多模态
+        >>> manager = ModelManager(provider="qwen")
+        >>> model = manager.get_chat_model()  # 可处理文本+图片
     """
 
     def __init__(
@@ -42,7 +42,7 @@ class ModelManager:
         初始化模型管理器
 
         Args:
-            provider: 模型供应商 ("deepseek", "glm", "qwen", "qwen-vl")
+            provider: 模型供应商 ("deepseek", "glm", "qwen")
             api_key: API密钥,如果为None则从环境变量读取
         """
         self.provider = provider
@@ -79,48 +79,10 @@ class ModelManager:
 
         if self.provider == "deepseek":
             return self._create_deepseek_model(model_name, temp, **kwargs)
-        elif self.provider in ("glm", "qwen", "qwen-vl"):
+        elif self.provider in ("glm", "qwen"):
             return self._create_openai_compatible_model(model_name, temp, **kwargs)
         else:
             raise ValueError(f"不支持的供应商: {self.provider}")
-
-    def get_vision_model(
-        self,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None,
-        **kwargs
-    ) -> ChatOpenAI:
-        """
-        获取多模态视觉模型实例（Qwen-VL-Plus）
-
-        用于处理图片+文本的多模态输入，支持：
-        - 图片描述
-        - 图像理解
-        - 多图分析
-
-        Args:
-            model: 视觉模型名称,默认 qwen-vl-plus
-            temperature: 温度参数
-            **kwargs: 其他模型参数
-
-        Returns:
-            ChatOpenAI: 支持 vision 的聊天模型实例
-
-        Example:
-            >>> from langchain_core.messages import HumanMessage
-            >>> manager = ModelManager(provider="qwen-vl")
-            >>> vision_model = manager.get_vision_model()
-            >>> message = HumanMessage(content=[
-            ...     {"type": "text", "text": "描述这张图片"},
-            ...     {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}
-            ... ])
-            >>> response = vision_model.invoke([message])
-        """
-        # 如果当前 provider 不是 qwen-vl，创建一个 qwen-vl 的管理器
-        if self.provider != "qwen-vl":
-            return ModelManager(provider="qwen-vl", api_key=self.api_key).get_vision_model(model, temperature, **kwargs)
-
-        return self.get_chat_model(model, temperature, **kwargs)
 
     def _create_deepseek_model(
         self,
@@ -142,7 +104,7 @@ class ModelManager:
         temperature: float,
         **kwargs
     ) -> ChatOpenAI:
-        """创建 OpenAI 兼容模型实例（GLM、Qwen、Qwen-VL）"""
+        """创建 OpenAI 兼容模型实例（GLM、Qwen）"""
         base_url = self.config.get("base_url")
 
         return ChatOpenAI(
