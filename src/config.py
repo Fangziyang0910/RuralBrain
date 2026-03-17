@@ -11,7 +11,13 @@ MODEL_MAX_TOKENS = int(os.getenv("MODEL_MAX_TOKENS", "2000"))
 
 MODEL_CONFIGS = {
     "deepseek": {"default_model": "deepseek-chat", "api_key_env": "DEEPSEEK_API_KEY"},
-    "glm": {"default_model": "glm-4", "api_key_env": "ZHIPUAI_API_KEY"},
+    # 智谱AI GLM-4 OpenAI 兼容格式
+    # API 文档: https://open.bigmodel.cn/dev/api#openai-api
+    "glm": {
+        "default_model": "glm-4",
+        "api_key_env": "ZHIPUAI_API_KEY",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4/",
+    },
     # 通义千问（Qwen3.5-Plus 原生支持多模态）
     # 使用阿里云百炼 OpenAI 兼容格式
     # 模型列表: https://help.aliyun.com/model-studio/getting-started/models
