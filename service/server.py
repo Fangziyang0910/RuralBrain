@@ -383,6 +383,7 @@ async def chat_stream(request: ChatRequest):
                 "thread_id": thread_id,
                 "enable_knowledge_base": request.enable_knowledge_base,
             },
+            "context": AgentContext(model_id=request.model_id or DEFAULT_MODEL_ID),
             "recursion_limit": 50,  # 防止递归限制
         }
 
