@@ -5,9 +5,9 @@
 基于 LangChain 官方文档的 Middleware + Runtime Context 模式。
 """
 import logging
-from typing import Callable
+from typing import Callable, Awaitable
 
-from langchain.agents.middleware import wrap_model_call, ModelRequest, ModelResponse
+from langchain.agents.middleware import AgentMiddleware, ModelRequest, ModelResponse
 
 from ...config import AVAILABLE_MODELS, DEFAULT_MODEL_ID
 from ...utils import ModelManager
@@ -33,42 +33,75 @@ def _initialize_models():
             logger.error(f"模型实例初始化失败: {model_id} - {e}")
 
 
-@wrap_model_call
-def model_selection_middleware(
-    request: ModelRequest,
-    handler: Callable[[ModelRequest], ModelResponse],
-) -> ModelResponse:
+class ModelSelectionMiddleware(AgentMiddleware):
     """
-    根据运行时 context 动态选择模型
+    模型选择中间件
 
-    从 request.runtime.context 获取用户选择的 model_id，
-    然后覆盖请求中的模型实例。
-
-    Args:
-        request: 模型请求对象
-        handler: 下一个处理器
-
-    Returns:
-        模型响应
+    根据运行时 context 中的 model_id 动态选择 LLM 模型。
+    支持异步调用（astream_events / ainvoke）。
     """
-    # 确保模型已初始化
-    _initialize_models()
 
-    # 从 context 获取用户选择的 model_id
-    model_id = DEFAULT_MODEL_ID
-    if request.runtime and request.runtime.context:
-        model_id = getattr(request.runtime.context, "model_id", DEFAULT_MODEL_ID)
+    def wrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse],
+    ) -> ModelResponse:
+        """同步版本 - 用于同步调用"""
+        return self._select_model_and_call(request, handler)
 
-    # 获取对应的模型实例
-    model = MODEL_INSTANCES.get(model_id)
-    if model is None:
-        logger.warning(f"未找到模型 {model_id}，使用默认模型 {DEFAULT_MODEL_ID}")
-        model = MODEL_INSTANCES.get(DEFAULT_MODEL_ID)
+    async def awrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], Awaitable[ModelResponse]],
+    ) -> ModelResponse:
+        """异步版本 - 用于异步调用 (astream_events / ainvoke)"""
+        return await self._aselect_model_and_call(request, handler)
 
-    if model is None:
-        raise RuntimeError(f"无法获取模型实例: {model_id}")
+    def _select_model_and_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse],
+    ) -> ModelResponse:
+        """选择模型并调用（同步）"""
+        _initialize_models()
 
-    logger.debug(f"模型选择: {model_id}")
+        model_id = self._get_model_id(request)
+        model = self._get_model_instance(model_id)
 
-    # 覆盖请求中的模型
-    return handler(request.override(model=model))
+        logger.debug(f"模型选择: {model_id}")
+        return handler(request.override(model=model))
+
+    async def _aselect_model_and_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], Awaitable[ModelResponse]],
+    ) -> ModelResponse:
+        """选择模型并调用（异步）"""
+        _initialize_models()
+
+        model_id = self._get_model_id(request)
+        model = self._get_model_instance(model_id)
+
+        logger.debug(f"模型选择: {model_id}")
+        return await handler(request.override(model=model))
+
+    def _get_model_id(self, request: ModelRequest) -> str:
+        """从 context 获取模型 ID"""
+        model_id = DEFAULT_MODEL_ID
+        if request.runtime and request.runtime.context:
+            model_id = getattr(request.runtime.context, "model_id", DEFAULT_MODEL_ID)
+        return model_id
+
+    def _get_model_instance(self, model_id: str):
+        """获取模型实例"""
+        model = MODEL_INSTANCES.get(model_id)
+        if model is None:
+            logger.warning(f"未找到模型 {model_id}，使用默认模型 {DEFAULT_MODEL_ID}")
+            model = MODEL_INSTANCES.get(DEFAULT_MODEL_ID)
+        if model is None:
+            raise RuntimeError(f"无法获取模型实例: {model_id}")
+        return model
+
+
+# 创建中间件实例
+model_selection_middleware = ModelSelectionMiddleware()
