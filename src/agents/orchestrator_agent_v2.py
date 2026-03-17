@@ -21,6 +21,8 @@ from .middleware.dynamic_tool_middleware import (
     DynamicToolMiddleware,
     set_dynamic_middleware,
 )
+from .middleware.model_selection_middleware import model_selection_middleware
+from .context import AgentContext
 from langchain.agents.middleware import SummarizationMiddleware
 
 logger = logging.getLogger(__name__)
@@ -123,7 +125,7 @@ summarization_middleware = SummarizationMiddleware(
     keep=("messages", 15),
 )
 
-middleware = [dynamic_tool_middleware, skill_middleware, summarization_middleware]
+middleware = [model_selection_middleware, dynamic_tool_middleware, skill_middleware, summarization_middleware]
 
 # ---- 创建 Agent ----
 
@@ -133,6 +135,7 @@ agent = create_agent(
     system_prompt=ORCHESTRATOR_V2_SYSTEM_PROMPT,
     checkpointer=InMemorySaver(),
     middleware=middleware,
+    context_schema=AgentContext,
 )
 
 skill_count = len(registry.list_skill_names())
