@@ -496,7 +496,7 @@ export default function Home() {
         setLoading(false);
       }
     },
-    [threadId]
+    [threadId, enableKnowledgeBase, selectedModelId]
   );
 
   // 处理演示卡片点击 - 从 URL 加载示例图片并发送

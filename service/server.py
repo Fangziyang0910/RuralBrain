@@ -395,7 +395,7 @@ async def chat_stream(request: ChatRequest):
             paths_text = "\n".join([f"[图片路径 {i+1}: {path}]" for i, path in enumerate(image_paths)])
             message_content = f"{message_content}\n\n{paths_text}"
 
-        logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}, 知识库: {request.enable_knowledge_base}")
+        logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}, 知识库: {request.enable_knowledge_base}, 模型: {request.model_id or DEFAULT_MODEL_ID}")
         # 调试：打印完整的消息内容
         logger.info(f"发送给 Agent 的消息内容: {message_content[:500]}...")
 
