@@ -44,8 +44,8 @@ cp .env.example .env
 # 编辑 .env 文件，填写必要的配置
 
 # 2. 拉取镜像（可选，启动时会自动拉取）
-docker pull zwxdockerbeginner/ruralbrain:backend-onnx
-docker pull zwxdockerbeginner/ruralbrain:detection-onnx
+docker pull bzp9c92/ruralbrain:backend-onnx-v2
+docker pull zwxdockerbeginner/ruralbrain:detection-onnx-v2
 
 # 3. 启动开发环境（在项目根目录执行）
 docker compose -f docker-compose.dev.yml up -d
@@ -80,9 +80,22 @@ bash scripts/dev/build-onnx-images.sh
 
 ### 后端服务镜像
 
-- **镜像名**: `ruralbrain-backend:onnx`
-- **基于**: Python 3.13 slim + ONNX Runtime
-- **功能**: FastAPI + Orchestrator Agent V2 + 意图识别
+- **镜像名**: `backend-onnx-v2`
+- **Docker Hub**: `bzp9c92/ruralbrain:backend-onnx-v2`
+- **基于**: Python 3.13 slim
+- **大小**: ~8GB（包含 torch 和 RAG 依赖）
+- **功能**: FastAPI + Orchestrator Agent V2 + 意图识别 + RAG 知识库
+
+**核心依赖**：
+- LangChain/LangGraph（Agent 框架）
+- ChromaDB（向量数据库）
+- sentence-transformers（文本嵌入）
+- markitdown（文档处理）
+- torch + CUDA 库（深度学习推理）
+
+**新增功能**：
+- 疾病预测工具（集成 RAG 检索，基于症状给出诊断建议）
+- 疾病知识库支持（ChromaDB 向量存储）
 
 ### 检测服务镜像
 

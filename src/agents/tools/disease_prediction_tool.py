@@ -2,14 +2,76 @@
 
 收集动物的基本信息、症状描述及患处图片/视频，为 Agent 的 LLM
 提供充分的决策依据，让 LLM 自己进行可靠的医疗建议或就医指南以及预测补充。
+
+集成 RAG 知识库检索，基于专业兽医文献提供更准确的疾病预测。
 """
 import os
 from datetime import datetime
 from typing import Optional
+from pathlib import Path
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage
 
 from ...utils import ModelManager
+from ...rag.config import get_embeddings_cached
+from langchain_chroma import Chroma
+import chromadb
+from chromadb.config import Settings
+
+
+# ==================== 疾病知识库检索 ====================
+
+def _get_disease_vectorstore():
+    """获取疾病知识库向量存储"""
+    project_root = Path(__file__).parent.parent.parent.parent
+    chroma_dir = project_root / "knowledge_base" / "diseases" / "chroma_db"
+
+    if not chroma_dir.exists():
+        return None
+
+    try:
+        embeddings = get_embeddings_cached()
+        client = chromadb.PersistentClient(
+            path=str(chroma_dir),
+            settings=Settings(anonymized_telemetry=False, allow_reset=True)
+        )
+        vectorstore = Chroma(
+            collection_name="diseases_knowledge",
+            embedding_function=embeddings,
+            client=client,
+            persist_directory=str(chroma_dir)
+        )
+        return vectorstore
+    except Exception:
+        return None
+
+
+def _search_disease_knowledge(query: str, top_k: int = 3) -> str:
+    """检索疾病知识库
+
+    Args:
+        query: 查询问题
+        top_k: 返回结果数量
+
+    Returns:
+        检索到的相关知识片段
+    """
+    try:
+        vectorstore = _get_disease_vectorstore()
+        if not vectorstore:
+            return ""
+
+        results = vectorstore.similarity_search(query, k=top_k)
+
+        context_parts = []
+        for i, doc in enumerate(results, 1):
+            source = doc.metadata.get("source", "未知来源")
+            content = doc.page_content.strip()
+            context_parts.append(f"[参考{i}] {source}\n{content}\n")
+
+        return "\n".join(context_parts)
+    except Exception:
+        return ""
 
 
 # TODO: 后续接入真实图像识别模型时替换此函数
@@ -115,7 +177,7 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
         age_info = f"{age}月龄" if age else "未知"
         temp_info = f"{temperature}°C" if temperature else "未测量"
 
-        # 检查信息完整性
+        # 检查信息完整性（用于决定是否在末尾添加追问）
         missing_info = []
         if not age:
             missing_info.append("年龄")
@@ -126,61 +188,55 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
         if len(symptoms) < 10:  # 症状描述过于简单
             missing_info.append("更详细的症状描述")
 
-        # 如果缺失关键信息，先生成追问
+        # 始终先检索疾病知识库
+        knowledge_context = ""
+        try:
+            # 构造检索查询
+            search_query = f"{animal_type} {symptoms}"
+            if temperature:
+                search_query += f" 体温{temperature}°C"
+            if age:
+                search_query += f" {age}月龄"
+
+            knowledge_context = _search_disease_knowledge(search_query, top_k=3)
+        except Exception:
+            knowledge_context = ""
+
+        # 构建知识库参考部分
+        knowledge_section = ""
+        if knowledge_context:
+            knowledge_section = f"""
+## 知识库参考
+以下是从专业兽医文献中检索到的相关信息：
+
+{knowledge_context}
+
+请参考以上知识库内容进行分析，但也要根据实际情况进行判断。
+"""
+
+        # 信息完整度提示
+        info_status = ""
         if missing_info and len(missing_info) >= 2:
-            prompt = f"""你是一位专业的兽医助手。用户描述了一头{animal_type}出现健康问题，但提供的信息不够详细。
+            info_status = f"""
+**注意**：当前提供的信息不够完整，以下分析基于现有症状，建议补充{len(missing_info)}项信息以获得更准确的诊断。
+"""
 
-## 已知信息
-- 动物类型：{animal_type}
-- 症状描述：{symptoms}
-- 年龄：{age_info}
-- 体温：{temp_info}
-{f"- 其他体征：{other_signs}" if other_signs else ""}
+        # 构建追问部分（附加在末尾）
+        followup_section = ""
+        if missing_info and len(missing_info) >= 2:
+            followup_section = """
 
-## 你的任务
-为了做出准确的疾病预测，你需要向用户追问缺失的关键信息。请以友好、专业的方式输出追问问题。
+### 💡 补充信息建议（可选）
 
-输出格式（严格按此格式）：
+为了获得更准确的诊断，您可以补充以下信息：
+- **年龄**：动物大概多大？
+- **体温**：有没有测量体温？
+- **其他症状**：如粪便、呼吸、皮肤状态等
 
-### 🩺 需要了解更多信息
+补充这些信息后我可以提供更精准的分析。"""
 
-为了更准确地分析病情，请帮我补充以下信息：
-
-1. **年龄**
-   - 这头{animal_type}大概多大？是幼崽还是成年？
-   - 年龄对疾病诊断很重要，不同年龄段的易感疾病不同
-
-2. **体温**
-   - 有没有测量体温？大约多少度？
-   - 正常{animal_type}体温是38-39.5°C，发热是重要的疾病信号
-
-3. **其他症状**
-   - 除了不吃东西和凶，还有其他异常吗？比如：
-     - 粪便是否正常？（拉稀/便秘）
-     - 呼吸是否顺畅？（有无咳嗽、喘气）
-     - 皮肤有无异常？（有无红点、溃疡）
-     - 有没有呕吐？
-
-4. **群体情况**
-   - 是只有这一头发病，还是其他{animal_type}也有类似症状？
-   - 最近有没有新引进的{animal_type}？
-
-5. **环境变化**
-   - 最近有没有更换饲料？
-   - 猪舍环境有没有变化？（温度、湿度等）
-   - 最近有没有进行过疫苗接种？
-
-请提供这些信息，我会为您提供更准确的疾病预测和建议。
-
----
-注意：
-- 直接输出追问文本，不要有其他内容
-- 使用友好、专业的语气
-- 强调补充信息对准确诊断的重要性"""
-
-        else:
-            # 信息相对完整，进行完整的疾病预测分析
-            prompt = f"""你是一位专业的兽医专家，请根据以下信息进行疾病预测分析。
+        # 进行完整的疾病预测分析（集成知识库）
+        prompt = f"""你是一位专业的兽医专家，请根据以下信息进行疾病预测分析。
 
 ## 动物信息
 - 动物类型：{animal_type}
@@ -189,8 +245,17 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
 - 症状描述：{symptoms}
 {f"- 其他体征：{other_signs}" if other_signs else ""}
 
+{info_status}
+{knowledge_section}
 ## 分析要求
-请直接输出一份结构清晰、易读的疾病预测分析报告，按以下格式组织：
+请基于动物信息和知识库参考（如果提供），输出一份结构清晰、易读的疾病预测分析报告。
+
+**重要原则**：
+- 即使信息不完整，也要基于已有症状给出初步诊断和建议
+- 重点放在疾病分析、处理建议和防控措施上
+- 追问问题只是末尾的小附加部分，不要喧宾夺主
+
+输出格式：
 
 ---
 ### 🩺 疾病预测分析
@@ -202,31 +267,32 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
 2. **疾病名称**（可能性：XX%）
    - 判断依据：说明原因
 
-3. **疾病名称**（可能性：XX%）
-   - 判断依据：说明原因
-
 #### 关键症状依据
-- 症状1
-- 症状2
-- 症状3
+- 已知症状1
+- 已知症状2
 
 #### 紧急程度
 🚨 高/⚠️ 中/ℹ️ 低
 
 #### 处理建议
-1. 建议内容
-2. 建议内容
-3. 建议内容
+1. **隔离观察**：建议内容
+2. **对症治疗**：建议内容
+3. **预防措施**：建议内容
 
 #### ⚠️ 重要提醒
 添加任何需要注意的特殊事项
 
 ---
 
+{followup_section}
+
+---
+
 注意：
 - 直接输出报告文本，不要使用 JSON 格式
 - 不要包含代码块标记
-- 紧急程度根据疾病传染性、严重程度判断"""
+- 紧急程度根据疾病传染性、严重程度判断
+- 处理建议要具体、可操作"""
 
         # 调用模型
         response = model.invoke([HumanMessage(content=prompt)])
