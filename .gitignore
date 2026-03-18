@@ -44,6 +44,11 @@ src/algorithms/rice_detection/res/
 #rag
 src/data
 
-# Knowledge base (ChromaDB vector database)
-knowledge_base/
-temp_kb/
+# Training data - 数据集文件（大文件，不提交）
+data/
+
+# Knowledge base - 排除源文档，保留向量库
+knowledge_base/*/docs/
+knowledge_base/*/documents/
+knowledge_base/*/sources/
+knowledge_base/temp_kb/
