@@ -34,6 +34,9 @@ dependencies = [
     "filetype>=1.2.0",
     "rich>=13.0.0",
     "cachetools>=5.0.0",
+    "markitdown>=0.1.5",
+    "langchain-community",
+    "sentence-transformers",
 ]
 
 [dependency-groups]
