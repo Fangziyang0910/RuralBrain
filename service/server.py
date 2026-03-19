@@ -31,6 +31,8 @@ from service.settings import (
 )
 from service.schemas import ChatRequest, UploadResponse
 from src.agents.middleware.dynamic_tool_middleware import set_kb_switch_state
+from src.agents.context import AgentContext
+from src.config import AVAILABLE_MODELS, DEFAULT_MODEL_ID
 from src.rag.service.schemas.chat import KnowledgeUpdateRequest, KnowledgeUpdateResponse
 from src.rag.service.api.routes import _update_knowledge_base_impl
 
@@ -259,6 +261,30 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/models")
+async def get_models():
+    """
+    获取可用模型列表
+
+    Returns:
+        models: 模型列表
+        default_model: 默认模型 ID
+    """
+    models = []
+    for model_id, config in AVAILABLE_MODELS.items():
+        models.append({
+            "id": model_id,
+            "name": config["name"],
+            "description": config["description"],
+            "is_multimodal": config["is_multimodal"],
+        })
+
+    return {
+        "models": models,
+        "default_model": DEFAULT_MODEL_ID,
+    }
+
+
 @app.post("/upload", response_model=UploadResponse)
 async def upload_image(files: list[UploadFile] = File(...)):
     """
@@ -359,6 +385,8 @@ async def chat_stream(request: ChatRequest):
             },
             "recursion_limit": 50,  # 防止递归限制
         }
+        # 创建运行时上下文（模型选择）
+        agent_context = AgentContext(model_id=request.model_id or DEFAULT_MODEL_ID)
 
         # 构建消息内容
         message_content = request.message
@@ -368,7 +396,7 @@ async def chat_stream(request: ChatRequest):
             paths_text = "\n".join([f"[图片路径 {i+1}: {path}]" for i, path in enumerate(image_paths)])
             message_content = f"{message_content}\n\n{paths_text}"
 
-        logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}, 知识库: {request.enable_knowledge_base}")
+        logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}, 知识库: {request.enable_knowledge_base}, 模型: {request.model_id or DEFAULT_MODEL_ID}")
         # 调试：打印完整的消息内容
         logger.info(f"发送给 Agent 的消息内容: {message_content[:500]}...")
 
@@ -398,6 +426,7 @@ async def chat_stream(request: ChatRequest):
                     {"messages": [HumanMessage(content=message_content)]},
                     config,
                     version="v2",
+                    context=agent_context,
                 ):
                     kind = event["event"]
 

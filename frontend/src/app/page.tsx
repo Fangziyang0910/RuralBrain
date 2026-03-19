@@ -13,6 +13,19 @@ const API_BASE = "/api";
 
 type WorkMode = "auto" | "fast" | "deep";
 
+// 模型类型定义
+interface Model {
+  id: string;
+  name: string;
+  description: string;
+  is_multimodal: boolean;
+}
+
+interface ModelsResponse {
+  models: Model[];
+  default_model: string;
+}
+
 // 演示功能配置
 const demoConfigs: DemoConfig[] = [
   {
@@ -51,6 +64,8 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("");
   const [enableKnowledgeBase, setEnableKnowledgeBase] = useState<boolean>(true);
+  const [models, setModels] = useState<Model[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string>("deepseek");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -102,6 +117,27 @@ export default function Home() {
       )}px`;
     }
   }, [input]);
+
+  // 获取可用模型列表
+  useEffect(() => {
+    fetch(`${API_BASE}/models`)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`请求失败: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        setModels(data.models);
+        setSelectedModelId(data.default_model);
+      })
+      .catch(err => {
+        console.error("获取模型列表失败:", err);
+        // 设置兜底默认模型
+        setModels([{ id: "deepseek", name: "DeepSeek", description: "默认模型", is_multimodal: false }]);
+        setSelectedModelId("deepseek");
+      });
+  }, []);
 
   // 语音识别 Hook
   const { isListening, isSupported, interimText, toggle } = useASR({
@@ -311,6 +347,7 @@ export default function Home() {
             image_paths: imagePaths,
             thread_id: threadId,
             enable_knowledge_base: enableKnowledgeBase,
+            model_id: selectedModelId,
           }),
         });
 
@@ -467,7 +504,7 @@ export default function Home() {
         setLoading(false);
       }
     },
-    [threadId]
+    [threadId, enableKnowledgeBase, selectedModelId]
   );
 
   // 处理演示卡片点击 - 从 URL 加载示例图片并发送
@@ -627,6 +664,26 @@ export default function Home() {
             >
               知识库 {enableKnowledgeBase ? "✓" : ""}
             </button>
+
+            {/* 模型选择器 */}
+            <select
+              value={selectedModelId}
+              onChange={(e) => setSelectedModelId(e.target.value)}
+              disabled={loading}
+              className="px-4 py-2 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-stone-300 focus:outline-none focus:border-paddy-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {models.map(model => (
+                <option key={model.id} value={model.id}>
+                  {model.name}
+                </option>
+              ))}
+            </select>
+
+            {/* 多模态提示 - 暂时隐藏，待实现真正的多模态消息封装后再启用 */}
+            {/* 当前实现只是将图片路径拼接到文本中，并未让 LLM 真正接收图像数据 */}
+            {/* {models.find(m => m.id === selectedModelId)?.is_multimodal && (
+              <span className="text-xs text-green-600 font-medium">支持图片识别</span>
+            )} */}
 
             {/* 图片预览 */}
             {imagePreviews.length > 0 && (

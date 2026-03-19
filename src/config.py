@@ -11,9 +11,19 @@ MODEL_MAX_TOKENS = int(os.getenv("MODEL_MAX_TOKENS", "2000"))
 
 MODEL_CONFIGS = {
     "deepseek": {"default_model": "deepseek-chat", "api_key_env": "DEEPSEEK_API_KEY"},
-    "glm": {"default_model": "glm-4", "api_key_env": "ZHIPUAI_API_KEY"},
+    # 智谱AI GLM-4 OpenAI 兼容格式
+    # API 文档: https://open.bigmodel.cn/dev/api#openai-api
+    "glm": {
+        "default_model": "glm-4",
+        "api_key_env": "ZHIPUAI_API_KEY",
+        "base_url": "https://open.bigmodel.cn/api/paas/v4/",
+    },
+    # 通义千问 Qwen3.5-Plus
+    # 使用阿里云百炼 OpenAI 兼容格式
+    # 注意: 当前图片处理通过检测工具(YOLO)实现，尚未启用多模态消息格式
+    # 模型列表: https://help.aliyun.com/model-studio/getting-started/models
     "qwen": {
-        "default_model": "qwen-plus",
+        "default_model": "qwen3.5-plus",
         "api_key_env": "QWEN_API_KEY",
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
     },
@@ -59,3 +69,31 @@ def get_model_config(provider: ModelProvider) -> dict:
     if provider not in MODEL_CONFIGS:
         raise ValueError(f"不支持的模型供应商: {provider}. 支持的供应商: {list(MODEL_CONFIGS.keys())}")
     return MODEL_CONFIGS[provider]
+
+
+# 用户可选的模型列表（扁平化）
+AVAILABLE_MODELS = {
+    "deepseek": {
+        "name": "DeepSeek",
+        "provider": "deepseek",
+        "model_name": "deepseek-chat",
+        "description": "DeepSeek 智能对话模型",
+        "is_multimodal": False,
+    },
+    "glm-4": {
+        "name": "GLM-4",
+        "provider": "glm",
+        "model_name": "glm-4",
+        "description": "智谱AI GLM-4 大模型",
+        "is_multimodal": False,
+    },
+    "qwen": {
+        "name": "Qwen3.5-Plus",
+        "provider": "qwen",
+        "model_name": "qwen3.5-plus",
+        "description": "通义千问大模型（图片通过检测工具处理）",
+        "is_multimodal": False,  # TODO: 启用多模态消息格式后改为 True
+    },
+}
+
+DEFAULT_MODEL_ID = "deepseek"
