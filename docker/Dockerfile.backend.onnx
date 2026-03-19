@@ -40,7 +40,14 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     langchain-community \
     sentence-transformers \
     chromadb \
+    markitdown \
     rich \
+    --no-cache-dir
+
+# 额外的运行时依赖（单独分层，便于快速更新）
+RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    langchain-text-splitters \
+    cachetools \
     --no-cache-dir
 
 # 复制后端代码
@@ -49,6 +56,7 @@ COPY service /app/service
 COPY src/agents /app/src/agents
 COPY src/config.py /app/src/
 COPY src/utils /app/src/utils
+COPY src/rag /app/src/rag
 
 # 创建临时文件目录
 RUN mkdir -p /tmp/ruralbrain
