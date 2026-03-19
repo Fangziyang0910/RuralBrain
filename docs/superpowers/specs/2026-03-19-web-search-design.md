@@ -147,6 +147,8 @@ Agent 需要联网获取实时信息的能力，才能提供更准确、更有�
 **文件**: `src/agents/tools/web_search_tool.py`
 
 ```python
+from langchain_community.tools.tavily_search import TavilySearchResults
+
 @tool
 def web_search_tool(
     query: str,
@@ -203,6 +205,9 @@ AI 摘要: 根据 X 月数据，大米市场均价...
 **新增状态存储**：
 
 ```python
+# 常量定义
+PINNED_TTL = 999  # 钉住工具的 TTL 值，表示永不过期
+
 # Web 搜索开关状态（thread_id -> enable_web_search）
 _web_search_switch_state: Dict[str, Optional[bool]] = {}
 
@@ -236,7 +241,7 @@ def before_agent(self, state, runtime):
                 tools=[self._tool_loader.get_tool("web_search_tool")],
                 skill_name="web_search",
                 thread_id=thread_id,
-                ttl_config=TTLConfig(base_ttl=999, pinned=True)
+                ttl_config=TTLConfig(base_ttl=PINNED_TTL, pinned=True)
             )
     else:
         # 开关关闭：移除工具
@@ -341,6 +346,24 @@ const sendMessage = async (message: string) => {
 | `frontend/src/components/ChatInput.tsx` | 修改 | 添加联网搜索开关 UI |
 | `.env.example` | 修改 | 添加 TAVILY_API_KEY 配置说明 |
 
+### 5.1 tool_loader.py 注册详情
+
+```python
+# src/agents/tools/tool_loader.py
+
+def _register_all_tools(self):
+    # ... 现有工具注册 ...
+
+    # ==================== 网络搜索工具 ====================
+    self._tool_factories.update({
+        "web_search_tool": self._load_web_search_tool,
+    })
+
+def _load_web_search_tool(self) -> BaseTool:
+    from .web_search_tool import web_search_tool
+    return web_search_tool
+```
+
 ---
 
 ## 6. 配置项
@@ -351,6 +374,11 @@ const sendMessage = async (message: string) => {
 # .env
 TAVILY_API_KEY=tvly-xxxxx  # Tavily API 密钥
 ```
+
+**API Key 验证行为**：
+- 如果 `TAVILY_API_KEY` 未配置或无效，工具返回友好错误提示："联网搜索功能暂不可用，请检查 API 配置"
+- 工具不会因 API Key 问题而崩溃，确保用户体验不受影响
+- 服务启动时检查 API Key 配置，记录警告日志（不阻塞启动）
 
 ### 6.2 工具参数
 
