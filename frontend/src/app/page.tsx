@@ -679,10 +679,11 @@ export default function Home() {
               ))}
             </select>
 
-            {/* 多模态提示 */}
-            {models.find(m => m.id === selectedModelId)?.is_multimodal && (
+            {/* 多模态提示 - 暂时隐藏，待实现真正的多模态消息封装后再启用 */}
+            {/* 当前实现只是将图片路径拼接到文本中，并未让 LLM 真正接收图像数据 */}
+            {/* {models.find(m => m.id === selectedModelId)?.is_multimodal && (
               <span className="text-xs text-green-600 font-medium">支持图片识别</span>
-            )}
+            )} */}
 
             {/* 图片预览 */}
             {imagePreviews.length > 0 && (
