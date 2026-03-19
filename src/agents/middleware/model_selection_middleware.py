@@ -87,7 +87,7 @@ class ModelSelectionMiddleware(AgentMiddleware):
         model_id = self._get_model_id(request)
         model = self._get_model_instance(model_id)
 
-        logger.info(f"模型选择: {model_id}")
+        logger.debug(f"模型选择: {model_id}")
         return handler(request.override(model=model))
 
     async def _aselect_model_and_call(
