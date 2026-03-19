@@ -4,6 +4,30 @@
 
 ---
 
+## [2026-03-19] - 前端模型选择器
+
+### 🎯 功能增强
+
+**用户可选模型切换**
+
+在对话界面新增模型选择器，支持 DeepSeek、GLM-4、Qwen3.5-Plus 三种模型动态切换。
+
+**新增内容**：
+- 前端：模型选择下拉框（与知识库开关并排）
+- 后端：`/models` API 返回可用模型列表
+- Agent：模型选择中间件实现动态切换
+
+**代码变更**：
+| 文件 | 变更 |
+|------|------|
+| `src/agents/context.py` | 新增 - Agent 运行时 Context |
+| `src/agents/middleware/model_selection_middleware.py` | 新增 - 模型选择中间件 |
+| `src/config.py` | 修改 - 新增 `AVAILABLE_MODELS` 配置 |
+| `service/server.py` | 修改 - 新增 `/models` 接口 |
+| `frontend/src/app/page.tsx` | 修改 - 新增模型选择器 UI |
+
+---
+
 ## [2026-03-11] - LangChain 标准检索器与距离度量优化
 
 ### 🎯 架构优化
