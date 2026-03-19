@@ -6,7 +6,9 @@
 支持的供应商:
 - deepseek: DeepSeek 文本模型
 - glm: 智谱AI (GLM) 文本模型
-- qwen: 通义千问（Qwen3.5-Plus 原生支持多模态）
+- qwen: 通义千问文本模型
+
+注意: 当前图片处理通过检测工具（YOLO）实现，并非多模态 LLM 消息格式。
 """
 import os
 from typing import Optional
@@ -28,9 +30,6 @@ class ModelManager:
         >>> model = manager.get_chat_model()
         >>> # 或者使用自定义配置
         >>> model = manager.get_chat_model(temperature=0.7, model="deepseek-chat")
-        >>> # Qwen3.5-Plus 原生支持多模态
-        >>> manager = ModelManager(provider="qwen")
-        >>> model = manager.get_chat_model()  # 可处理文本+图片
     """
 
     def __init__(

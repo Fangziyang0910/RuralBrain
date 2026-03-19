@@ -18,8 +18,9 @@ MODEL_CONFIGS = {
         "api_key_env": "ZHIPUAI_API_KEY",
         "base_url": "https://open.bigmodel.cn/api/paas/v4/",
     },
-    # 通义千问（Qwen3.5-Plus 原生支持多模态）
+    # 通义千问 Qwen3.5-Plus
     # 使用阿里云百炼 OpenAI 兼容格式
+    # 注意: 当前图片处理通过检测工具(YOLO)实现，尚未启用多模态消息格式
     # 模型列表: https://help.aliyun.com/model-studio/getting-started/models
     "qwen": {
         "default_model": "qwen3.5-plus",
@@ -90,8 +91,8 @@ AVAILABLE_MODELS = {
         "name": "Qwen3.5-Plus",
         "provider": "qwen",
         "model_name": "qwen3.5-plus",
-        "description": "通义千问多模态模型",
-        "is_multimodal": True,
+        "description": "通义千问大模型（图片通过检测工具处理）",
+        "is_multimodal": False,  # TODO: 启用多模态消息格式后改为 True
     },
 }
 
