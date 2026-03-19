@@ -121,13 +121,21 @@ export default function Home() {
   // 获取可用模型列表
   useEffect(() => {
     fetch(`${API_BASE}/models`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`请求失败: ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         setModels(data.models);
         setSelectedModelId(data.default_model);
       })
       .catch(err => {
         console.error("获取模型列表失败:", err);
+        // 设置兜底默认模型
+        setModels([{ id: "deepseek", name: "DeepSeek", description: "默认模型", is_multimodal: false }]);
+        setSelectedModelId("deepseek");
       });
   }, []);
 
