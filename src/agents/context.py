@@ -4,6 +4,7 @@ Agent 运行时上下文定义
 用于在 Agent 执行过程中传递用户配置（如模型选择）
 """
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass

@@ -38,6 +38,7 @@ dependencies = [
     "langchain-community",
     "sentence-transformers",
     "tavily-python>=0.7.23",
+    "langchain-tavily>=0.1.0",
 ]
 
 [dependency-groups]
