@@ -50,6 +50,19 @@ def get_kb_switch_state(thread_id: str) -> Optional[bool]:
     """获取知识库开关状态"""
     return _kb_switch_state.get(thread_id)
 
+# Web 搜索开关状态（thread_id -> enable_web_search）
+_web_search_switch_state: Dict[str, Optional[bool]] = {}
+
+def set_web_search_switch_state(thread_id: str, enabled: Optional[bool]):
+    """设置联网搜索开关状态"""
+    thread_id = str(thread_id)
+    _web_search_switch_state[thread_id] = enabled
+    logger.info(f"设置联网搜索开关: thread_id={thread_id}, enabled={enabled}")
+
+def get_web_search_switch_state(thread_id: str) -> Optional[bool]:
+    """获取联网搜索开关状态"""
+    return _web_search_switch_state.get(thread_id)
+
 
 class DynamicToolMiddleware(AgentMiddleware):
     """
