@@ -30,7 +30,7 @@ from service.settings import (
     ALLOWED_EXTENSIONS,
 )
 from service.schemas import ChatRequest, UploadResponse
-from src.agents.middleware.dynamic_tool_middleware import set_kb_switch_state
+from src.agents.middleware.dynamic_tool_middleware import set_kb_switch_state, set_web_search_switch_state
 from src.agents.context import AgentContext
 from src.config import AVAILABLE_MODELS, DEFAULT_MODEL_ID
 from src.rag.service.schemas.chat import KnowledgeUpdateRequest, KnowledgeUpdateResponse
@@ -407,6 +407,10 @@ async def chat_stream(request: ChatRequest):
             logger.info(f"设置知识库开关: thread_id={thread_id}, enabled={request.enable_knowledge_base}")
         else:
             logger.info(f"知识库开关未设置 (None)，跳过状态设置")
+
+        # 联网搜索开关（新增）
+        if request.enable_web_search is not None:
+            set_web_search_switch_state(thread_id, request.enable_web_search)
 
         async def event_generator() -> AsyncGenerator[str, None]:
             """SSE 事件生成器"""
