@@ -37,6 +37,7 @@ dependencies = [
     "markitdown>=0.1.5",
     "langchain-community",
     "sentence-transformers",
+    "tavily-python>=0.7.23",
 ]
 
 [dependency-groups]
