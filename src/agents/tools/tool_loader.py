@@ -56,6 +56,11 @@ class ToolLoader:
             "knowledge_search_tool": self._load_knowledge_search_tool,
         })
 
+        # ==================== 网络搜索工具 ====================
+        self._tool_factories.update({
+            "web_search_tool": self._load_web_search_tool,
+        })
+
     # ==================== 检测工具加载器 ====================
 
     def _load_pest_detection_tool(self) -> BaseTool:
@@ -105,6 +110,12 @@ class ToolLoader:
     def _load_knowledge_search_tool(self) -> BaseTool:
         from src.rag.core.tools import knowledge_search_tool
         return knowledge_search_tool
+
+    # ==================== 网络搜索工具加载器 ====================
+
+    def _load_web_search_tool(self) -> BaseTool:
+        from .web_search_tool import web_search_tool
+        return web_search_tool
 
     # ==================== 公共接口 ====================
 
