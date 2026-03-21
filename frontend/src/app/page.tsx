@@ -64,6 +64,7 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("");
   const [enableKnowledgeBase, setEnableKnowledgeBase] = useState<boolean>(true);
+  const [enableWebSearch, setEnableWebSearch] = useState<boolean>(false);
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>("deepseek");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -347,6 +348,7 @@ export default function Home() {
             image_paths: imagePaths,
             thread_id: threadId,
             enable_knowledge_base: enableKnowledgeBase,
+            enable_web_search: enableWebSearch,
             model_id: selectedModelId,
           }),
         });
@@ -504,7 +506,7 @@ export default function Home() {
         setLoading(false);
       }
     },
-    [threadId, enableKnowledgeBase, selectedModelId]
+    [threadId, enableKnowledgeBase, enableWebSearch, selectedModelId]
   );
 
   // 处理演示卡片点击 - 从 URL 加载示例图片并发送
@@ -663,6 +665,20 @@ export default function Home() {
               }`}
             >
               知识库 {enableKnowledgeBase ? "✓" : ""}
+            </button>
+
+            {/* 联网搜索开关 */}
+            <button
+              type="button"
+              onClick={() => setEnableWebSearch(!enableWebSearch)}
+              disabled={loading}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all border-2 shadow-sm hover:shadow-md ${
+                enableWebSearch
+                  ? "bg-blue-50 border-blue-500 text-blue-700"
+                  : "bg-white border-stone-300 text-stone-600"
+              }`}
+            >
+              联网搜索 {enableWebSearch ? "✓" : ""}
             </button>
 
             {/* 模型选择器 */}

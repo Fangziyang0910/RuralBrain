@@ -3,6 +3,8 @@
 
 该工具收集和整理产品成本、品质、市场等信息，为 Agent 的 LLM
 提供充分的决策依据，让 LLM 自己进行定价分析和推理。
+
+支持联网搜索实时市场价格，增强定价分析的准确性。
 """
 import json
 import logging
@@ -13,13 +15,53 @@ from langchain_core.tools import tool
 logger = logging.getLogger(__name__)
 
 
+def _search_realtime_price(product_name: str, product_category: str) -> dict:
+    """
+    搜索实时市场价格信息
+
+    Args:
+        product_name: 产品名称
+        product_category: 产品分类
+
+    Returns:
+        包含搜索结果的字典，格式：
+        {
+            "success": bool,
+            "raw_result": str,  # 搜索结果文本
+            "error": str        # 错误信息（如果失败）
+        }
+    """
+    try:
+        from .web_search_tool import web_search_tool
+
+        # 构建搜索查询
+        query = f"{product_name} {product_category} 批发价格 市场行情 最新价格"
+        logger.info(f"联网搜索价格: {query}")
+
+        result = web_search_tool.invoke(query)
+
+        return {
+            "success": True,
+            "raw_result": result,
+            "source": "联网搜索"
+        }
+
+    except ImportError:
+        logger.warning("web_search_tool 未安装，跳过联网搜索")
+        return {"success": False, "error": "联网搜索工具未安装"}
+    except Exception as e:
+        logger.warning(f"联网搜索价格失败: {e}")
+        return {"success": False, "error": str(e)}
+
+
 @tool
 def pricing_tool(
     product_name: str,
     product_category: str,
     cost_price: float,
     quality_grade: str = "中等",
-    market_data: Optional[str] = None
+    market_data: Optional[str] = None,
+    enable_search: bool = True
 ) -> str:
     """
     分析农产品定价的影响因素，为定价决策提供信息支持。
@@ -31,6 +73,7 @@ def pricing_tool(
     - 竞争对手价格参考
     - 季节性因素影响
     - 品质溢价空间
+    - 实时市场价格（联网搜索）
 
     **工具的作用：**
     该工具不直接给出定价建议，而是整理和分析影响定价的各种因素，
@@ -42,6 +85,7 @@ def pricing_tool(
     - cost_price: 成本价格（元/斤或元/公斤），必须 >= 0
     - quality_grade: 品质等级（优等/一等/中等/三等），默认"中等"
     - market_data: 可选的市场数据 JSON 字符串，包含供需、竞争、季节等信息
+    - enable_search: 是否联网搜索实时价格，默认 True
 
     **市场数据格式（JSON）：**
     ```json
@@ -61,6 +105,7 @@ def pricing_tool(
     - 竞争分析（竞争对手价格区间）
     - 品质分析（品质等级对应的溢价能力）
     - 季节性分析（当前季节对价格的影响）
+    - 实时市场价格（联网搜索结果，如果启用）
     - 建议的定价策略方向
 
     **使用示例：**
@@ -79,6 +124,7 @@ def pricing_tool(
         cost_price: 成本价格
         quality_grade: 品质等级，默认"中等"
         market_data: 市场数据 JSON 字符串（可选）
+        enable_search: 是否联网搜索实时价格，默认 True
 
     Returns:
         结构化的定价因素分析报告
@@ -180,6 +226,20 @@ def pricing_tool(
             competition_analysis.append("- 竞争对手价格: 未提供，建议调研市场价格")
             competition_analysis.append("- 定价策略: 可参考品质和成本选择合适定位")
 
+        # ========== 联网搜索实时价格 ==========
+        realtime_price_analysis = []
+        if enable_search:
+            realtime_info = _search_realtime_price(product_name, product_category)
+            if realtime_info.get("success"):
+                realtime_price_analysis.append(f"**实时市场价格（联网搜索）**")
+                realtime_price_analysis.append(realtime_info["raw_result"])
+                realtime_price_analysis.append(f"- 数据来源: 联网搜索")
+                realtime_price_analysis.append(f"- 提示: 以上为网络搜索结果，请结合实际情况判断准确性")
+            else:
+                realtime_price_analysis.append(f"**实时市场价格**")
+                realtime_price_analysis.append(f"- 联网搜索失败: {realtime_info.get('error', '未知错误')}")
+                realtime_price_analysis.append(f"- 建议: 手动查询市场行情或稍后重试")
+
         # ========== 定价策略建议 ==========
         strategy_analysis = []
         strategy_analysis.append(f"**定价策略建议**")
@@ -210,6 +270,9 @@ def pricing_tool(
         report_sections.append(f"")
         report_sections.extend(competition_analysis)
         report_sections.append(f"")
+        if realtime_price_analysis:
+            report_sections.extend(realtime_price_analysis)
+            report_sections.append(f"")
         report_sections.extend(strategy_analysis)
         report_sections.append(f"")
 

@@ -50,6 +50,19 @@ def get_kb_switch_state(thread_id: str) -> Optional[bool]:
     """获取知识库开关状态"""
     return _kb_switch_state.get(thread_id)
 
+# Web 搜索开关状态（thread_id -> enable_web_search）
+_web_search_switch_state: Dict[str, Optional[bool]] = {}
+
+def set_web_search_switch_state(thread_id: str, enabled: Optional[bool]):
+    """设置联网搜索开关状态"""
+    thread_id = str(thread_id)
+    _web_search_switch_state[thread_id] = enabled
+    logger.info(f"设置联网搜索开关: thread_id={thread_id}, enabled={enabled}")
+
+def get_web_search_switch_state(thread_id: str) -> Optional[bool]:
+    """获取联网搜索开关状态"""
+    return _web_search_switch_state.get(thread_id)
+
 
 class DynamicToolMiddleware(AgentMiddleware):
     """
@@ -178,47 +191,85 @@ class DynamicToolMiddleware(AgentMiddleware):
         """
         Agent 执行前的钩子（同步版本）
 
-        进行 TTL 衰减：每轮对话开始时，所有已注册工具 TTL - 1
-        （仅在 TTL 启用时执行）
+        1. Web 搜索工具动态注册（始终执行）
+        2. TTL 衰减（仅在 TTL 启用时执行）
         """
-        if not ENABLE_TOOL_TTL:
-            return None
+        # ==================== Web 搜索工具动态注册 ====================
+        # 必须在 TTL 检查之前执行，否则 TTL 未启用时会提前返回
+        self._handle_web_search_tool_registration()
 
-        try:
-            config = get_config()
-            thread_id = config.get("configurable", {}).get("thread_id")
-            if thread_id:
-                thread_id = str(thread_id)
-                # 增加轮次
-                self._increment_round(thread_id)
-                # TTL 衰减
-                self._decrement_all_tools(thread_id)
-        except (RuntimeError, KeyError):
-            pass
+        # TTL 衰减（仅在 TTL 启用时执行）
+        if ENABLE_TOOL_TTL:
+            try:
+                config = get_config()
+                thread_id = config.get("configurable", {}).get("thread_id")
+                if thread_id:
+                    thread_id = str(thread_id)
+                    # 增加轮次
+                    self._increment_round(thread_id)
+                    # TTL 衰减
+                    self._decrement_all_tools(thread_id)
+            except (RuntimeError, KeyError):
+                pass
+
         return None
 
     async def abefore_agent(self, state, runtime):
         """
         Agent 执行前的钩子（异步版本）
 
-        进行 TTL 衰减：每轮对话开始时，所有已注册工具 TTL - 1
-        （仅在 TTL 启用时执行）
+        1. Web 搜索工具动态注册（始终执行）
+        2. TTL 衰减（仅在 TTL 启用时执行）
         """
-        if not ENABLE_TOOL_TTL:
-            return None
+        # ==================== Web 搜索工具动态注册 ====================
+        # 必须在 TTL 检查之前执行，否则 TTL 未启用时会提前返回
+        self._handle_web_search_tool_registration()
 
+        # TTL 衰减（仅在 TTL 启用时执行）
+        if ENABLE_TOOL_TTL:
+            try:
+                config = get_config()
+                thread_id = config.get("configurable", {}).get("thread_id")
+                if thread_id:
+                    thread_id = str(thread_id)
+                    # 增加轮次
+                    self._increment_round(thread_id)
+                    # TTL 衰减
+                    self._decrement_all_tools(thread_id)
+            except (RuntimeError, KeyError):
+                pass
+
+        return None
+
+    def _handle_web_search_tool_registration(self):
+        """处理 Web 搜索工具的动态注册/移除"""
         try:
             config = get_config()
             thread_id = config.get("configurable", {}).get("thread_id")
             if thread_id:
                 thread_id = str(thread_id)
-                # 增加轮次
-                self._increment_round(thread_id)
-                # TTL 衰减
-                self._decrement_all_tools(thread_id)
-        except (RuntimeError, KeyError):
-            pass
-        return None
+                web_search_enabled = get_web_search_switch_state(thread_id)
+
+                if web_search_enabled:
+                    # 开关开启：注册工具
+                    if "web_search_tool" not in self._registered_tools.get(thread_id, {}):
+                        tool = self._tool_loader.get_tool("web_search_tool")
+                        if tool:
+                            self.register_tools(
+                                tool_names=["web_search_tool"],
+                                tools=[tool],
+                                skill_name="web_search",
+                                thread_id=thread_id,
+                                ttl_config=TTLConfig(base_ttl=999, pinned=True)
+                            )
+                            logger.info(f"联网搜索工具已注册: thread_id={thread_id}")
+                else:
+                    # 开关关闭或未设置：移除工具
+                    if "web_search_tool" in self._registered_tools.get(thread_id, {}):
+                        self.unregister_tools_by_names(["web_search_tool"], thread_id)
+                        logger.info(f"联网搜索工具已移除: thread_id={thread_id}")
+        except (RuntimeError, KeyError) as e:
+            logger.debug(f"Web 搜索工具注册检查失败: {e}")
 
     def _get_thread_id(self, request: ModelRequest) -> str:
         """
@@ -715,4 +766,8 @@ __all__ = [
     "set_dynamic_middleware",
     "reset_dynamic_middleware",
     "DEFAULT_THREAD_ID",
+    "set_kb_switch_state",
+    "get_kb_switch_state",
+    "set_web_search_switch_state",
+    "get_web_search_switch_state",
 ]
