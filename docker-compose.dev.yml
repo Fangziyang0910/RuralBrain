@@ -25,7 +25,7 @@ services:
 
   # 后端主服务
   backend:
-    image: bzp9c92/ruralbrain:backend-onnx-v2
+    image: zwxdockerbeginner/ruralbrain:backend-onnx-v2
     container_name: ruralbrain-backend
     ports:
       - "8081:8081"
