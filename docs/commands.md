@@ -208,29 +208,37 @@ lsof -i :8001  # 检测服务
 
 ### 5.1 知识库位置
 
-- **向量数据库**: `knowledge_base/chroma_db/`
-- **原始文档**: `knowledge_base/documents/`（需要您手动放置调研文档）
+- **向量数据库**: `knowledge_base/chroma_db/`（构建产物，不提交 Git）
+- **源文档**: `src/data/`（已提交 Git，包含政策文件和案例）
 
 ### 5.2 构建知识库
 
-> **注意**：知识库构建脚本已被 Docker Compose 工作流替代。规划服务启动时会自动检测并加载已存在的知识库。
-
-**首次使用时**，如果 `knowledge_base/chroma_db/` 目录为空：
+> **重要**：知识库是构建产物，不提交到 Git。协作者拉取代码后需要自己构建。
 
 ```bash
-# 使用现有的构建脚本（硬编码特定文件）
-uv run python src/rag/build.py
+# 构建知识库（首次使用或新增文档后）
+uv run python scripts/dev/build_knowledge.py
+
+# 强制重建（清空现有知识库）
+uv run python scripts/dev/build_knowledge.py --force
 ```
 
 **Docker 部署时**，知识库通过卷挂载自动持久化：
 
 ```yaml
 # docker-compose.dev.yml
-# backend 服务会自动挂载知识库：
 backend:
   volumes:
     - ./knowledge_base:/app/knowledge_base  # 自动挂载
 ```
+
+> **协作提示**：如果使用相同的 embedding 模型，可以打包分享知识库：
+> ```bash
+> # 打包
+> tar -czvf knowledge_base.tar.gz knowledge_base/chroma_db/
+> # 解压
+> tar -xzvf knowledge_base.tar.gz
+> ```
 
 ### 5.3 支持的文档格式
 
