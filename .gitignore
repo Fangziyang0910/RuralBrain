@@ -53,3 +53,6 @@ knowledge_base/*/documents/
 knowledge_base/*/sources/
 knowledge_base/temp_kb/
 knowledge_base/documents/
+
+# 规划咨询知识库 - 不提交，由开发者自行构建
+knowledge_base/chroma_db/
