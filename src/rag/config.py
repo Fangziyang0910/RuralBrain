@@ -89,6 +89,17 @@ RETRIEVE_SEARCH_TYPE = os.getenv("RETRIEVE_SEARCH_TYPE", "similarity_score_thres
 # MMR 检索参数（用于最大边际相关性检索，增加结果多样性）
 MMR_LAMBDA_MULT = float(os.getenv("MMR_LAMBDA_MULT", "0.7"))  # 多样性权重，0-1，越高越多样化
 
+# ==================== 混合检索配置 ====================
+# 启用混合检索（向量 + BM25）
+ENABLE_HYBRID_SEARCH = os.getenv("ENABLE_HYBRID_SEARCH", "true").lower() == "true"
+
+# 混合检索权重（向量:BM25）
+HYBRID_VECTOR_WEIGHT = float(os.getenv("HYBRID_VECTOR_WEIGHT", "0.5"))
+HYBRID_BM25_WEIGHT = float(os.getenv("HYBRID_BM25_WEIGHT", "0.5"))
+
+# RRF 融合参数
+HYBRID_RRF_K = int(os.getenv("HYBRID_RRF_K", "60"))
+
 # ==================== 日志配置 ====================
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
