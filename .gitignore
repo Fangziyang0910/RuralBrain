@@ -47,15 +47,5 @@ src/data
 # Training data - 数据集文件（大文件，不提交）
 data/
 
-# Knowledge base - 排除源文档，保留向量库
-knowledge_base/*/docs/
-knowledge_base/*/documents/
-knowledge_base/*/sources/
-knowledge_base/temp_kb/
-knowledge_base/documents/
-
-# 规划咨询知识库 - 不提交，由开发者自行构建
-knowledge_base/chroma_db/
-
-# 疾病知识库 - 在 Docker 镜像中构建，不提交到 Git
-knowledge_base/diseases/
+# Knowledge base - 完全由 Docker 镜像构建，不提交到 Git
+knowledge_base/
