@@ -56,3 +56,6 @@ knowledge_base/documents/
 
 # 规划咨询知识库 - 不提交，由开发者自行构建
 knowledge_base/chroma_db/
+
+# 疾病知识库 - 在 Docker 镜像中构建，不提交到 Git
+knowledge_base/diseases/

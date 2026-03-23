@@ -15,6 +15,19 @@ if ! docker info > /dev/null 2>&1; then
     exit 1
 fi
 
+# 加载 .env 文件获取 QWEN_API_KEY（用于构建疾病知识库）
+QWEN_API_KEY=""
+if [ -f .env ]; then
+    QWEN_API_KEY=$(grep "^QWEN_API_KEY=" .env | cut -d '=' -f2)
+    if [ -n "$QWEN_API_KEY" ]; then
+        echo "✓ 已从 .env 读取 QWEN_API_KEY"
+    else
+        echo "⚠ 警告: .env 中未找到 QWEN_API_KEY，疾病知识库构建将被跳过"
+    fi
+else
+    echo "⚠ 警告: .env 文件不存在，疾病知识库构建将被跳过"
+fi
+
 # 定义镜像列表
 declare -A images=(
     ["detection-service"]="Dockerfile.detection.onnx"
@@ -43,6 +56,12 @@ for service in "${order[@]}"; do
                 -t "ruralbrain-$service:onnx" \
                 --build-arg NEXT_PUBLIC_API_URL=http://localhost:8081 \
                 ./frontend
+            ;;
+        "backend")
+            docker build -f "docker/$dockerfile" \
+                -t "ruralbrain-$service:onnx" \
+                --build-arg QWEN_API_KEY="$QWEN_API_KEY" \
+                .
             ;;
         *)
             docker build -f "docker/$dockerfile" \

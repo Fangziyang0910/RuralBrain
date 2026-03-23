@@ -15,14 +15,64 @@ if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
+# 首先尝试加载 .env 文件（需要在导入 config 之前）
+try:
+    from dotenv import load_dotenv
+    if Path("/app/.env").exists():
+        load_dotenv("/app/.env")
+        print("✓ 已加载 .env 文件")
+    elif Path(".env").exists():
+        load_dotenv()
+        print("✓ 已加载 .env 文件")
+except ImportError:
+    print("⚠ python-dotenv 未安装，跳过 .env 加载")
+
+# 如果通过命令行参数传入，优先使用命令行参数（覆盖 .env 中的值）
+if len(sys.argv) > 1:
+    for arg in sys.argv[1:]:
+        if arg.startswith("--qwen-api-key="):
+            api_key = arg.split("=", 1)[1]
+            os.environ["QWEN_API_KEY"] = api_key
+            print(f"✓ 已通过命令行参数设置 QWEN_API_KEY")
+            break
+
 # 添加 src 到 Python 路径
-project_root = Path(__file__).parent.parent
+# 支持本地运行和 Docker 构建：根据实际情况确定项目根目录
+# 如果 /app/knowledge_base 存在，说明在 Docker 中，项目根是 /app
+# 否则使用相对于脚本的路径（本地开发）
+if Path("/app/knowledge_base").exists():
+    project_root = Path("/app")
+else:
+    project_root = Path(__file__).parent.parent.parent
+
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "src"))
 
+# 导入模块（现在环境变量已经设置好了）
 from src.rag.utils.loaders import load_documents_from_directory
-from src.rag.config import get_embeddings_cached, CHUNK_SIZE, CHUNK_OVERLAP
+from src.rag.config import CHUNK_SIZE, CHUNK_OVERLAP, QWEN_EMBEDDING_MODEL
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+# 获取 embeddings - 如果通过命令行设置了密钥，直接使用 DashScope
+def get_embeddings():
+    """获取 Embedding 实例（构建脚本专用）"""
+    # 优先使用命令行参数的密钥
+    qwen_key = os.getenv("QWEN_API_KEY")
+    if qwen_key:
+        try:
+            from langchain_community.embeddings import DashScopeEmbeddings
+            import logging
+            logging.info(f"使用阿里云百炼 Embedding: {QWEN_EMBEDDING_MODEL}")
+            return DashScopeEmbeddings(
+                model=QWEN_EMBEDDING_MODEL,
+                dashscope_api_key=qwen_key
+            )
+        except Exception as e:
+            import logging
+            logging.warning(f"DashScope 初始化失败: {e}")
+    # 降级到 config 中的方法
+    from src.rag.config import get_embeddings_cached
+    return get_embeddings_cached()
 
 # 配置日志
 logging.basicConfig(
@@ -88,10 +138,12 @@ def build_disease_knowledge_base():
     # Step 3: 获取 Embedding 模型
     print("Step 3: Loading embedding model...")
     try:
-        embeddings = get_embeddings_cached()
+        embeddings = get_embeddings()
         print(f"[OK] Embedding model loaded\n")
     except Exception as e:
         logger.error(f"加载 Embedding 模型失败: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
     # Step 4: 构建向量数据库

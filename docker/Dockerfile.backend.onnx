@@ -7,7 +7,7 @@ WORKDIR /app
 # 配置 APT 镜像源（阿里云）
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
     apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
+    apt-get install -y --no-install-recommends curl catdoc && \
     rm -rf /var/lib/apt/lists/*
 
 # 升级 pip 并安装构建工具
@@ -48,6 +48,9 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
 RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     langchain-text-splitters \
     cachetools \
+    filetype \
+    python-pptx \
+    dashscope \
     --no-cache-dir
 
 # 复制后端代码
@@ -57,6 +60,26 @@ COPY src/agents /app/src/agents
 COPY src/config.py /app/src/
 COPY src/utils /app/src/utils
 COPY src/rag /app/src/rag
+
+# ==================== 疾病知识库构建（独立层，便于缓存）====================
+
+# 声明构建参数（通过 --build-arg 传入）
+ARG QWEN_API_KEY
+
+# 复制知识库构建脚本
+COPY scripts/deploy/build_disease_kb.py /app/scripts/deploy/
+
+# 复制疾病知识库源文档
+COPY knowledge_base/diseases/documents /app/knowledge_base/diseases/documents
+
+# 构建疾病知识库
+# 向量数据库将存储在 /app/knowledge_base/diseases/chroma_db/
+# 通过命令行参数传递 API 密钥
+RUN python scripts/deploy/build_disease_kb.py --qwen-api-key="${QWEN_API_KEY}" && \
+    # 构建完成后删除源文档以减小镜像体积
+    rm -rf /app/knowledge_base/diseases/documents
+
+# ==================== 疾病知识库构建完成 ====================
 
 # 创建临时文件目录
 RUN mkdir -p /tmp/ruralbrain
