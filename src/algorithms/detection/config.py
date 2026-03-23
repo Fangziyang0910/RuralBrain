@@ -42,6 +42,14 @@ class DetectionConfig:
     def COW_CLASSES_PATH(self) -> str:
         return str(self.MODELS_DIR / "cow" / "classes.txt")
 
+    @property
+    def DISEASE_MODEL_PATH(self) -> str:
+        return str(self.MODELS_DIR / "disease" / "best.onnx")
+
+    @property
+    def DISEASE_CLASSES_PATH(self) -> str:
+        return str(self.MODELS_DIR / "disease" / "classes.txt")
+
 
 # 创建全局配置实例
 config = DetectionConfig()

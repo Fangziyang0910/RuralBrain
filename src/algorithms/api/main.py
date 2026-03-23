@@ -34,6 +34,7 @@ app = FastAPI(
     - 🐛 **病虫害检测**: `/detection/pest/*` - 农作物病虫害智能识别
     - 🍚 **大米识别**: `/detection/rice/*` - 大米品种自动识别
     - 🐄 **奶牛检测**: `/detection/cow/*` - 牛只目标检测
+    - 🏥 **疾病检测**: `/detection/disease/*` - 畜禽疾病患处识别
 
     ### 架构说明
     - **FastAPI 网关**: 统一的 API 服务层
@@ -80,9 +81,11 @@ async def root():
                 "pest": "/detection/pest/detect",
                 "rice": "/detection/rice/predict",
                 "cow": "/detection/cow/detect",
+                "disease": "/detection/disease/detect",
                 "pest_supported": "/detection/pest/supported-pests",
                 "rice_supported": "/detection/rice/supported-rice-types",
-                "cow_supported": "/detection/cow/supported-cows"
+                "cow_supported": "/detection/cow/supported-cows",
+                "disease_supported": "/detection/disease/supported-diseases"
             },
             "docs": "/docs",
             "health": "/health"
@@ -102,7 +105,8 @@ async def health_check():
             "detection": {
                 "pest": "running",
                 "rice": "running",
-                "cow": "running"
+                "cow": "running",
+                "disease": "running"
             }
         },
         "timestamp": "2025-01-31T13:30:00Z"

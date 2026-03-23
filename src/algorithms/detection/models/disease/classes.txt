@@ -1,0 +1,11 @@
+# 疾病图片识别类别列表
+# 格式：每行一个类别，对应模型输出的 class_id
+#
+# 当前支持的疾病类别（基于现有数据集）
+# 注意：模型训练后需要确保类别顺序与模型输出一致
+
+cow_foot_and_mouth
+cow_healthy
+cow_lumpy
+pig_healthy
+pig_sick

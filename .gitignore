@@ -41,6 +41,12 @@ Desktop.ini
 pest_detection_results/
 src/algorithms/rice_detection/res/
 
+# Training runs
+runs/
+
+# Training scripts - 训练相关脚本（本地使用，不提交）
+scripts/training/
+
 #rag
 src/data
 
