@@ -39,6 +39,8 @@ dependencies = [
     "sentence-transformers",
     "tavily-python>=0.7.23",
     "langchain-tavily>=0.1.0",
+    # 阿里云百炼 Embedding API
+    "dashscope>=1.20.0",
 ]
 
 [dependency-groups]

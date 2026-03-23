@@ -178,7 +178,7 @@ def get_embeddings():
     获取 Embedding 实例（支持多种 Provider）
 
     优先级：
-    1. 千问 API (dashscope) - 默认方案（密钥缺失时自动降级到本地模型）
+    1. 千问 API (dashscope) - 默认方案
     2. OpenAI API - 备选方案
     3. 本地模型 - 降级方案
 
@@ -187,22 +187,45 @@ def get_embeddings():
     """
     provider = EMBEDDING_PROVIDER.lower()
 
-    # 千问 API（默认，使用 DashScopeEmbeddings）
+    # 千问 API（默认）
     if provider == "dashscope":
         if QWEN_API_KEY:
             try:
-                from langchain_community.embeddings import DashScopeEmbeddings
+                # 优先尝试 DashScope 原生 SDK
+                import dashscope
+                from dashscope import TextEmbedding
+                from langchain_community.embeddings.dashscope import DashScopeEmbeddings
                 import logging
-                logging.info(f"使用阿里云百炼 Embedding: {QWEN_EMBEDDING_MODEL}")
+
+                # 设置 API Key
+                dashscope.api_key = QWEN_API_KEY
+
+                logging.info(f"使用阿里云 DashScope Embedding: {QWEN_EMBEDDING_MODEL}")
                 return DashScopeEmbeddings(
                     model=QWEN_EMBEDDING_MODEL,
                     dashscope_api_key=QWEN_API_KEY
                 )
-            except ImportError:
-                pass
+            except ImportError as e:
+                import logging
+                logging.warning(f"DashScope SDK 未正确安装: {e}，尝试 OpenAI 兼容格式")
+                # 尝试 OpenAI 兼容格式
+                try:
+                    from langchain_openai import OpenAIEmbeddings
+                    import logging
+                    logging.info(f"使用阿里云百炼 Embedding (OpenAI 兼容格式): {QWEN_EMBEDDING_MODEL}")
+                    return OpenAIEmbeddings(
+                        model=QWEN_EMBEDDING_MODEL,
+                        openai_api_key=QWEN_API_KEY,
+                        openai_api_base="https://dashscope.aliyuncs.com/compatible-mode/v1"
+                    )
+                except ImportError:
+                    pass
+            except Exception as e:
+                import logging
+                logging.warning(f"DashScope Embedding 初始化失败: {e}，降级到本地模型")
         # 千问不可用，降级到本地模型
         import logging
-        logging.warning("千问 API 密钥未配置或依赖缺失，降级到本地 Embedding 模型")
+        logging.warning("千问 API 密钥未配置或调用失败，降级到本地 Embedding 模型")
         return _get_local_embeddings()
 
     # OpenAI API
