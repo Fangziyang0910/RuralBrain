@@ -49,6 +49,13 @@ const demoConfigs: DemoConfig[] = [
     exampleQuery: "请帮我数一下这张图片中有多少头牛",
     demoImage: "/demo/cow-input.jpg",
   },
+  {
+    title: "疾病预测",
+    icon: "🏥",
+    description: "智能预测畜禽疾病，基于患处图片和症状提供专业分析建议",
+    exampleQuery: "请帮我看一下图片中的牛患了什么病",
+    demoImage: "/demo/disease-input.jpg",
+  },
 ];
 
 // export default 导出这个函数，让其他文件可以使用
@@ -620,7 +627,7 @@ export default function Home() {
                 <p className="text-stone-600 text-sm font-medium mb-4 text-center">
                   ✨ 点击下方卡片快速体验功能
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {demoConfigs.map((config) => (
                     <FeatureDemoCard
                       key={config.title}
