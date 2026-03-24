@@ -42,13 +42,10 @@
 
 ```bash
 # 拉取后端服务
-docker pull zwxdockerbeginner/ruralbrain:backend-onnx
+docker pull zwxdockerbeginner/ruralbrain:backend-onnx-v2
 
 # 拉取检测服务
-docker pull zwxdockerbeginner/ruralbrain:detection-onnx
-
-# 拉取规划服务
-docker pull zwxdockerbeginner/ruralbrain:planning-onnx
+docker pull zwxdockerbeginner/ruralbrain:detection-onnx-v2
 
 # 拉取前端开发版
 docker pull zwxdockerbeginner/ruralbrain:frontend-dev
@@ -225,4 +222,4 @@ uv run python src/rag/build.py
 
 ---
 
-**最后更新**: 2026-02-22
+**最后更新**: 2026-03-21

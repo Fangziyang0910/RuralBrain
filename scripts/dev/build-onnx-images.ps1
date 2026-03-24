@@ -23,6 +23,20 @@ Set-Location $projectRoot
 Write-Host "Project Directory: $projectRoot" -ForegroundColor Yellow
 Write-Host ""
 
+# Load .env file to get QWEN_API_KEY
+$QWEN_API_KEY = ""
+if (Test-Path .env) {
+    $envContent = Get-Content .env | Where-Object { $_ -match "^QWEN_API_KEY=" }
+    if ($envContent) {
+        $QWEN_API_KEY = ($envContent -split "=", 2)[1].Trim()
+        Write-Host "✓ 已从 .env 读取 QWEN_API_KEY" -ForegroundColor Green
+    } else {
+        Write-Host "⚠ 警告: .env 中未找到 QWEN_API_KEY，疾病知识库构建将被跳过" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "⚠ 警告: .env 文件不存在，疾病知识库构建将被跳过" -ForegroundColor Yellow
+}
+
 # Define images and build order
 $buildOrder = @(
     @{ Name = "detection-service"; Dockerfile = "docker/Dockerfile.detection.onnx" },
@@ -48,6 +62,8 @@ foreach ($service in $buildOrder) {
 
     if ($service.Name -eq "frontend") {
         $buildArgs += @("--build-arg", "NEXT_PUBLIC_API_URL=http://localhost:8081", "./frontend")
+    } elseif ($service.Name -eq "backend") {
+        $buildArgs += @("--build-arg", "QWEN_API_KEY=$QWEN_API_KEY", ".")
     } else {
         $buildArgs += @(".")
     }

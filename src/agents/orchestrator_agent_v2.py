@@ -21,6 +21,8 @@ from .middleware.dynamic_tool_middleware import (
     DynamicToolMiddleware,
     set_dynamic_middleware,
 )
+from .middleware.model_selection_middleware import model_selection_middleware
+from .context import AgentContext
 from langchain.agents.middleware import SummarizationMiddleware
 
 logger = logging.getLogger(__name__)
@@ -86,6 +88,11 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """
 2. pest_detection_tool(image_path="...")
 3. 输出：检测结果、危害分析、防治方案
 
+**疾病预测**（用户上传图片）:
+1. load_skill("disease_prediction")
+2. disease_prediction_tool(animal_type="猪/牛等", symptoms="根据图片判断", media_path="从消息中提取的图片路径")
+3. 输出：疾病分析、图片识别结果、防控建议
+
 **规划咨询**（知识库开启）:
 1. load_skill("consult_planning_knowledge")
 2. knowledge_search_tool(query=用户问题内容)
@@ -100,6 +107,13 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """
 1. load_skill("pricing_analysis")
 2. pricing_tool(...)
 3. 输出：定价建议、分析依据、关键因素
+
+**重要：处理图片路径**
+- 当用户消息中包含 `[图片路径 N: /tmp/...]` 格式的内容时，说明用户上传了图片
+- 调用需要图片的工具时，必须将图片路径传递给对应的参数：
+  * 疾病预测工具：media_path
+  * 害虫检测工具：image_path
+  * 大米识别工具：image_path
 </examples>
 """
 
@@ -123,7 +137,7 @@ summarization_middleware = SummarizationMiddleware(
     keep=("messages", 15),
 )
 
-middleware = [dynamic_tool_middleware, skill_middleware, summarization_middleware]
+middleware = [model_selection_middleware, dynamic_tool_middleware, skill_middleware, summarization_middleware]
 
 # ---- 创建 Agent ----
 
@@ -133,6 +147,7 @@ agent = create_agent(
     system_prompt=ORCHESTRATOR_V2_SYSTEM_PROMPT,
     checkpointer=InMemorySaver(),
     middleware=middleware,
+    context_schema=AgentContext,
 )
 
 skill_count = len(registry.list_skill_names())

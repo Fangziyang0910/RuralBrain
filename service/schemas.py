@@ -21,6 +21,8 @@ class ChatRequest(BaseModel):
     mode: Optional[str] = Field("auto", description="聊天模式: auto/detection/planning")
     work_mode: Optional[str] = Field("auto", description="规划咨询工作模式: auto/fast/deep")
     enable_knowledge_base: Optional[bool] = Field(None, description="是否启用知识库（规划咨询 skill）")
+    enable_web_search: Optional[bool] = Field(None, description="是否启用联网搜索")
+    model_id: Optional[str] = Field(None, description="模型ID: deepseek/glm-4/qwen")
 
 
 class UploadResponse(BaseModel):

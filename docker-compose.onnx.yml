@@ -34,7 +34,7 @@ services:
       - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
     volumes:
-      - ./knowledge_base:/app/knowledge_base
+      # knowledge_base 已内置在镜像中，无需挂载
       - ./src/rag:/app/src/rag
       - ./service:/app/service
       - ./src/agents:/app/src/agents

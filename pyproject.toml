@@ -35,6 +35,13 @@ dependencies = [
     "rich>=13.0.0",
     "cachetools>=5.0.0",
     "rank-bm25>=0.2.2",
+    "markitdown>=0.1.5",
+    "langchain-community",
+    "sentence-transformers",
+    "tavily-python>=0.7.23",
+    "langchain-tavily>=0.1.0",
+    # 阿里云百炼 Embedding API
+    "dashscope>=1.20.0",
 ]
 
 [dependency-groups]

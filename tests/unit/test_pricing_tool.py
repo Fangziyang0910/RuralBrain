@@ -119,6 +119,39 @@ class TestPricingTool:
         assert "竞争" in result
         assert "竞争对手" in result
 
+    def test_pricing_with_search_disabled(self):
+        """测试禁用联网搜索的定价"""
+        result = pricing_tool.invoke({
+            "product_name": "有机大米",
+            "product_category": "粮食",
+            "cost_price": 3.5,
+            "quality_grade": "一等",
+            "enable_search": False
+        })
+
+        assert result is not None
+        assert "有机大米" in result
+        assert "定价因素分析报告" in result
+        # 禁用搜索时不应包含实时市场价格
+        assert "实时市场价格（联网搜索）" not in result
+
+    def test_pricing_with_search_enabled(self):
+        """测试启用联网搜索的定价（默认行为）"""
+        result = pricing_tool.invoke({
+            "product_name": "有机大米",
+            "product_category": "粮食",
+            "cost_price": 3.5,
+            "quality_grade": "一等",
+            "enable_search": True  # 默认值
+        })
+
+        assert result is not None
+        assert "有机大米" in result
+        # 无论搜索成功或失败，都应有实时市场价格相关内容
+        # 成功时：实时市场价格（联网搜索）
+        # 失败时：实时市场价格
+        assert "实时市场价格" in result
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

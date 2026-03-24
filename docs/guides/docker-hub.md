@@ -2,11 +2,11 @@
 
 ## 📦 仓库信息
 
-- **仓库地址**: https://hub.docker.com/r/zwxdockerbeginner/ruralbrain
-- **维护者**: zwxbeginner
-- **版本**: v2.2.1
-- **最后更新**: 2026-03-01
-- **重要变更**: 使用 v2 镜像（ONNX 优化版本，体积大幅减少）
+- **Docker Hub 仓库**: https://hub.docker.com/r/zwxdockerbeginner/ruralbrain
+- **维护者**: zwxdockerbeginner
+- **版本**: v2.4.0
+- **最后更新**: 2026-03-21
+- **重要变更**: 统一镜像命名空间，后端镜像迁移到 zwxdockerbeginner/ruralbrain
 
 ---
 
@@ -16,15 +16,23 @@
 
 | 标签 | 说明 | 大小 | 使用场景 |
 |------|------|------|---------|
-| `backend-onnx-v2` | 后端主服务（FastAPI + Agents，ONNX 优化版） | 393MB | 开发/生产 |
-| `latest` | 指向 `backend-onnx-v2`（最新稳定版） | 394MB | 默认拉取 |
+| `backend-onnx-v2` | 后端主服务（FastAPI + Agents + RAG） | ~4.5GB | 开发/生产 |
+| `latest` | 指向 `backend-onnx-v2`（最新稳定版） | ~4.5GB | 默认拉取 |
 
 **功能**：
 - Orchestrator Agent V2 编排
 - 意图识别和路由
 - 工具调用管理
 - 流式对话支持
-- **优化**：使用千问 API 进行 Embedding（或本地模型降级）
+- **新增**：疾病预测工具（集成 RAG 知识库检索）
+- **新增**：ChromaDB 向量数据库支持
+- **新增**：疾病知识库（59 个向量，14 个文档）
+
+**依赖说明**：
+- 包含 torch + CUDA 库（支持深度学习推理）
+- ChromaDB（向量数据库）
+- sentence-transformers（文本嵌入）
+- markitdown（文档处理）
 
 ---
 
@@ -51,7 +59,7 @@
 
 | 标签 | 说明 | 大小 | 使用场景 |
 |------|------|------|---------|
-| `detection-onnx-v2` | 检测服务统一网关（YOLO 模型，ONNX 优化版） | 1.52GB | 开发/生产 |
+| `detection-onnx-v2` | 检测服务统一网关（YOLO 模型，ONNX 优化版） | ~476MB | 开发/生产 |
 
 **功能**：
 - 病虫害检测（`/detection/pest/detect`）
@@ -63,25 +71,6 @@
 - 完全移除 PyTorch 和 ultralytics（体积减少 85%）
 - 直接使用 ONNX Runtime 进行推理
 - 构建时间从 20-30 分钟降至 3-5 分钟
-
----
-
-### 规划服务
-
-| 标签 | 说明 | 大小 | 使用场景 |
-|------|------|------|---------|
-| `planning-onnx` | 规划咨询服务（RAG + ChromaDB） | 12.7GB | 开发/生产 |
-
-**功能**：
-- RAG 知识库检索
-- 7 个核心检索工具
-- 文档摘要和上下文管理
-- 向量缓存优化
-
-**包含组件**：
-- ChromaDB 向量数据库
-- Sentence Transformers 嵌入模型
-- FastAPI 服务接口
 
 ---
 
@@ -107,22 +96,13 @@
 ### 拉取镜像
 
 ```bash
-# 拉取后端服务
+# 拉取所有镜像（推荐）
 docker pull zwxdockerbeginner/ruralbrain:backend-onnx-v2
-
-# 拉取检测服务
 docker pull zwxdockerbeginner/ruralbrain:detection-onnx-v2
-
-# 规划服务已集成到主 Agent，无需单独拉取
-# docker pull zwxdockerbeginner/ruralbrain:planning-onnx  # 已废弃
-
-# 拉取前端生产版
 docker pull zwxdockerbeginner/ruralbrain:frontend-onnx-v2
-
-# 拉取前端开发版
 docker pull zwxdockerbeginner/ruralbrain:frontend-dev
 
-# 或拉取最新版本（指向 backend-onnx-v2）
+# 或拉取最新版本
 docker pull zwxdockerbeginner/ruralbrain:latest
 ```
 
@@ -171,23 +151,21 @@ docker run -d \
   -p 8081:8081 \
   --env-file .env \
   -v $(pwd)/knowledge_base:/app/knowledge_base:ro \
-  zwxdockerbeginner/ruralbrain:backend-onnx
+  zwxdockerbeginner/ruralbrain:backend-onnx-v2
 
 # 启动检测服务
 docker run -d \
   --name ruralbrain-detection \
   -p 8001:8001 \
   -v $(pwd)/src/algorithms/detection/models:/app/algorithms/detection/models:ro \
-  zwxdockerbeginner/ruralbrain:detection-onnx
-
-# 规划服务已集成到主 Agent，无需单独启动
+  zwxdockerbeginner/ruralbrain:detection-onnx-v2
 
 # 启动前端（生产版）
 docker run -d \
   --name ruralbrain-frontend \
   -p 3001:3001 \
   -e NEXT_PUBLIC_API_URL=http://localhost:8081 \
-  zwxdockerbeginner/ruralbrain:frontend-onnx
+  zwxdockerbeginner/ruralbrain:frontend-onnx-v2
 ```
 
 ---
@@ -220,10 +198,9 @@ cp .env.example .env
 # 编辑 .env 文件，填写必要的配置
 
 # 3. 拉取 Docker Hub 镜像
-docker pull zwxdockerbeginner/ruralbrain:backend-onnx
-docker pull zwxdockerbeginner/ruralbrain:detection-onnx
-docker pull zwxdockerbeginner/ruralbrain:planning-onnx
-docker pull zwxdockerbeginner/ruralbrain:frontend-onnx
+docker pull zwxdockerbeginner/ruralbrain:backend-onnx-v2
+docker pull zwxdockerbeginner/ruralbrain:detection-onnx-v2
+docker pull zwxdockerbeginner/ruralbrain:frontend-dev
 
 # 4. 启动服务
 docker compose -f docker-compose.dev.yml up -d
@@ -256,10 +233,9 @@ open http://localhost:3001
 docker images zwxdockerbeginner/ruralbrain
 
 # 2. 拉取最新镜像
-docker pull zwxdockerbeginner/ruralbrain:backend-onnx
-docker pull zwxdockerbeginner/ruralbrain:detection-onnx
-docker pull zwxdockerbeginner/ruralbrain:planning-onnx
-docker pull zwxdockerbeginner/ruralbrain:frontend-onnx
+docker pull zwxdockerbeginner/ruralbrain:backend-onnx-v2
+docker pull zwxdockerbeginner/ruralbrain:detection-onnx-v2
+docker pull zwxdockerbeginner/ruralbrain:frontend-dev
 
 # 3. 删除旧镜像（可选）
 docker rmi $(docker images zwxdockerbeginner/ruralbrain -q | grep '<none>') 2>/dev/null
@@ -314,15 +290,15 @@ docker compose -f docker-compose.dev.yml up -d
 3. **标记新版本**
    ```bash
    # 语义化版本号
-   docker tag ruralbrain-backend:onnx zwxdockerbeginner/ruralbrain:v2.3.0
+   docker tag zwxdockerbeginner/ruralbrain:backend-onnx-v2 zwxdockerbeginner/ruralbrain:v2.4.0
 
    # 或使用日期标签
-   docker tag ruralbrain-backend:onnx zwxdockerbeginner/ruralbrain:2026-02-11
+   docker tag zwxdockerbeginner/ruralbrain:backend-onnx-v2 zwxdockerbeginner/ruralbrain:2026-03-21
    ```
 
 4. **推送到 Docker Hub**
    ```bash
-   docker push zwxdockerbeginner/ruralbrain:v2.3.0
+   docker push zwxdockerbeginner/ruralbrain:backend-onnx-v2
    docker push zwxdockerbeginner/ruralbrain:latest
    ```
 
@@ -394,7 +370,7 @@ dev                       # 开发版本
 docker images --digests zwxdockerbeginner/ruralbrain
 
 # 验证拉取的镜像
-docker pull zwxdockerbeginner/ruralbrain:backend-onnx
+docker pull zwxdockerbeginner/ruralbrain:backend-onnx-v2
 # Docker 会自动验证校验和
 ```
 
@@ -491,6 +467,6 @@ MIT License
 
 ---
 
-**文档版本**: v1.0
-**最后更新**: 2026-02-11
+**文档版本**: v1.1
+**最后更新**: 2026-03-21
 **维护者**: RuralBrain Team

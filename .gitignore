@@ -41,9 +41,17 @@ Desktop.ini
 pest_detection_results/
 src/algorithms/rice_detection/res/
 
+# Training runs
+runs/
+
+# Training scripts - 训练相关脚本（本地使用，不提交）
+scripts/training/
+
 #rag
 src/data
 
-# Knowledge base (ChromaDB vector database)
+# Training data - 数据集文件（大文件，不提交）
+data/
+
+# Knowledge base - 完全由 Docker 镜像构建，不提交到 Git
 knowledge_base/
-temp_kb/

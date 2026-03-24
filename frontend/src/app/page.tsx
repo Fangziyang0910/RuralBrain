@@ -13,6 +13,19 @@ const API_BASE = "/api";
 
 type WorkMode = "auto" | "fast" | "deep";
 
+// 模型类型定义
+interface Model {
+  id: string;
+  name: string;
+  description: string;
+  is_multimodal: boolean;
+}
+
+interface ModelsResponse {
+  models: Model[];
+  default_model: string;
+}
+
 // 演示功能配置
 const demoConfigs: DemoConfig[] = [
   {
@@ -36,6 +49,13 @@ const demoConfigs: DemoConfig[] = [
     exampleQuery: "请帮我数一下这张图片中有多少头牛",
     demoImage: "/demo/cow-input.jpg",
   },
+  {
+    title: "疾病预测",
+    icon: "🏥",
+    description: "智能预测畜禽疾病，基于患处图片和症状提供专业分析建议",
+    exampleQuery: "请帮我看一下图片中的牛患了什么病",
+    demoImage: "/demo/disease-input.jpg",
+  },
 ];
 
 // export default 导出这个函数，让其他文件可以使用
@@ -51,6 +71,9 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("");
   const [enableKnowledgeBase, setEnableKnowledgeBase] = useState<boolean>(true);
+  const [enableWebSearch, setEnableWebSearch] = useState<boolean>(false);
+  const [models, setModels] = useState<Model[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string>("deepseek");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -102,6 +125,27 @@ export default function Home() {
       )}px`;
     }
   }, [input]);
+
+  // 获取可用模型列表
+  useEffect(() => {
+    fetch(`${API_BASE}/models`)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`请求失败: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        setModels(data.models);
+        setSelectedModelId(data.default_model);
+      })
+      .catch(err => {
+        console.error("获取模型列表失败:", err);
+        // 设置兜底默认模型
+        setModels([{ id: "deepseek", name: "DeepSeek", description: "默认模型", is_multimodal: false }]);
+        setSelectedModelId("deepseek");
+      });
+  }, []);
 
   // 语音识别 Hook
   const { isListening, isSupported, interimText, toggle } = useASR({
@@ -311,6 +355,8 @@ export default function Home() {
             image_paths: imagePaths,
             thread_id: threadId,
             enable_knowledge_base: enableKnowledgeBase,
+            enable_web_search: enableWebSearch,
+            model_id: selectedModelId,
           }),
         });
 
@@ -467,7 +513,7 @@ export default function Home() {
         setLoading(false);
       }
     },
-    [threadId]
+    [threadId, enableKnowledgeBase, enableWebSearch, selectedModelId]
   );
 
   // 处理演示卡片点击 - 从 URL 加载示例图片并发送
@@ -581,7 +627,7 @@ export default function Home() {
                 <p className="text-stone-600 text-sm font-medium mb-4 text-center">
                   ✨ 点击下方卡片快速体验功能
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {demoConfigs.map((config) => (
                     <FeatureDemoCard
                       key={config.title}
@@ -627,6 +673,40 @@ export default function Home() {
             >
               知识库 {enableKnowledgeBase ? "✓" : ""}
             </button>
+
+            {/* 联网搜索开关 */}
+            <button
+              type="button"
+              onClick={() => setEnableWebSearch(!enableWebSearch)}
+              disabled={loading}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all border-2 shadow-sm hover:shadow-md ${
+                enableWebSearch
+                  ? "bg-blue-50 border-blue-500 text-blue-700"
+                  : "bg-white border-stone-300 text-stone-600"
+              }`}
+            >
+              联网搜索 {enableWebSearch ? "✓" : ""}
+            </button>
+
+            {/* 模型选择器 */}
+            <select
+              value={selectedModelId}
+              onChange={(e) => setSelectedModelId(e.target.value)}
+              disabled={loading}
+              className="px-4 py-2 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-stone-300 focus:outline-none focus:border-paddy-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {models.map(model => (
+                <option key={model.id} value={model.id}>
+                  {model.name}
+                </option>
+              ))}
+            </select>
+
+            {/* 多模态提示 - 暂时隐藏，待实现真正的多模态消息封装后再启用 */}
+            {/* 当前实现只是将图片路径拼接到文本中，并未让 LLM 真正接收图像数据 */}
+            {/* {models.find(m => m.id === selectedModelId)?.is_multimodal && (
+              <span className="text-xs text-green-600 font-medium">支持图片识别</span>
+            )} */}
 
             {/* 图片预览 */}
             {imagePreviews.length > 0 && (
