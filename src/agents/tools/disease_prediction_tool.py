@@ -6,17 +6,28 @@
 集成 RAG 知识库检索，基于专业兽医文献提供更准确的疾病预测。
 """
 import os
+import base64
 from datetime import datetime
 from typing import Optional
 from pathlib import Path
+
+import requests
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage
+import chromadb
+from chromadb.config import Settings
+from langchain_chroma import Chroma
 
 from ...utils import ModelManager
 from ...rag.config import get_embeddings_cached
-from langchain_chroma import Chroma
-import chromadb
-from chromadb.config import Settings
+
+
+# ==================== 常量配置 ====================
+
+DISEASE_DETECTION_API_URL = "http://localhost:8001/detection/disease/detect"
+SUPPORTED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp'}
+SUPPORTED_VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov'}
+SUPPORTED_MEDIA_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS | SUPPORTED_VIDEO_EXTENSIONS
 
 
 # ==================== 疾病知识库检索 ====================
@@ -74,7 +85,8 @@ def _search_disease_knowledge(query: str, top_k: int = 3) -> str:
         return ""
 
 
-# TODO: 后续接入真实图像识别模型时替换此函数
+# ==================== 图片识别 ====================
+
 def _analyze_image_with_model(media_path: str, animal_type: str) -> dict:
     """使用真实视觉模型分析患处图片/视频
 
@@ -86,24 +98,20 @@ def _analyze_image_with_model(media_path: str, animal_type: str) -> dict:
 
     Returns:
         识别结果字典，包含：
+        - success: 是否成功
         - detected_diseases: 检测到的疾病列表
         - primary_disease: 主要疾病
         - animal_type: 识别的动物类型
         - severity: 严重程度
+        - error: 错误信息（失败时）
     """
-    import requests
-    import base64
-
-    # 疾病检测服务 API 地址
-    DISEASE_DETECTION_API_URL = "http://localhost:8001/detection/disease/detect"
-
     # 检查文件是否存在
     if not os.path.exists(media_path):
         return {"error": "文件不存在"}
 
     # 检查文件类型
     ext = os.path.splitext(media_path)[1].lower()
-    if ext not in ['.jpg', '.jpeg', '.png', '.bmp']:
+    if ext not in SUPPORTED_IMAGE_EXTENSIONS:
         return {"error": f"不支持的文件格式: {ext}"}
 
     try:
@@ -119,105 +127,120 @@ def _analyze_image_with_model(media_path: str, animal_type: str) -> dict:
             timeout=10
         )
 
-        if response.status_code == 200:
-            result = response.json()
-
-            if result.get("success"):
-                detections = result.get("detections", [])
-                primary_disease = result.get("primary_disease")
-                detected_animal_type = result.get("animal_type")
-
-                # 提取疾病名称和置信度
-                disease_names = []
-                confidences = []
-                for det in detections:
-                    disease_names.append(det.get("name", ""))
-                    confidences.append(det.get("confidence", 0))
-
-                # 计算严重程度（基于最高置信度）
-                max_confidence = max(confidences) if confidences else 0
-                if max_confidence > 0.8:
-                    severity = "高"
-                elif max_confidence > 0.5:
-                    severity = "中"
-                else:
-                    severity = "低"
-
-                return {
-                    "success": True,
-                    "detected_diseases": disease_names,
-                    "primary_disease": primary_disease,
-                    "animal_type": detected_animal_type,
-                    "confidences": confidences,
-                    "severity": severity,
-                    "max_confidence": max_confidence,
-                    "detection_count": len(detections)
-                }
-            else:
-                return {"error": result.get("message", "检测失败")}
-        else:
+        if response.status_code != 200:
             return {"error": f"API 调用失败: {response.status_code}"}
 
+        result = response.json()
+        if not result.get("success"):
+            return {"error": result.get("message", "检测失败")}
+
+        # 解析检测结果
+        detections = result.get("detections", [])
+        confidences = [det.get("confidence", 0) for det in detections]
+        disease_names = [det.get("name", "") for det in detections]
+        max_confidence = max(confidences) if confidences else 0
+
+        # 计算严重程度（基于最高置信度）
+        if max_confidence > 0.8:
+            severity = "高"
+        elif max_confidence > 0.5:
+            severity = "中"
+        else:
+            severity = "低"
+
+        return {
+            "success": True,
+            "detected_diseases": disease_names,
+            "primary_disease": result.get("primary_disease"),
+            "animal_type": result.get("animal_type"),
+            "confidences": confidences,
+            "severity": severity,
+            "max_confidence": max_confidence,
+            "detection_count": len(detections)
+        }
+
     except requests.exceptions.RequestException as e:
-        # API 调用失败，降级到简单分析
         return {"error": f"检测服务不可用: {str(e)}"}
     except Exception as e:
         return {"error": f"图片分析失败: {str(e)}"}
 
 
-def _simple_image_analyze(media_path: str, animal_type: str) -> dict:
-    """简单图像分析模拟（临时占位）"""
-    if not os.path.exists(media_path):
-        return {"error": "文件不存在"}
+# ==================== 辅助函数 ====================
 
-    # 简单的文件类型检查
-    ext = os.path.splitext(media_path)[1].lower()
-    supported = ['.jpg', '.jpeg', '.png', '.bmp', '.mp4', '.avi', '.mov']
-
-    if ext not in supported:
-        return {"error": f"不支持的文件格式: {ext}"}
-
-    # 模拟分析结果
-    return {
-        "media_type": "video" if ext in ['.mp4', '.avi', '.mov'] else "image",
-        "file_name": os.path.basename(media_path),
-        "detected_symptoms": ["患处红肿", "皮肤异常"],
-        "affected_areas": ["腿部", "腹部"],
-        "severity": "中度",
-        "confidence": 0.65
-    }
+def _should_replace_symptoms(symptoms: str) -> bool:
+    """判断是否应该用图片分析结果替换原有症状"""
+    return (
+        not symptoms.strip() or
+        "请根据图片判断" in symptoms or
+        "根据图片" in symptoms
+    )
 
 
-# TODO: 后续接入真实模型时替换此函数
-def _predict_with_actual_model(animal_type: str, symptoms: str, **kwargs) -> dict:
-    """使用真实ML模型进行预测
+def _format_disease_name(name: str) -> str:
+    """格式化疾病名称（将下划线替换为空格）"""
+    return name.replace("_", " ") if name else "未知"
 
-    预留接口，后续接入时实现：
-    - 加载训练好的模型
-    - 特征提取和预处理
-    - 模型推理
-    - 返回预测结果
+
+def _enhance_symptoms_with_image_result(
+    symptoms: str,
+    image_result: dict,
+    animal_type: str
+) -> tuple[str, str]:
+    """使用图片分析结果增强症状描述
 
     Args:
+        symptoms: 原始症状描述
+        image_result: 图片分析结果
         animal_type: 动物类型
-        symptoms: 症状描述
-        **kwargs: 其他特征（体温、年龄等）
 
     Returns:
-        预测结果字典
+        (增强后的症状, 图片分析备注)
     """
-    # 预留：后续接入真实模型
-    # model = load_model(f"models/{animal_type}_disease_model.pkl")
-    # features = extract_features(symptoms, kwargs)
-    # predictions = model.predict_proba(features)
-    # return format_predictions(predictions)
-    pass
+    detected_diseases = image_result.get("detected_diseases", [])
+    primary_disease = image_result.get("primary_disease", "未知")
+    detected_animal = image_result.get("animal_type", animal_type)
+    severity = image_result.get("severity", "未知")
+    max_conf = image_result.get("max_confidence", 0)
+
+    # 格式化疾病名称
+    disease_names = ", ".join([_format_disease_name(d) for d in detected_diseases])
+
+    # 构建图片识别结果文本
+    image_symptoms = f"""【图片AI识别结果】
+- 识别动物类型：{detected_animal}
+- 检测到的疾病：{disease_names}
+- 主要疾病：{_format_disease_name(primary_disease)}
+- 置信度：{max_conf:.1%}
+- 严重程度：{severity}"""
+
+    # 判断是替换还是追加
+    if _should_replace_symptoms(symptoms):
+        enhanced_symptoms = image_symptoms
+    else:
+        enhanced_symptoms = f"{symptoms}\n{image_symptoms}"
+
+    # 构建备注
+    image_note = f"""
+#### 📷 图片/视频AI识别结果
+- 识别的动物类型：{detected_animal}
+- 检测到的疾病：{disease_names}
+- 主要疾病：{_format_disease_name(primary_disease)}
+- 置信度：{max_conf:.1%}
+- 严重程度评估：{severity}"""
+
+    return enhanced_symptoms, image_note
 
 
-def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None,
-                      temperature: Optional[float] = None,
-                      other_signs: Optional[str] = None) -> dict:
-    """使用 DeepSeek LLM 进行疾病预测
+# ==================== LLM 疾病预测 ====================
+
+def _predict_with_llm(
+    animal_type: str,
+    symptoms: str,
+    age: Optional[int] = None,
+    temperature: Optional[float] = None,
+    other_signs: Optional[str] = None
+) -> dict:
+    """使用 LLM 进行疾病预测
 
     通过构造专业的兽医诊断提示词，让 LLM 分析症状并返回格式化的报告。
 
@@ -248,22 +271,20 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
             missing_info.append("体温")
         if not other_signs:
             missing_info.append("其他体征（如粪便、呼吸、皮肤状态等）")
-        if len(symptoms) < 10:  # 症状描述过于简单
+        if len(symptoms) < 10:
             missing_info.append("更详细的症状描述")
 
-        # 始终先检索疾病知识库
+        # 检索疾病知识库
         knowledge_context = ""
         try:
-            # 构造检索查询
             search_query = f"{animal_type} {symptoms}"
             if temperature:
                 search_query += f" 体温{temperature}°C"
             if age:
                 search_query += f" {age}月龄"
-
             knowledge_context = _search_disease_knowledge(search_query, top_k=3)
         except Exception:
-            knowledge_context = ""
+            pass
 
         # 构建知识库参考部分
         knowledge_section = ""
@@ -284,7 +305,7 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
 **注意**：当前提供的信息不够完整，以下分析基于现有症状，建议补充{len(missing_info)}项信息以获得更准确的诊断。
 """
 
-        # 构建追问部分（附加在末尾）
+        # 构建追问部分
         followup_section = ""
         if missing_info and len(missing_info) >= 2:
             followup_section = """
@@ -298,7 +319,7 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
 
 补充这些信息后我可以提供更精准的分析。"""
 
-        # 进行完整的疾病预测分析（集成知识库）
+        # 构建完整提示词
         prompt = f"""你是一位专业的兽医专家，请根据以下信息进行疾病预测分析。
 
 ## 动物信息
@@ -359,18 +380,13 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
 
         # 调用模型
         response = model.invoke([HumanMessage(content=prompt)])
-        report_text = response.content.strip()
+        report_text = response.content.strip().replace("```json", "").replace("```", "").strip()
 
-        # 清理可能的 markdown 代码块标记
-        report_text = report_text.replace("```json", "").replace("```", "").strip()
-
-        # 返回结构化结果
         return {
             "success": True,
             "report": report_text,
-            "model_used": "deepseek-llm",
+            "model_used": "llm",
             "analysis_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            # 保留原始输入供后续处理
             "input": {
                 "animal_type": animal_type,
                 "symptoms": symptoms,
@@ -381,7 +397,7 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
         }
 
     except Exception as e:
-        # 如果 LLM 调用失败，降级到简单规则
+        # 降级响应
         return {
             "success": False,
             "error": str(e),
@@ -407,6 +423,8 @@ def _predict_with_llm(animal_type: str, symptoms: str, age: Optional[int] = None
             "model_used": "fallback"
         }
 
+
+# ==================== 主工具 ====================
 
 @tool
 def disease_prediction_tool(
@@ -434,83 +452,24 @@ def disease_prediction_tool(
         格式化的疾病预测分析报告
     """
     try:
-        # 步骤1: 如果提供了图片/视频，先进行分析
-        image_analysis_note = ""
+        # 步骤1: 如果提供了图片，先进行分析
         enhanced_symptoms = symptoms
+        image_analysis_note = ""
 
         if media_path:
-            # 尝试使用真实视觉模型分析
             image_result = _analyze_image_with_model(media_path, animal_type)
 
-            # 如果真实模型失败，降级到简单分析
-            if image_result.get("error"):
-                image_result = _simple_image_analyze(media_path, animal_type)
-
-            # 处理图片分析结果
-            if image_result.get("error"):
+            if image_result.get("success"):
+                enhanced_symptoms, image_analysis_note = _enhance_symptoms_with_image_result(
+                    symptoms, image_result, animal_type
+                )
+            elif image_result.get("error"):
                 image_analysis_note = f"\n\n#### 📷 图片分析结果\n图片分析失败：{image_result['error']}"
-            elif image_result.get("success"):
-                # 使用真实模型的结果 - 增强症状描述
-                detected_diseases = image_result.get("detected_diseases", [])
-                primary_disease = image_result.get("primary_disease", "未知")
-                detected_animal = image_result.get("animal_type", animal_type)
-                severity = image_result.get("severity", "未知")
-                max_conf = image_result.get("max_confidence", 0)
 
-                # 格式化疾病名称
-                disease_names = ", ".join([d.replace("_", " ") for d in detected_diseases])
-
-                # 将图片识别结果整合到症状描述中，让LLM能基于此进行分析
-                image_symptoms = f"""【图片AI识别结果】
-- 识别动物类型：{detected_animal}
-- 检测到的疾病：{disease_names}
-- 主要疾病：{primary_disease.replace('_', ' ') if primary_disease else '未知'}
-- 置信度：{max_conf:.1%}
-- 严重程度：{severity}"""
-
-                # 增强症状描述，让LLM基于图片识别结果进行分析
-                if "请根据图片判断" in symptoms or "根据图片" in symptoms or not symptoms.strip():
-                    enhanced_symptoms = image_symptoms
-                else:
-                    enhanced_symptoms = f"{symptoms}\n{image_symptoms}"
-
-                image_analysis_note = f"""
-#### 📷 图片/视频AI识别结果
-- 识别的动物类型：{detected_animal}
-- 检测到的疾病：{disease_names}
-- 主要疾病：{primary_disease.replace('_', ' ') if primary_disease else '未知'}
-- 置信度：{max_conf:.1%}
-- 严重程度评估：{severity}"""
-            else:
-                # 降级使用简单分析结果
-                media_type = image_result.get("media_type", "image")
-                detected = ", ".join(image_result.get("detected_symptoms", []))
-                areas = ", ".join(image_result.get("affected_areas", []))
-                severity_level = image_result.get("severity", "未知")
-
-                # 整合到症状描述
-                image_symptoms = f"""【图片分析】
-- 文件类型：{media_type}
-- 检测到的症状：{detected}
-- 患处区域：{areas}
-- 严重程度：{severity_level}"""
-
-                if "请根据图片判断" in symptoms or "根据图片" in symptoms or not symptoms.strip():
-                    enhanced_symptoms = image_symptoms
-                else:
-                    enhanced_symptoms = f"{symptoms}\n{image_symptoms}"
-
-                image_analysis_note = f"""
-#### 📷 图片/视频分析结果（简单分析）
-- 文件类型：{media_type}
-- 检测到的症状：{detected}
-- 患处区域：{areas}
-- 严重程度评估：{severity_level}"""
-
-        # 步骤2: 使用增强后的症状（包含图片识别结果）调用LLM进行疾病预测
+        # 步骤2: 使用增强后的症状调用 LLM 进行疾病预测
         result = _predict_with_llm(animal_type, enhanced_symptoms, age, temperature, other_signs)
 
-        # 步骤3: 合并LLM分析和图片识别结果
+        # 步骤3: 合并 LLM 分析和图片识别结果
         final_report = result.get("report", "")
         if image_analysis_note:
             final_report = final_report + image_analysis_note
@@ -537,7 +496,7 @@ if __name__ == "__main__":
         {
             "animal_type": "鸡",
             "symptoms": "精神萎靡、羽毛蓬松",
-            "media_path": "test_image.jpg"  # 模拟图片路径测试
+            "media_path": "test_image.jpg"
         }
     ]
 
