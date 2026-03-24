@@ -4,13 +4,11 @@ RuralBrain FastAPI 服务器
 """
 import sys
 import json
-import os
 import uuid
 import logging
 from pathlib import Path
 from typing import AsyncGenerator
 
-import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, UploadFile, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
