@@ -35,6 +35,8 @@ app = FastAPI(
     - 🍚 **大米识别**: `/detection/rice/*` - 大米品种自动识别
     - 🐄 **奶牛检测**: `/detection/cow/*` - 牛只目标检测
     - 🏥 **疾病检测**: `/detection/disease/*` - 畜禽疾病患处识别
+    - 📍 **场景分类**: `/detection/scene/*` - 农场场景智能识别（牛舍/猪舍/农田）
+    - 🌿 **植物病害**: `/detection/plant_disease/*` - 农作物病害识别（61个分类）
 
     ### 架构说明
     - **FastAPI 网关**: 统一的 API 服务层
@@ -42,12 +44,12 @@ app = FastAPI(
     - **可扩展设计**: 新算法只需注册路由即可
 
     ### 技术栈
-    - **深度学习框架**: YOLOv8
+    - **深度学习框架**: YOLOv8 / YOLOv11
     - **Web 框架**: FastAPI + Uvicorn
     - **图像处理**: OpenCV
     - **容器化**: Docker 部署
     """,
-    version="2.0.0",
+    version="2.1.0",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -73,7 +75,7 @@ async def root():
     """服务根路径，返回欢迎信息和可用端点"""
     return {
         "service": "RuralBrain 算法服务",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "status": "running",
         "architecture": "FastAPI Gateway + Algorithm Modules",
         "endpoints": {
@@ -82,10 +84,14 @@ async def root():
                 "rice": "/detection/rice/predict",
                 "cow": "/detection/cow/detect",
                 "disease": "/detection/disease/detect",
+                "scene": "/detection/scene/classify",
+                "plant_disease": "/detection/plant_disease/detect",
                 "pest_supported": "/detection/pest/supported-pests",
                 "rice_supported": "/detection/rice/supported-rice-types",
                 "cow_supported": "/detection/cow/supported-cows",
-                "disease_supported": "/detection/disease/supported-diseases"
+                "disease_supported": "/detection/disease/supported-diseases",
+                "scene_supported": "/detection/scene/supported-scenes",
+                "plant_disease_supported": "/detection/plant_disease/supported-diseases"
             },
             "docs": "/docs",
             "health": "/health"
@@ -100,13 +106,15 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "RuralBrain Algorithm Service",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "algorithms": {
             "detection": {
                 "pest": "running",
                 "rice": "running",
                 "cow": "running",
-                "disease": "running"
+                "disease": "running",
+                "scene": "running",
+                "plant_disease": "running"
             }
         },
         "timestamp": "2025-01-31T13:30:00Z"

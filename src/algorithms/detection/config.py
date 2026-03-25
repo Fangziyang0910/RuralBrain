@@ -50,6 +50,26 @@ class DetectionConfig:
     def DISEASE_CLASSES_PATH(self) -> str:
         return str(self.MODELS_DIR / "disease" / "classes.txt")
 
+    @property
+    def SCENE_MODEL_PATH(self) -> str:
+        """场景分类模型路径（TODO: 等模型训练后添加）"""
+        return str(self.MODELS_DIR / "scene" / "best.onnx")
+
+    @property
+    def SCENE_CLASSES_PATH(self) -> str:
+        """场景分类类别文件路径"""
+        return str(self.MODELS_DIR / "scene" / "classes.txt")
+
+    @property
+    def PLANT_DISEASE_MODEL_PATH(self) -> str:
+        """植物病害识别模型路径（TODO: 等模型训练后添加）"""
+        return str(self.MODELS_DIR / "plant_disease" / "best.onnx")
+
+    @property
+    def PLANT_DISEASE_CLASSES_PATH(self) -> str:
+        """植物病害识别类别文件路径"""
+        return str(self.MODELS_DIR / "plant_disease" / "classes.txt")
+
 
 # 创建全局配置实例
 config = DetectionConfig()

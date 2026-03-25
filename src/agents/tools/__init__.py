@@ -12,6 +12,8 @@ from .disease_prediction_tool import disease_prediction_tool
 from .farm_inspection_tool import farm_inspection_tool
 from .load_skill_tool import load_skill
 from .web_search_tool import web_search_tool
+from .scene_classifier_tool import scene_classifier_tool
+from .plant_disease_detection_tool import plant_disease_detection_tool
 
 __all__ = [
     "pest_detection_tool",
@@ -23,4 +25,6 @@ __all__ = [
     "farm_inspection_tool",
     "load_skill",
     "web_search_tool",
+    "scene_classifier_tool",
+    "plant_disease_detection_tool",
 ]

@@ -17,12 +17,16 @@ from algorithms.detection.services.pest_service import pest_service
 from algorithms.detection.services.rice_service import rice_service
 from algorithms.detection.services.cow_service import cow_service
 from algorithms.detection.services.disease_service import disease_service
+from algorithms.detection.services.scene_service import scene_service
+from algorithms.detection.services.plant_disease_service import plant_disease_service
 
 # 导入数据模型
 from algorithms.detection.schemas.pest import DetectRequest as PestDetectionRequest, DetectResponse as PestDetectionResponse
 from algorithms.detection.schemas.rice import RicePredictionRequest as RiceDetectionRequest, RicePredictionResponse as RiceDetectionResponse
 from algorithms.detection.schemas.cow import DetectRequest as CowDetectionRequest, DetectResponse as CowDetectionResponse
 from algorithms.detection.schemas.disease import DiseaseDetectRequest, DiseaseDetectResponse
+from algorithms.detection.schemas.scene import SceneClassifyRequest, SceneClassifyResponse, SupportedScenesResponse
+from algorithms.detection.schemas.plant_disease import PlantDiseaseDetectRequest, PlantDiseaseDetectResponse, SupportedPlantDiseasesResponse
 
 
 # ==================== 病虫害检测 ====================
@@ -133,3 +137,66 @@ async def detect_diseases(request: DiseaseDetectRequest):
 async def get_supported_diseases():
     """获取支持的疾病类别"""
     return disease_service.get_supported_diseases()
+
+
+# ==================== 场景分类 ====================
+
+@router.post("/scene/classify", response_model=SceneClassifyResponse)
+async def classify_scene(request: SceneClassifyRequest):
+    """
+    分类农场巡检图片的场景类型
+
+    支持识别三种场景：
+    - 牛舍 (cattle)：建议调用牛只检测和疾病预测工具
+    - 猪舍 (pig)：建议调用疾病预测工具
+    - 农田 (farmland)：建议调用病虫害和植物病害检测工具
+
+    Args:
+        request: 包含 base64 编码的图片数据
+
+    Returns:
+        场景分类结果和建议的后续工具
+    """
+    try:
+        result = scene_service.classify(request.image_base64)
+        return result
+    except Exception as e:
+        logger.error(f"场景分类失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/scene/supported-scenes", response_model=SupportedScenesResponse)
+async def get_supported_scenes():
+    """获取支持的场景类别"""
+    return scene_service.get_supported_scenes()
+
+
+# ==================== 植物病害识别 ====================
+
+@router.post("/plant_disease/detect", response_model=PlantDiseaseDetectResponse)
+async def detect_plant_disease(request: PlantDiseaseDetectRequest):
+    """
+    识别农作物病害
+
+    基于**百度飞桨2018年农作物病害数据集**，支持10种植物的病害识别：
+    - 苹果、樱桃、葡萄、柑桔、桃、草莓、番茄、辣椒、玉米、马铃薯
+    - 共61个分类（包含一般/严重程度）
+
+    Args:
+        request: 包含 base64 编码的图片数据
+
+    Returns:
+        植物病害检测结果，包含作物种类、病害类型、严重程度等
+    """
+    try:
+        result = plant_disease_service.detect(request.image_base64)
+        return result
+    except Exception as e:
+        logger.error(f"植物病害检测失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/plant_disease/supported-diseases", response_model=SupportedPlantDiseasesResponse)
+async def get_supported_plant_diseases():
+    """获取支持的植物病害类别"""
+    return plant_disease_service.get_supported_diseases()
