@@ -17,7 +17,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.rag.config import CHROMA_PERSIST_DIR, get_chroma_collection_metadata, get_embeddings_cached
+from src.rag.config import CHROMA_PERSIST_DIR, CHROMA_COLLECTION_NAME, get_chroma_collection_metadata, get_embeddings_cached
 from src.rag.utils.loaders import MarkdownLoader, TextFileLoader, PPTXLoader, DOCXLoader, DOCLoader, PDFLoader
 from langchain_chroma import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -96,6 +96,7 @@ def build_knowledge_base(force: bool = False):
         documents=splits,
         embedding=embeddings,
         persist_directory=str(CHROMA_PERSIST_DIR),
+        collection_name=CHROMA_COLLECTION_NAME,
         collection_metadata=get_chroma_collection_metadata(),
     )
 

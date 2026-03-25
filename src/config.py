@@ -43,11 +43,8 @@ DETECTION_ENDPOINTS = {
 # 知识库配置
 KNOWLEDGE_BASE_PATH = os.getenv("KNOWLEDGE_BASE_PATH", "knowledge_base")
 
-# RAG 配置
-CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "512"))
-CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
-DEFAULT_TOP_K = int(os.getenv("DEFAULT_TOP_K", "5"))
-RETRIEVE_SCORE_THRESHOLD = float(os.getenv("RETRIEVE_SCORE_THRESHOLD", "0.7"))
+# 注意: RAG 相关配置（CHUNK_SIZE、CHUNK_OVERLAP、DEFAULT_TOP_K、RETRIEVE_SCORE_THRESHOLD）
+# 已移至 src/rag/config.py 统一管理，避免配置不一致
 
 # Embedding 配置
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "BAAI/bge-small-zh-v1.5")

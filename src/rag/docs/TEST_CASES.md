@@ -13,8 +13,8 @@
 启动服务后，访问以下地址确认服务正常：
 - 前端：http://localhost:3001
 - 主服务：http://localhost:8081/health
-- 规划咨询：http://localhost:8003/docs
-- 害虫检测：http://localhost:8000/docs
+- 检测服务网关：http://localhost:8001/docs（包含害虫检测、大米识别、牛只检测）
+- 规划咨询：已集成到主 Agent，通过前端对话访问
 
 ## 🖼️ 图像检测测试用例
 

@@ -31,6 +31,9 @@ from src.rag.config import (
     DEFAULT_TOP_K,
     RETRIEVE_SCORE_THRESHOLD,
     RETRIEVE_SEARCH_TYPE,
+    ENABLE_HYBRID_SEARCH,
+    HYBRID_VECTOR_WEIGHT,
+    HYBRID_BM25_WEIGHT,
 )
 from src.rag.core.context_manager import get_context_manager
 from src.rag.core.cache import get_vector_cache
@@ -184,6 +187,7 @@ def search_knowledge(
     context_mode: str = "standard",
     search_type: SearchType = RETRIEVE_SEARCH_TYPE,
     score_threshold: Optional[float] = None,
+    use_hybrid: Optional[bool] = None,
 ) -> str:
     """
     检索知识库（支持多种上下文模式和检索策略）
@@ -205,6 +209,7 @@ def search_knowledge(
       - "mmr": 最大边际相关性检索（增加多样性）
       - "similarity_score_threshold": 带评分过滤的检索（推荐）
     - score_threshold (float | optional): 相似度阈值（0-1），默认使用配置值
+    - use_hybrid (bool | optional): 是否使用混合检索（向量+BM25），默认使用配置值
 
     **返回：**
     - 匹配的文档片段列表，包含来源、位置、内容
@@ -213,7 +218,7 @@ def search_knowledge(
         cache = get_vector_cache()
 
         # 检查缓存
-        context_params = {"top_k": top_k, "context_mode": context_mode, "search_type": search_type}
+        context_params = {"top_k": top_k, "context_mode": context_mode, "search_type": search_type, "use_hybrid": use_hybrid}
         cached = cache.get_cached_query(query, context_params)
         if cached is not None:
             return cached
@@ -222,54 +227,91 @@ def search_knowledge(
         context_chars_map = {"minimal": 0, "standard": 300, "expanded": 500}
         context_chars = context_chars_map.get(context_mode, 300)
 
+        # 决定是否使用混合检索
+        should_use_hybrid = use_hybrid if use_hybrid is not None else ENABLE_HYBRID_SEARCH
+
         # 根据检索策略选择检索方法
         threshold = score_threshold or RETRIEVE_SCORE_THRESHOLD
+        results = []
 
-        if search_type == "similarity_score_threshold":
-            # 使用带评分过滤的检索
-            results_with_scores = db.similarity_search_with_score(query, k=top_k)
-
-            # 过滤低分结果
-            # 注意：此公式仅适用于 Cosine Distance
-            results = []
-            for doc, score in results_with_scores:
-                similarity_score = 1.0 - score
-
-                if similarity_score >= threshold:
-                    doc.metadata["score"] = similarity_score
-                    results.append(doc)
-                    logger.debug(f"文档通过过滤: 相似度={similarity_score:.3f}, 阈值={threshold}")
-                else:
-                    logger.debug(f"文档被过滤: 相似度={similarity_score:.3f}, 阈值={threshold}")
-
-            logger.info(f"评分过滤: 原始 {len(results_with_scores)} 个，过滤后 {len(results)} 个")
-
-            # Fallback: 如果过滤后结果为空，返回原始结果并添加警告
-            if not results and results_with_scores:
-                logger.warning(
-                    f"所有结果都被过滤（阈值={threshold}），"
-                    f"启用 fallback 机制返回原始结果"
+        # 优先使用混合检索
+        if should_use_hybrid:
+            try:
+                from src.rag.core.hybrid_retriever import get_hybrid_retriever
+                hybrid_retriever = get_hybrid_retriever(
+                    db,
+                    vector_weight=HYBRID_VECTOR_WEIGHT,
+                    bm25_weight=HYBRID_BM25_WEIGHT,
                 )
+                hybrid_results = hybrid_retriever.retrieve(query, k=top_k, score_threshold=threshold)
+
+                # 转换混合检索结果格式 (List[Tuple[Document, float]] -> List[Document])
+                for doc, score in hybrid_results:
+                    doc.metadata["score"] = score
+                    results.append(doc)
+
+                logger.info(f"混合检索: 返回 {len(results)} 个结果")
+
+                # 如果混合检索有结果，跳过后续的向量检索
+                if results:
+                    # 直接跳到结果格式化
+                    pass
+                else:
+                    # 混合检索无结果，回退到向量检索
+                    logger.warning("混合检索无结果，回退到向量检索")
+                    should_use_hybrid = False
+
+            except Exception as e:
+                logger.warning(f"混合检索失败，回退到向量检索: {e}")
+                should_use_hybrid = False
+                results = []
+
+        # 如果未使用混合检索或混合检索失败，使用传统向量检索
+        if not should_use_hybrid or not results:
+            if search_type == "similarity_score_threshold":
+                # 使用带评分过滤的检索
+                results_with_scores = db.similarity_search_with_score(query, k=top_k)
+
+                # 过滤低分结果
+                # 注意：此公式仅适用于 Cosine Distance
                 for doc, score in results_with_scores:
                     similarity_score = 1.0 - score
-                    doc.metadata["score"] = similarity_score
-                    doc.metadata["low_similarity_warning"] = True
-                    results.append(doc)
 
-        elif search_type == "mmr":
-            # 使用 MMR 检索（增加多样性）
-            from src.rag.config import MMR_LAMBDA_MULT
-            results = db.max_marginal_relevance_search(
-                query=query,
-                k=top_k,
-                fetch_k=top_k * 3,  # 先获取更多候选
-                lambda_mult=MMR_LAMBDA_MULT,
-            )
-            logger.info(f"MMR 检索: 返回 {len(results)} 个结果")
+                    if similarity_score >= threshold:
+                        doc.metadata["score"] = similarity_score
+                        results.append(doc)
+                        logger.debug(f"文档通过过滤: 相似度={similarity_score:.3f}, 阈值={threshold}")
+                    else:
+                        logger.debug(f"文档被过滤: 相似度={similarity_score:.3f}, 阈值={threshold}")
 
-        else:  # similarity
-            # 基础相似度检索
-            results = db.similarity_search(query, k=top_k)
+                logger.info(f"评分过滤: 原始 {len(results_with_scores)} 个，过滤后 {len(results)} 个")
+
+                # Fallback: 如果过滤后结果为空，返回原始结果并添加警告
+                if not results and results_with_scores:
+                    logger.warning(
+                        f"所有结果都被过滤（阈值={threshold}），"
+                        f"启用 fallback 机制返回原始结果"
+                    )
+                    for doc, score in results_with_scores:
+                        similarity_score = 1.0 - score
+                        doc.metadata["score"] = similarity_score
+                        doc.metadata["low_similarity_warning"] = True
+                        results.append(doc)
+
+            elif search_type == "mmr":
+                # 使用 MMR 检索（增加多样性）
+                from src.rag.config import MMR_LAMBDA_MULT
+                results = db.max_marginal_relevance_search(
+                    query=query,
+                    k=top_k,
+                    fetch_k=top_k * 3,  # 先获取更多候选
+                    lambda_mult=MMR_LAMBDA_MULT,
+                )
+                logger.info(f"MMR 检索: 返回 {len(results)} 个结果")
+
+            else:  # similarity
+                # 基础相似度检索
+                results = db.similarity_search(query, k=top_k)
 
         if not results:
             return "⚠️  知识库中未找到相关信息。"
@@ -405,11 +447,13 @@ def knowledge_search_tool(
     top_k: int = 5,
     context_mode: str = "standard",
     search_type: str = RETRIEVE_SEARCH_TYPE,
+    use_hybrid: bool = True,
 ) -> str:
     """
-    检索知识库（支持多种上下文模式和检索策略）。
+    检索知识库（支持混合检索：向量 + BM25 关键词）。
 
-    基于查询检索相关文档片段，支持不同详细程度的上下文和多种检索策略。
+    基于查询检索相关文档片段，默认使用混合检索策略（语义相似度 + 关键词匹配），
+    提高关键词精确匹配的召回率。
 
     Args:
         query: 查询问题或关键词（必需）
@@ -422,11 +466,14 @@ def knowledge_search_tool(
             - "similarity": 基础相似度检索
             - "mmr": 最大边际相关性检索（增加结果多样性）
             - "similarity_score_threshold": 带评分过滤的检索（推荐）
+        use_hybrid: 是否使用混合检索（可选，默认 true）
+            - true: 混合检索（向量 + BM25 关键词），提高召回率
+            - false: 仅向量检索
 
     Returns:
         匹配的文档片段列表，包含来源、位置、内容
     """
-    return search_knowledge(query, top_k, context_mode, search_type)
+    return search_knowledge(query, top_k, context_mode, search_type, use_hybrid=use_hybrid)
 
 @tool
 def key_points_search_tool(query: str, sources: Optional[str] = None) -> str:
