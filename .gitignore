@@ -55,3 +55,6 @@ data/
 
 # Knowledge base - 完全由 Docker 镜像构建，不提交到 Git
 knowledge_base/
+# Ignore large PyTorch model files (plant_disease only)
+src/algorithms/detection/models/plant_disease/*.pt
+

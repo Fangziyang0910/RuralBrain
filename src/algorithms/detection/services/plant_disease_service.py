@@ -210,7 +210,7 @@ class PlantDiseaseModelService:
                 predictions, _ = self.classifier.infer(image, top_k=1)
 
                 if predictions:
-                    class_id = int(predictions[0]["class_name"])
+                    class_id = predictions[0]["class_id"]
                     confidence = predictions[0]["confidence"]
                 else:
                     class_id = -1

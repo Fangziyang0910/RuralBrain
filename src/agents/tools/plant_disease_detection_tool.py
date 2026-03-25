@@ -268,11 +268,12 @@ def plant_disease_detection_tool(image_path: str) -> str:
         if path.suffix.lower() not in SUPPORTED_FORMATS:
             return f"❌ 不支持的图片格式: {path.suffix}"
 
-        # TODO: 模型训练完成后，切换到真实 API
-        # result = _call_plant_disease_detection_api(image_path)
+        # 调用真实 API
+        result = _call_plant_disease_detection_api(image_path)
 
-        # 当前使用模拟检测
-        result = _mock_plant_disease_detection(image_path)
+        # 如果 API 调用失败，回退到模拟检测
+        if not result.get("success") or result.get("mock", False):
+            result = _mock_plant_disease_detection(image_path)
 
         return format_detection_result(result)
 
@@ -292,9 +293,14 @@ def detect_plant_disease(image_path: str) -> dict:
         原始检测结果字典
     """
     try:
-        # TODO: 模型训练完成后切换
-        # return _call_plant_disease_detection_api(image_path)
-        return _mock_plant_disease_detection(image_path)
+        # 调用真实 API
+        result = _call_plant_disease_detection_api(image_path)
+
+        # 如果 API 调用失败，回退到模拟检测
+        if not result.get("success") or result.get("mock", False):
+            result = _mock_plant_disease_detection(image_path)
+
+        return result
     except Exception:
         return {"success": False, "error": str(Exception)}
 
