@@ -114,6 +114,11 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """
   * 疾病预测工具：media_path
   * 害虫检测工具：image_path
   * 大米识别工具：image_path
+
+**多模态图片理解**（用户使用 Qwen3.5-Plus 模型）:
+- 多模态模型可以直接"看到"用户上传的图片内容
+- 可以直接分析图片内容，无需依赖检测工具
+- 对于精确检测任务，仍建议调用检测工具获取量化结果
 </examples>
 """
 

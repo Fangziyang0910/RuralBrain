@@ -88,8 +88,8 @@ AVAILABLE_MODELS = {
         "name": "Qwen3.5-Plus",
         "provider": "qwen",
         "model_name": "qwen3.5-plus",
-        "description": "通义千问大模型（图片通过检测工具处理）",
-        "is_multimodal": False,  # TODO: 启用多模态消息格式后改为 True
+        "description": "通义千问多模态大模型（支持图片理解）",
+        "is_multimodal": True,
     },
 }
 
