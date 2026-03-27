@@ -50,7 +50,7 @@
 
 | 任务 | 负责人 | 工作量 | 依赖 | 状态 |
 |------|--------|--------|------|------|
-| **A1: Qwen-VL-Plus 模型集成** | A | 3天 | - | 待开始 |
+| **A1: qwen3.5-plus 模型集成** | A | 3天 | - | 待开始 |
 | - 扩展 `src/config.py` 模型配置 | | | | |
 | - 增强 `src/agents/utils.py` ModelManager | | | | |
 | - 测试多模态消息处理 | | | | |
@@ -266,7 +266,7 @@
 
 ## 五、技术实现细节
 
-### 5.1 多模态模型集成（Qwen-VL-Plus）
+### 5.1 多模态模型集成（qwen3.5-plus）
 
 **配置文件**: `src/config.py` - 添加 qwen-vl 模型配置
 
@@ -428,7 +428,7 @@ async def check_external_services():
 ## 七、外部依赖清单
 
 ### API 密钥
-- [ ] Qwen-VL-Plus API Key（阿里云 DashScope）
+- [ ] qwen3.5-plus API Key（阿里云 DashScope）
 - [ ] Tavily Search API Key
 
 ### 外部服务部署
