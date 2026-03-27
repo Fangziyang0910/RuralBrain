@@ -132,7 +132,7 @@ RuralBrain/
 | 了解系统设计 | [系统架构设计](docs/architecture/system-design.md) |
 | 了解 V2 Agent | [V2 Agent 架构设计](docs/architecture/v2-agent-architecture.md) |
 | 查看所有命令 | [统一命令参考](docs/commands.md) |
-| 排查问题 | [故障排查指南](docs/guides/troubleshooting.md) |
+| 排查问题 | [开发工作流 - 故障排查](docs/guides/development.md#5-常见问题排查) |
 | 了解重要决策 | [架构决策记录](docs/decisions/) |
 
 ### 🏗️ 架构设计文档
@@ -151,7 +151,7 @@ RuralBrain/
 
 - [快速开始](docs/guides/getting-started.md) - Docker 和本地部署
 - [开发工作流](docs/guides/development.md) - 热重载和测试流程
-- [故障排查](docs/guides/troubleshooting.md) - 常见问题解决
+- [故障排查](docs/guides/development.md#5-常见问题排查) - 常见问题解决
 
 ## 变更日志
 

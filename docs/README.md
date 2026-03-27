@@ -9,7 +9,7 @@
 ### 新手入门
 - [快速开始指南](guides/getting-started.md) - 5 分钟上手
 - [统一命令参考](commands.md) - 所有命令的权威文档
-- [故障排查指南](guides/troubleshooting.md) - 常见问题解决
+- [故障排查指南](guides/development.md#5-常见问题排查) - 常见问题解决
 
 ### 架构设计
 - [系统架构设计](architecture/system-design.md) - 整体架构设计理念
@@ -24,7 +24,7 @@
 ### 操作指南
 - [开发工作流](guides/development.md) - 热重载和测试流程
 - [快速开始](guides/getting-started.md) - Docker 和本地部署
-- [故障排查](guides/troubleshooting.md) - 常见问题解决
+- [故障排查](guides/development.md#5-常见问题排查) - 常见问题解决
 
 ### 优化计划
 - [Skills 扩展模式分析](plans/skills-extension-analysis.md) - LangChain Skills 扩展模式深入分析
@@ -43,7 +43,7 @@
 | 了解系统设计 | [系统架构设计](architecture/system-design.md) |
 | 了解 V2 Agent | [V2 Agent 架构设计](architecture/v2-agent-architecture.md) |
 | 查看所有命令 | [统一命令参考](commands.md) |
-| 排查问题 | [故障排查指南](guides/troubleshooting.md) |
+| 排查问题 | [开发工作流 - 故障排查](guides/development.md#5-常见问题排查) |
 | 了解重要决策 | [架构决策记录](decisions/) |
 | 开发调试 | [开发工作流](guides/development.md) |
 | 查看优化计划 | [优化计划](plans/) |
@@ -71,7 +71,7 @@ docs/
 └── guides/                            # 📚 操作指南
     ├── getting-started.md             # 快速开始
     ├── development.md                 # 开发工作流
-    └── troubleshooting.md             # 故障排查
+    └── development.md               # 开发工作流（含故障排查）
 │
 └── plans/                             # 📋 优化计划
     ├── rag-optimization.md            # RAG 服务优化计划
@@ -135,7 +135,7 @@ RuralBrain V2 Agent 的核心设计理念：
 
 检查端口占用、环境变量配置、API Keys 是否正确。
 
-详细解决方案：[故障排查指南](guides/troubleshooting.md)
+详细解决方案：[开发工作流 - 故障排查](guides/development.md#5-常见问题排查)
 
 ### Q: 如何切换 AI 模型？
 

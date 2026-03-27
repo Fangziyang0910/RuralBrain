@@ -218,7 +218,7 @@ uv run python src/rag/build.py
 - **[开发工作流](development.md)** ⭐ - 日常开发必读，了解热重载和测试流程
 - **[Skills 开发指南](skills-development.md)** - 添加新技能的完整流程
 - [统一命令参考](../commands.md) - 完整命令列表
-- [故障排查](troubleshooting.md) - 常见问题解决
+- [故障排查](development.md#5-常见问题排查) - 常见问题解决
 
 ---
 

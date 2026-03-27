@@ -1,10 +1,10 @@
 # RuralBrain 开发工作流指南
 
-本文档详细说明 RuralBrain 项目的开发和测试工作流程。
+本文档说明 RuralBrain 项目的开发和测试工作流程。
 
 ---
 
-## 核心原则（必读）⭐
+## 核心原则（必读）
 
 1. **所有开发使用 Docker 热重载模式** - 不推荐本地直接运行
 2. **每次代码更改后必须验证** - 健康检查 + 功能测试
@@ -20,13 +20,12 @@
 3. [代码更改与验证流程](#3-代码更改与验证流程)
 4. [生产环境验证](#4-生产环境验证)
 5. [常见问题排查](#5-常见问题排查)
-6. [CI/CD 配置参考](#6-cicd-配置参考)
 
 ---
 
 ## 1. 快速开始
 
-### 1.1 必需软件
+### 1.1 环境要求
 
 - **Docker** 和 **Docker Compose**
 - **Git**
@@ -42,23 +41,7 @@ MODEL_PROVIDER=deepseek  # 或 glm
 DEEPSEEK_API_KEY=your_api_key_here
 ```
 
-### 1.3 服务端口说明
-
-| 服务 | 开发环境端口 | 生产环境端口 | 说明 |
-|------|-------------|-------------|------|
-| 前端 | 3001 | 3001 | Next.js 应用 |
-| 后端 | 8081 | 8081 | FastAPI + Agent V2（包含 RAG 知识库） |
-| 检测服务 | 8001 | 8001 | 统一检测网关 |
-
----
-
-### 1.1 环境要求
-
-- **Docker** 和 **Docker Compose**
-- **Git**
-- **Bash** 终端（推荐使用 WSL2 或 Git Bash）
-
-### 1.2 首次启动（仅需一次）
+### 1.3 首次启动（仅需一次）
 
 ```bash
 # 1. 构建镜像（使用 ONNX 轻量级镜像）
@@ -76,7 +59,7 @@ docker compose -f docker-compose.dev.yml up -d
 bash scripts/dev/check.sh --quick
 ```
 
-### 1.3 每日启动开发环境
+### 1.4 每日启动开发环境
 
 ```bash
 # 1. 启动开发环境（热重载模式）
@@ -90,7 +73,7 @@ bash scripts/dev/check.sh --quick
 # 4. 开始开发
 ```
 
-### 1.4 服务访问地址
+### 1.5 服务访问地址
 
 | 服务 | 地址 | 说明 |
 |------|------|------|
@@ -98,7 +81,7 @@ bash scripts/dev/check.sh --quick
 | 后端 API 文档 | http://localhost:8081/docs | API 调试（包含 RAG 知识库） |
 | 检测服务 API 文档 | http://localhost:8001/docs | 检测调试 |
 
-### 1.5 常用操作
+### 1.6 常用操作
 
 ```bash
 # 查看服务状态
@@ -112,20 +95,6 @@ docker compose -f docker-compose.dev.yml down
 
 # 重启单个服务
 docker compose -f docker-compose.dev.yml restart backend
-```
-
-### 1.6 启动单个服务
-
-如果只需要启动特定服务：
-
-```bash
-cd docker
-
-# 仅启动后端服务
-docker compose -f docker-compose.dev.yml up -d backend
-
-# 仅启动前端
-docker compose -f docker-compose.dev.yml up -d frontend
 ```
 
 ---
@@ -166,15 +135,6 @@ docker compose -f docker-compose.dev.yml up -d frontend
    Reloading...
    Application startup complete.
    ```
-
-### 2.3 热重载不生效？
-
-如果热重载不工作：
-
-1. 检查卷挂载是否正确
-2. 重启容器：`docker compose -f docker-compose.dev.yml restart <service>`
-3. 查看日志排查错误
-4. Windows 用户：检查 Docker Desktop 文件共享权限
 
 ---
 
@@ -221,7 +181,6 @@ bash scripts/dev/check.sh --health --verbose
 bash scripts/dev/check.sh --service backend
 bash scripts/dev/check.sh --service frontend
 bash scripts/dev/check.sh --service detection
-# bash scripts/dev/check.sh --service planning  # 已移除（RAG 已集成到主 Agent）
 ```
 
 ### 3.3 功能测试脚本
@@ -248,7 +207,7 @@ bash scripts/dev/check.sh --test full
 bash scripts/dev/check.sh --test fast --continue
 ```
 
-### 3.4 代码更改验证流程 ⭐⭐⭐
+### 3.4 代码更改验证流程
 
 **每次代码修改后（必选）**：
 
@@ -316,7 +275,30 @@ bash scripts/dev/switch_to_development.sh
 
 ## 5. 常见问题排查
 
-### 5.1 热重载不生效？
+### 5.1 服务启动失败
+
+**症状**：容器无法启动或立即退出
+
+**排查步骤**：
+
+1. 检查端口是否被占用：
+   ```bash
+   lsof -i :8081    # 后端
+   lsof -i :8001    # 检测服务
+   lsof -i :3001    # 前端
+   ```
+
+2. 查看容器日志：
+   ```bash
+   docker compose -f docker-compose.dev.yml logs <service>
+   ```
+
+3. 常见原因：
+   - 端口被占用 → 关闭占用进程或修改端口
+   - API Keys 未配置 → 检查 `.env` 文件
+   - 依赖未安装 → 运行 `uv sync`
+
+### 5.2 热重载不生效
 
 **症状**：修改代码后服务没有自动重启
 
@@ -339,7 +321,94 @@ bash scripts/dev/switch_to_development.sh
 
 4. Windows 用户：检查 Docker Desktop 文件共享权限
 
-### 5.2 测试失败怎么办？
+### 5.3 检测服务无法连接
+
+**症状**：后端无法调用检测服务
+
+**解决方法**：
+
+1. 确认检测服务网关已启动：
+   ```bash
+   curl http://localhost:8001/health
+   ```
+
+2. 检查 `.env` 中配置：
+   ```bash
+   DETECTION_SERVICE_URL=http://localhost:8001
+   ```
+
+3. 检查服务间连通性：
+   ```bash
+   docker exec ruralbrain-backend curl http://detection-service:8001/health
+   ```
+
+### 5.4 RAG 查询无结果
+
+**症状**：知识库检索返回空结果
+
+**解决方法**：
+
+1. 确认知识库已构建：
+   ```bash
+   ls knowledge_base/chroma_db/
+   ```
+
+2. 重新构建知识库：
+   ```bash
+   uv run python scripts/dev/build_kb_auto.py
+   ```
+
+### 5.5 前端无法连接后端
+
+**症状**：前端请求后端 API 失败
+
+**解决方法**：
+
+1. 检查后端服务是否启动：
+   ```bash
+   curl http://localhost:8081/health
+   ```
+
+2. 检查 CORS 配置（`.env` 文件）：
+   ```bash
+   ALLOWED_ORIGINS=http://localhost:3001
+   ```
+
+3. 检查 API Keys 是否配置正确
+
+### 5.6 技能配置无法重新加载
+
+**解决方法**：
+
+技能重新加载策略由 `SKILL_RELOAD_STRATEGY` 配置控制：
+
+| 策略 | 说明 | 使用场景 |
+|------|------|----------|
+| `always` | 每次请求都重新加载 | 开发环境 |
+| `timed` | 按时间间隔重新加载 | 生产环境 |
+| `never` | 从不自动重新加载 | 高性能环境 |
+
+编辑 `.env` 文件：
+```bash
+SKILL_RELOAD_STRATEGY=always  # 或 timed, never
+SKILL_RELOAD_INTERVAL=300     # 重新加载间隔（秒）
+```
+
+### 5.7 模块导入错误
+
+**症状**：Python 模块找不到
+
+**解决方法**：
+
+```bash
+# 同步依赖
+uv sync
+
+# 使用 uv 运行
+uv run python <script>
+```
+
+### 5.8 测试失败排查
 
 **症状**：健康检查或功能测试失败
 
@@ -356,112 +425,6 @@ bash scripts/dev/switch_to_development.sh
    ```
 
 3. 检查 API 文档：http://localhost:8081/docs
-
-4. 检查服务健康：
-   ```bash
-   bash scripts/dev/check.sh --health --verbose
-   ```
-
-### 5.3 服务启动失败
-
-**症状**：容器无法启动或立即退出
-
-**排查步骤**：
-
-1. 查看容器状态：
-   ```bash
-   docker compose -f docker-compose.dev.yml ps
-   ```
-
-2. 查看容器日志：
-   ```bash
-   docker compose -f docker-compose.dev.yml logs <service>
-   ```
-
-3. 常见原因：
-   - 端口被占用：检查端口占用情况
-   - 依赖问题：重新构建镜像
-   - 配置错误：检查 `.env` 文件
-
-### 5.4 服务间通信失败
-
-**症状**：后端无法调用检测服务或规划服务
-
-**排查步骤**：
-
-1. 检查服务是否都在运行：
-   ```bash
-   bash scripts/dev/check.sh --health
-   ```
-
-2. 检查服务间连通性：
-   ```bash
-   docker exec ruralbrain-backend curl http://detection-service:8001/health
-   # RAG 已集成到主 Agent，无需单独检查
-   ```
-
----
-
-## 6. CI/CD 配置参考
-
-### 7.1 GitHub Actions 示例
-
-在 `.github/workflows/test.yml` 中配置：
-
-```yaml
-name: Test
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Start services
-        run: |
-          cd docker
-          docker compose -f docker-compose.dev.yml up -d
-
-      - name: Wait for services
-        run: |
-          bash scripts/dev/check.sh --health --verbose
-
-      - name: Run tests
-        run: |
-          bash scripts/dev/check.sh --test fast
-
-      - name: Show logs on failure
-        if: failure()
-        run: |
-          cd docker
-          docker compose -f docker-compose.dev.yml logs
-```
-
-### 7.2 Pre-commit Hook（可选）
-
-在 `.git/hooks/pre-commit` 中添加：
-
-```bash
-#!/bin/bash
-echo "运行预提交测试..."
-bash scripts/dev/check.sh --quick
-if [ $? -ne 0 ]; then
-    echo "健康检查失败，请修复后再提交"
-    exit 1
-fi
-```
-
-安装脚本示例 (`scripts/dev/setup_git_hooks.sh`)：
-
-```bash
-#!/bin/bash
-cp .githooks/pre-commit .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
-echo "Pre-commit hook 已安装"
-```
 
 ---
 
@@ -496,22 +459,14 @@ docker compose -f docker-compose.dev.yml logs -f
 docker compose -f docker-compose.dev.yml ps
 ```
 
-### API 文档地址
-
-| 服务 | 地址 | 用途 |
-|------|------|------|
-| 后端 API | http://localhost:8081/docs | 主服务调试（包含 RAG 知识库） |
-| 检测服务 API | http://localhost:8001/docs | 检测服务调试 |
-| 前端界面 | http://localhost:3001 | 用户界面 |
-
 ### 服务端口说明
 
-| 服务 | 开发环境端口 | 生产环境端口 | 说明 |
-|------|-------------|-------------|------|
-| 前端 | 3001 | 3001 | Next.js 应用 |
-| 后端 | 8081 | 8081 | FastAPI + Agent V2（包含 RAG 知识库） |
-| 检测服务 | 8001 | 8001 | 统一检测网关 |
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| 前端 | 3001 | Next.js 应用 |
+| 后端 | 8081 | FastAPI + Agent V2（包含 RAG 知识库） |
+| 检测服务 | 8001 | 统一检测网关 |
 
 ---
 
-**最后更新**: 2026-02-22
+**最后更新**: 2026-03-27

@@ -508,7 +508,7 @@ bash scripts/dev/test_production.sh
 | `docker-compose.yml` | 部署编排 | C |
 | `docs/guides/qwen-vl-advanced.md` | Qwen-VL 技术预研报告 | A |
 | `docs/guides/performance-optimization.md` | 性能优化文档 | A |
-| `docs/troubleshooting.md` | 故障排查手册 | A |
+| `docs/guides/development.md` | 开发工作流（含故障排查） | A |
 
 ---
 
