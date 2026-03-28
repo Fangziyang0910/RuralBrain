@@ -85,12 +85,12 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """
 <examples>
 **检测害虫**（用户上传图片）:
 1. load_skill("pest_detection")
-2. pest_detection_tool(image_path="...")
+2. pest_detection_tool() - 工具自动从对话中提取图片
 3. 输出：检测结果、危害分析、防治方案
 
 **疾病预测**（用户上传图片）:
 1. load_skill("disease_prediction")
-2. disease_prediction_tool(animal_type="猪/牛等", symptoms="根据图片判断", media_path="从消息中提取的图片路径")
+2. disease_prediction_tool(animal_type="猪/牛等", symptoms="根据图片判断")
 3. 输出：疾病分析、图片识别结果、防控建议
 
 **规划咨询**（知识库开启）:
@@ -108,12 +108,10 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """
 2. pricing_tool(...)
 3. 输出：定价建议、分析依据、关键因素
 
-**重要：处理图片路径**
-- 当用户消息中包含 `[图片路径 N: /tmp/...]` 格式的内容时，说明用户上传了图片
-- 调用需要图片的工具时，必须将图片路径传递给对应的参数：
-  * 疾病预测工具：media_path
-  * 害虫检测工具：image_path
-  * 大米识别工具：image_path
+**重要：图片处理说明**
+- 检测工具（pest_detection_tool、rice_detection_tool、cow_detection_tool）会自动从用户上传的图片中提取信息
+- 无需手动传递图片路径参数，工具会自动处理多模态（base64）和非多模态（路径）两种格式
+- 用户上传图片后，直接调用对应的检测工具即可
 
 **多模态图片理解**（用户使用 Qwen3.5-Plus 模型）:
 - 多模态模型可以直接"看到"用户上传的图片内容
