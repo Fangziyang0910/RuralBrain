@@ -31,6 +31,7 @@ from service.schemas import ChatRequest, UploadResponse
 from src.agents.middleware.dynamic_tool_middleware import set_kb_switch_state, set_web_search_switch_state
 from src.agents.context import AgentContext
 from src.config import AVAILABLE_MODELS, DEFAULT_MODEL_ID
+from src.utils.multimodal_message import build_multimodal_message
 from src.rag.service.schemas.chat import KnowledgeUpdateRequest, KnowledgeUpdateResponse
 from src.rag.service.api.routes import _update_knowledge_base_impl
 
@@ -384,19 +385,21 @@ async def chat_stream(request: ChatRequest):
             "recursion_limit": 50,  # 防止递归限制
         }
         # 创建运行时上下文（模型选择）
-        agent_context = AgentContext(model_id=request.model_id or DEFAULT_MODEL_ID)
+        model_id = request.model_id or DEFAULT_MODEL_ID
+        agent_context = AgentContext(model_id=model_id)
 
-        # 构建消息内容
-        message_content = request.message
+        # 使用多模态消息构建函数
+        message_content = build_multimodal_message(
+            text=request.message,
+            image_paths=image_paths if image_paths else None,
+            model_id=model_id,
+        )
 
-        if image_paths:
-            # 如果有图片，在消息中包含所有图片路径
-            paths_text = "\n".join([f"[图片路径 {i+1}: {path}]" for i, path in enumerate(image_paths)])
-            message_content = f"{message_content}\n\n{paths_text}"
-
-        logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., 图片数量: {len(image_paths)}, 知识库: {request.enable_knowledge_base}, 模型: {request.model_id or DEFAULT_MODEL_ID}")
-        # 调试：打印完整的消息内容
-        logger.info(f"发送给 Agent 的消息内容: {message_content[:500]}...")
+        # 获取多模态状态
+        is_multimodal = AVAILABLE_MODELS.get(model_id, {}).get("is_multimodal", False)
+        logger.info(f"调用 Orchestrator Agent [thread_id={thread_id}]: {request.message[:50]}..., "
+                    f"图片数量: {len(image_paths)}, 知识库: {request.enable_knowledge_base}, "
+                    f"模型: {model_id}, 多模态: {is_multimodal}")
 
         # 保存知识库开关状态到中间件（供 load_skill 工具使用）
         logger.info(f"准备设置知识库开关: thread_id={thread_id}, enable_knowledge_base={request.enable_knowledge_base}")
@@ -425,7 +428,7 @@ async def chat_stream(request: ChatRequest):
                 BUFFER_SIZE = 1  # 逐字输出，避免卡顿感
 
                 async for event in agent.astream_events(
-                    {"messages": [HumanMessage(content=message_content)]},
+                    {"messages": [message_content]},
                     config,
                     version="v2",
                     context=agent_context,

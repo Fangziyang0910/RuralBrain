@@ -4,13 +4,19 @@
 """
 import base64
 import json
+import logging
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 import uuid
 
+from langchain_core.messages import HumanMessage
+
 from service.settings import DETECTION_RESULTS_DIR, MAX_CACHE_SIZE
 from src.utils.file_manager import cleanup_lru
+
+logger = logging.getLogger(__name__)
 
 
 def save_result_image(
@@ -83,3 +89,74 @@ def format_detection_result(
         result["error"] = error or "未知错误"
 
     return json.dumps(result, ensure_ascii=False)
+
+
+def extract_image_from_messages(messages: list) -> dict | None:
+    """从消息历史中提取图片信息。
+
+    支持两种消息格式：
+    - 多模态消息：从 content blocks 中提取 base64 图片数据
+    - 纯文本消息：从文本中提取图片路径（[图片路径 N: /path] 格式）
+
+    Args:
+        messages: LangChain 消息历史列表
+
+    Returns:
+        包含图片信息的字典：
+        - {"base64": str, "mime_type": str} - 多模态格式
+        - {"path": str} - 路径格式
+        - None - 未找到图片
+    """
+    for message in reversed(messages):
+        if not isinstance(message, HumanMessage):
+            continue
+
+        content = message.content
+
+        # 多模态消息格式（列表形式）
+        if isinstance(content, list):
+            for block in content:
+                # LangChain 标准 image block 格式
+                if block.get("type") == "image":
+                    base64_data = block.get("base64")
+                    if base64_data:
+                        logger.info("从多模态消息中提取到 base64 图片")
+                        return {
+                            "base64": base64_data,
+                            "mime_type": block.get("mime_type", "image/jpeg"),
+                        }
+
+                # OpenAI 兼容格式 (image_url)
+                elif block.get("type") == "image_url":
+                    image_url = block.get("image_url", {})
+                    url = image_url.get("url", "")
+                    # data:image/jpeg;base64,<data>
+                    if url.startswith("data:"):
+                        match = re.match(r"data:(.+);base64,(.+)", url)
+                        if match:
+                            mime_type, base64_data = match.groups()
+                            logger.info("从 OpenAI 兼容格式中提取到 base64 图片")
+                            return {
+                                "base64": base64_data,
+                                "mime_type": mime_type,
+                            }
+
+        # 纯文本消息格式（从中提取路径）
+        elif isinstance(content, str):
+            # 匹配 [图片路径 N: /path] 格式
+            match = re.search(r"\[图片路径\s*\d*:\s*(.+?)\]", content)
+            if match:
+                path = match.group(1).strip()
+                logger.info(f"从文本消息中提取到图片路径: {path}")
+                return {"path": path}
+
+    logger.warning("未从消息历史中找到图片信息")
+    return None
+
+
+__all__ = [
+    "save_result_image",
+    "encode_image_to_base64",
+    "format_detection_result",
+    "extract_image_from_messages",
+]

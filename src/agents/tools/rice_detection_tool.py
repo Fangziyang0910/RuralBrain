@@ -1,16 +1,27 @@
 """大米品种识别工具。
 
 调用大米识别服务分析图片中的大米品种。
+支持多模态和非多模态模型：
+- 多模态模型：自动从消息历史中提取 base64 图片
+- 非多模态模型：自动从消息历史中提取图片路径
 """
 from pathlib import Path
 import os
 from typing import Any
 import uuid
+import logging
 
 import requests
 from langchain_core.tools import tool
+from langchain.tools import ToolRuntime
 
-from .detection_utils import encode_image_to_base64, save_result_image
+from .detection_utils import (
+    encode_image_to_base64,
+    save_result_image,
+    extract_image_from_messages,
+)
+
+logger = logging.getLogger(__name__)
 
 
 API_URL = os.getenv(
@@ -40,19 +51,6 @@ def validate_image_path(image_path: str) -> None:
             f"不支持的图片格式: {path.suffix}。"
             f"支持的格式: {', '.join(SUPPORTED_FORMATS)}"
         )
-
-
-def encode_image_to_base64_with_validation(image_path: str) -> str:
-    """编码图片为 base64 并进行验证。
-
-    Args:
-        image_path: 图片文件路径
-
-    Returns:
-        base64 编码的图片字符串
-    """
-    validate_image_path(image_path)
-    return encode_image_to_base64(image_path)
 
 
 def save_result_image_base64(image_base64: str) -> str:
@@ -97,24 +95,41 @@ def format_detection_result(api_response: dict[str, Any]) -> str:
 
 
 @tool
-def rice_detection_tool(image_path: str, task_type: str = "品种分类") -> str:
-    """调用大米识别服务分析图片中的大米品种。
+def rice_detection_tool(runtime: ToolRuntime) -> str:
+    """调用大米识别服务分析用户上传图片中的大米品种。
 
-    Args:
-        image_path: 图片文件的本地路径，支持格式：jpg、jpeg、png、bmp、webp
-        task_type: 任务类型，默认为"品种分类"
+    自动从对话历史中提取用户上传的图片，无需手动传递图片路径。
+    支持多模态模型（base64 图片）和非多模态模型（图片路径）。
 
     Returns:
         识别结果的文字摘要，示例：
         - 成功："识别成功。检测结果: 丝苗米(25粒)、珍珠米(18粒)"
         - 未检测到："识别完成，但在图片中未检测到明显的大米颗粒。"
+        - 未找到图片："未找到图片信息，请先上传图片"
         - 失败："识别服务报错: [错误原因]"
     """
     try:
-        img_base64 = encode_image_to_base64_with_validation(image_path)
+        # 从消息历史中提取图片信息
+        messages = runtime.state["messages"]
+        image_info = extract_image_from_messages(messages)
+
+        if image_info is None:
+            return "未找到图片信息，请先上传图片后再进行识别。"
+
+        # 获取 base64 数据（多模态格式直接提供，路径格式需要编码）
+        if "base64" in image_info:
+            image_base64 = image_info["base64"]
+            logger.info("使用多模态消息中的 base64 图片进行识别")
+        else:
+            image_path = image_info["path"]
+            # 验证路径
+            validate_image_path(image_path)
+            image_base64 = encode_image_to_base64(image_path)
+            logger.info(f"使用图片路径进行识别: {image_path}")
+
         payload = {
-            "image_base64": img_base64,
-            "task_type": task_type,
+            "image_base64": image_base64,
+            "task_type": "品种分类",
             "session_id": str(uuid.uuid4())
         }
 
