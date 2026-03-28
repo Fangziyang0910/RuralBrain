@@ -90,7 +90,7 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """
 
 **疾病预测**（用户上传图片）:
 1. load_skill("disease_prediction")
-2. disease_prediction_tool(animal_type="猪/牛等", symptoms="根据图片判断")
+2. disease_prediction_tool(animal_type="猪/牛等", symptoms="根据图片判断") - 工具自动从对话中提取图片
 3. 输出：疾病分析、图片识别结果、防控建议
 
 **规划咨询**（知识库开启）:
@@ -110,8 +110,9 @@ ORCHESTRATOR_V2_SYSTEM_PROMPT = """
 
 **重要：图片处理说明**
 - 检测工具（pest_detection_tool、rice_detection_tool、cow_detection_tool）会自动从用户上传的图片中提取信息
+- 疾病预测工具（disease_prediction_tool）同样会自动从对话中提取图片进行分析
 - 无需手动传递图片路径参数，工具会自动处理多模态（base64）和非多模态（路径）两种格式
-- 用户上传图片后，直接调用对应的检测工具即可
+- 用户上传图片后，直接调用对应的检测/疾病预测工具即可
 
 **多模态图片理解**（用户使用 Qwen3.5-Plus 模型）:
 - 多模态模型可以直接"看到"用户上传的图片内容

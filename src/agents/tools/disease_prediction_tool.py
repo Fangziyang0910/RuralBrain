@@ -4,15 +4,20 @@
 提供充分的决策依据，让 LLM 自己进行可靠的医疗建议或就医指南以及预测补充。
 
 集成 RAG 知识库检索，基于专业兽医文献提供更准确的疾病预测。
+
+支持多模态和非多模态模型：
+- 多模态模型：自动从消息历史中提取 base64 图片
+- 非多模态模型：自动从消息历史中提取图片路径
 """
 import os
-import base64
+import logging
 from datetime import datetime
 from typing import Optional
 from pathlib import Path
 
 import requests
 from langchain_core.tools import tool
+from langchain.tools import ToolRuntime
 from langchain_core.messages import HumanMessage
 import chromadb
 from chromadb.config import Settings
@@ -20,6 +25,12 @@ from langchain_chroma import Chroma
 
 from ...utils import ModelManager
 from ...rag.config import get_embeddings_cached
+from .detection_utils import (
+    encode_image_to_base64,
+    extract_image_from_messages,
+)
+
+logger = logging.getLogger(__name__)
 
 
 # ==================== 常量配置 ====================
@@ -87,13 +98,16 @@ def _search_disease_knowledge(query: str, top_k: int = 3) -> str:
 
 # ==================== 图片识别 ====================
 
-def _analyze_image_with_model(media_path: str, animal_type: str) -> dict:
+def _analyze_image_with_model(image_source: str | dict, animal_type: str) -> dict:
     """使用真实视觉模型分析患处图片/视频
 
     调用疾病检测服务 API 进行图片识别。
+    支持两种输入格式：
+    - str: 图片文件路径
+    - dict: {"base64": str, "mime_type": str} 多模态格式
 
     Args:
-        media_path: 图片或视频文件路径
+        image_source: 图片路径或 base64 数据字典
         animal_type: 动物类型
 
     Returns:
@@ -105,21 +119,30 @@ def _analyze_image_with_model(media_path: str, animal_type: str) -> dict:
         - severity: 严重程度
         - error: 错误信息（失败时）
     """
-    # 检查文件是否存在
-    if not os.path.exists(media_path):
-        return {"error": "文件不存在"}
+    image_base64 = None
 
-    # 检查文件类型
-    ext = os.path.splitext(media_path)[1].lower()
-    if ext not in SUPPORTED_IMAGE_EXTENSIONS:
-        return {"error": f"不支持的文件格式: {ext}"}
+    # 处理不同输入格式
+    if isinstance(image_source, dict):
+        # 多模态格式（直接提供 base64）
+        image_base64 = image_source.get("base64")
+        if not image_base64:
+            return {"error": "未提供有效的图片数据"}
+    else:
+        # 路径格式（需要读取文件并编码）
+        media_path = image_source
+        if not os.path.exists(media_path):
+            return {"error": "文件不存在"}
+
+        ext = os.path.splitext(media_path)[1].lower()
+        if ext not in SUPPORTED_IMAGE_EXTENSIONS:
+            return {"error": f"不支持的文件格式: {ext}"}
+
+        try:
+            image_base64 = encode_image_to_base64(media_path)
+        except Exception as e:
+            return {"error": f"读取图片失败: {str(e)}"}
 
     try:
-        # 读取图片并转换为 base64
-        with open(media_path, 'rb') as f:
-            image_data = f.read()
-            image_base64 = base64.b64encode(image_data).decode('utf-8')
-
         # 调用检测服务 API
         response = requests.post(
             DISEASE_DETECTION_API_URL,
@@ -428,6 +451,7 @@ def _predict_with_llm(
 
 @tool
 def disease_prediction_tool(
+    runtime: ToolRuntime,
     animal_type: str,
     symptoms: str,
     age: Optional[int] = None,
@@ -438,26 +462,50 @@ def disease_prediction_tool(
     """预测畜禽可能的疾病。
 
     根据动物类型、症状描述、患处图片/视频等信息，使用 AI 分析预测可能的疾病。
+    自动从对话历史中提取用户上传的图片，无需手动传递图片路径。
+    支持多模态模型（base64 图片）和非多模态模型（图片路径）。
     注意：仅供参考，不能替代专业兽医诊断。
 
     Args:
+        runtime: LangGraph 工具运行时，用于访问消息历史
         animal_type: 动物类型，如 牛、猪、鸡、鸭、羊 等
         symptoms: 症状描述，如 发热、咳嗽、精神萎靡、不食等
         age: 动物年龄（月龄），可选
         temperature: 体温（摄氏度），可选
         other_signs: 其他体征描述，可选
-        media_path: 患处图片或视频路径，支持 .jpg, .jpeg, .png, .bmp, .mp4, .avi, .mov，可选
+        media_path: 患处图片或视频路径（可选，如未提供则自动从消息历史提取）
 
     Returns:
         格式化的疾病预测分析报告
     """
     try:
-        # 步骤1: 如果提供了图片，先进行分析
+        # 步骤1: 确定图片来源（优先使用自动提取，备用手动路径）
+        image_source = None
+
+        if media_path:
+            # 用户手动指定路径
+            image_source = media_path
+        else:
+            # 自动从消息历史提取图片
+            messages = runtime.state["messages"]
+            image_info = extract_image_from_messages(messages)
+
+            if image_info:
+                if "base64" in image_info:
+                    # 多模态格式（base64 数据）
+                    image_source = image_info
+                    logger.info("使用多模态消息中的 base64 图片进行疾病预测")
+                elif "path" in image_info:
+                    # 路径格式
+                    image_source = image_info["path"]
+                    logger.info(f"使用图片路径进行疾病预测: {image_info['path']}")
+
+        # 步骤2: 如果有图片，先进行分析
         enhanced_symptoms = symptoms
         image_analysis_note = ""
 
-        if media_path:
-            image_result = _analyze_image_with_model(media_path, animal_type)
+        if image_source:
+            image_result = _analyze_image_with_model(image_source, animal_type)
 
             if image_result.get("success"):
                 enhanced_symptoms, image_analysis_note = _enhance_symptoms_with_image_result(
@@ -466,10 +514,10 @@ def disease_prediction_tool(
             elif image_result.get("error"):
                 image_analysis_note = f"\n\n#### 📷 图片分析结果\n图片分析失败：{image_result['error']}"
 
-        # 步骤2: 使用增强后的症状调用 LLM 进行疾病预测
+        # 步骤3: 使用增强后的症状调用 LLM 进行疾病预测
         result = _predict_with_llm(animal_type, enhanced_symptoms, age, temperature, other_signs)
 
-        # 步骤3: 合并 LLM 分析和图片识别结果
+        # 步骤4: 合并 LLM 分析和图片识别结果
         final_report = result.get("report", "")
         if image_analysis_note:
             final_report = final_report + image_analysis_note
@@ -480,30 +528,5 @@ def disease_prediction_tool(
         return f"### ⚠️ 分析失败\n\n疾病预测工具遇到错误：{str(e)}\n\n请稍后重试或直接咨询专业兽医。"
 
 
-if __name__ == "__main__":
-    # 测试工具
-    test_cases = [
-        {
-            "animal_type": "牛",
-            "symptoms": "发热、咳嗽、精神萎靡",
-            "temperature": 39.8
-        },
-        {
-            "animal_type": "猪",
-            "symptoms": "拉稀、不食",
-            "temperature": 39.2
-        },
-        {
-            "animal_type": "鸡",
-            "symptoms": "精神萎靡、羽毛蓬松",
-            "media_path": "test_image.jpg"
-        }
-    ]
-
-    for i, case in enumerate(test_cases, 1):
-        print(f"\n{'='*50}")
-        print(f"测试用例 {i}")
-        print(f"{'='*50}")
-        result = disease_prediction_tool.invoke(case)
-        print(result)
-        print(f"{'='*50}\n")
+__all__ = ["disease_prediction_tool"]
+disease_prediction_tool.tags = ["disease", "prediction", "veterinary"]
