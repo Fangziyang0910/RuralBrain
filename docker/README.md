@@ -10,7 +10,7 @@
 
 ```
 docker/
-├── Dockerfile.backend.onnx       # 后端服务镜像（ONNX Runtime）
+├── Dockerfile.backend.onnx       # 后端服务镜像（FastAPI + Agent）
 ├── Dockerfile.detection.onnx      # 检测服务统一网关镜像（YOLO 模型）
 ├── Dockerfile.frontend.onnx       # 前端生产镜像（优化构建）
 ├── Dockerfile.frontend.dev        # 前端开发镜像（支持热重载）
@@ -44,8 +44,9 @@ cp .env.example .env
 # 编辑 .env 文件，填写必要的配置
 
 # 2. 拉取镜像（可选，启动时会自动拉取）
-docker pull bzp9c92/ruralbrain:backend-onnx-v2
+docker pull zwxdockerbeginner/ruralbrain:backend-onnx-v2
 docker pull zwxdockerbeginner/ruralbrain:detection-onnx-v2
+docker pull zwxdockerbeginner/ruralbrain:frontend-dev
 
 # 3. 启动开发环境（在项目根目录执行）
 docker compose -f docker-compose.dev.yml up -d
@@ -81,21 +82,21 @@ bash scripts/dev/build-onnx-images.sh
 ### 后端服务镜像
 
 - **镜像名**: `backend-onnx-v2`
-- **Docker Hub**: `bzp9c92/ruralbrain:backend-onnx-v2`
+- **Docker Hub**: `zwxdockerbeginner/ruralbrain:backend-onnx-v2`
 - **基于**: Python 3.13 slim
-- **大小**: ~8GB（包含 torch 和 RAG 依赖）
-- **功能**: FastAPI + Orchestrator Agent V2 + 意图识别 + RAG 知识库
+- **大小**: ~5GB（轻量级）
+- **功能**: FastAPI + Orchestrator Agent V2 + 意图识别 + RAG 知识库 + 场景分类
 
 **核心依赖**：
 - LangChain/LangGraph（Agent 框架）
 - ChromaDB（向量数据库）
 - sentence-transformers（文本嵌入）
 - markitdown（文档处理）
-- torch + CUDA 库（深度学习推理）
 
 **新增功能**：
+- 场景分类模型：支持牛舍/猪舍/农田三类场景识别（准确率99.02%）
 - 疾病预测工具（集成 RAG 检索，基于症状给出诊断建议）
-- 疾病知识库支持（ChromaDB 向量存储）
+- 疾病知识库支持（ChromaDB 向量存储，内置完整数据）
 
 ### 检测服务镜像
 
@@ -292,6 +293,6 @@ docker compose -f docker-compose.onnx.yml down
 
 ---
 
-**最后更新**: 2026-02-26
-**版本**: v3.1
+**最后更新**: 2026-03-30
+**版本**: v3.2
 **维护者**: RuralBrain Team
