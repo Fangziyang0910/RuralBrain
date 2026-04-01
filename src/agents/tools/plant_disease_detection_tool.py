@@ -11,7 +11,11 @@ from typing import Any
 import requests
 from langchain_core.tools import tool
 
-from .detection_utils import encode_image_to_base64, save_result_image
+from .detection_utils import (
+    encode_image_to_base64,
+    save_result_image,
+    generate_detection_explanation,
+)
 
 
 # ==================== 配置 ====================
@@ -275,7 +279,31 @@ def plant_disease_detection_tool(image_path: str) -> str:
         if not result.get("success") or result.get("mock", False):
             result = _mock_plant_disease_detection(image_path)
 
-        return format_detection_result(result)
+        # 生成基础检测结果
+        base_result = format_detection_result(result)
+
+        # 如果检测失败或健康状态，不生成额外解释
+        if not result.get("success") or result.get("disease") == "健康":
+            return base_result
+
+        # 获取图片 base64 用于多模态解释
+        try:
+            image_base64 = encode_image_to_base64(image_path)
+        except Exception:
+            image_base64 = None
+
+        # 调用解释层生成深度分析
+        explanation = generate_detection_explanation(
+            detection_type="plant_disease",
+            detection_result=result,
+            image_base64=image_base64,
+            model_id=None  # 使用默认模型
+        )
+
+        # 合并输出
+        if explanation:
+            return f"{base_result}\n\n---\n\n### 🤖 AI 深度分析\n\n{explanation}"
+        return base_result
 
     except Exception as e:
         return f"❌ 植物病害检测失败: {str(e)}"

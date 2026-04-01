@@ -18,6 +18,7 @@ from .detection_utils import (
     encode_image_to_base64,
     save_result_image,
     extract_image_from_messages,
+    generate_detection_explanation,
 )
 
 logger = logging.getLogger(__name__)
@@ -149,7 +150,26 @@ def pest_detection_tool(runtime: ToolRuntime) -> str:
             except Exception:
                 pass
 
-        return format_detection_result(api_response)
+        # 生成基础检测结果
+        base_result = format_detection_result(api_response)
+
+        # 获取模型 ID（用于判断是否支持多模态）
+        model_id = ""
+        if runtime.context:
+            model_id = getattr(runtime.context, "model_id", "")
+
+        # 调用解释层生成智能分析
+        explanation = generate_detection_explanation(
+            detection_type="pest",
+            detection_result=api_response,
+            image_base64=image_base64,
+            model_id=model_id
+        )
+
+        # 合并输出
+        if explanation:
+            return f"{base_result}\n\n---\n\n{explanation}"
+        return base_result
 
     except FileNotFoundError as e:
         return f"文件错误: {str(e)}"
