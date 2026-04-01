@@ -4,6 +4,44 @@
 
 ---
 
+## [2026-04-01] - 检测工具 LLM 智能解释层
+
+### 🎯 功能增强
+
+**检测结果智能解释**
+
+为检测工具添加 LLM 解释层，使用多模态模型（Qwen）对检测结果进行专业分析和建议。
+
+**核心改进**：
+- 新增 `generate_detection_explanation()` 共享函数
+- 支持多模态模型（Qwen）进行图片 + 检测结果综合分析
+- 非多模态模型自动降级为纯文本解释
+
+**支持检测类型**：
+| 检测类型 | 输出内容 |
+|---------|---------|
+| 病虫害检测 | 危害评估、防治建议、预防措施 |
+| 大米品种 | 品质评估、储存建议、市场价值 |
+| 奶牛检测 | 健康评估、管理建议 |
+| 植物病害 | 病害诊断、防治建议 |
+
+**新增配置**：
+```bash
+ENABLE_DETECTION_EXPLANATION=true   # 启用/禁用解释层
+```
+
+**代码变更**：
+| 文件 | 变更 |
+|------|------|
+| `src/agents/tools/detection_utils.py` | 新增 - `generate_detection_explanation()` |
+| `src/agents/tools/pest_detection_tool.py` | 修改 - 集成解释层 |
+| `src/agents/tools/rice_detection_tool.py` | 修改 - 集成解释层 |
+| `src/agents/tools/cow_detection_tool.py` | 修改 - 集成解释层 |
+| `src/agents/tools/plant_disease_detection_tool.py` | 修改 - 集成解释层 |
+| `.env.example` | 修改 - 新增配置项 |
+
+---
+
 ## [2026-03-19] - 前端模型选择器
 
 ### 🎯 功能增强
