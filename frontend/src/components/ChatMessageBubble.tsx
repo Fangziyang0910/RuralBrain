@@ -167,9 +167,29 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toolNameMap: Record<string, string> = {
+    // 检测类工具
     pest_detection_tool: "🦗 病虫害识别",
     rice_detection_tool: "🌾 大米品种识别",
     cow_detection_tool: "🐄 牛只目标检测",
+    plant_disease_detection_tool: "🍃 植物病害识别",
+
+    // 商业咨询类工具
+    pricing_tool: "💰 定价分析",
+    marketing_tool: "📈 营销策略",
+
+    // 巡检类工具
+    farm_inspection_tool: "🔍 农场巡检",
+    scene_classifier_tool: "📷 场景分类",
+    disease_prediction_tool: "🏥 疾病预测",
+
+    // RAG 知识库工具
+    document_list_tool: "📋 文档列表",
+    document_overview_tool: "📖 文档概览",
+    knowledge_search_tool: "🔎 知识检索",
+    key_points_search_tool: "📌 要点搜索",
+
+    // 网络搜索工具
+    web_search_tool: "🌐 网络搜索",
   };
 
   const displayName = toolNameMap[toolCall.name] || toolCall.name;

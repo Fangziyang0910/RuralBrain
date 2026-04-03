@@ -6,6 +6,8 @@ import { ChatMessageBubble, type Message } from "@/components/ChatMessageBubble"
 import { Button } from "@/components/ui/button";
 import { ImagePreviewCard } from "@/components/ui/ImagePreviewCard";
 import { FeatureDemoCard, type DemoConfig } from "@/components/FeatureDemoCard";
+import { ExternalServiceCard } from "@/components/ExternalServiceCard";
+import { externalServices } from "@/config/external-services";
 import { Upload, Send, Loader2, Mic } from "lucide-react";
 import { useASR } from "@/hooks/useASR";
 
@@ -26,14 +28,15 @@ interface ModelsResponse {
   default_model: string;
 }
 
-// 演示功能配置
-const demoConfigs: DemoConfig[] = [
+// 核心能力卡片配置（图像检测类）
+const detectionDemoConfigs: DemoConfig[] = [
   {
     title: "病虫害检测",
     icon: "🐛",
     description: "智能识别农作物病虫害，分析危害程度并提供科学防治方案",
     exampleQuery: "请帮我检测这张图片中的病虫害，并给出防治建议",
     demoImage: "/demo/pest-input.jpg",
+    category: "detection",
   },
   {
     title: "大米品种识别",
@@ -41,6 +44,7 @@ const demoConfigs: DemoConfig[] = [
     description: "识别大米品种，分析品质特征，提供烹饪建议和储存方法",
     exampleQuery: "请帮我识别这张图片中的大米品种",
     demoImage: "/demo/rice-input.jpg",
+    category: "detection",
   },
   {
     title: "奶牛检测",
@@ -48,6 +52,7 @@ const demoConfigs: DemoConfig[] = [
     description: "识别牛只品种和数量，提供养殖管理、疫病防控和繁殖建议",
     exampleQuery: "请帮我数一下这张图片中有多少头牛",
     demoImage: "/demo/cow-input.jpg",
+    category: "detection",
   },
   {
     title: "疾病预测",
@@ -55,6 +60,33 @@ const demoConfigs: DemoConfig[] = [
     description: "智能预测畜禽疾病，基于患处图片和症状提供专业分析建议",
     exampleQuery: "请帮我看一下图片中的牛患了什么病",
     demoImage: "/demo/disease-input.jpg",
+    category: "detection",
+  },
+];
+
+// 商业咨询卡片配置（文本交互类）
+const businessDemoConfigs: DemoConfig[] = [
+  {
+    title: "定价分析",
+    icon: "💰",
+    description: "农产品定价建议，分析成本、市场和竞争因素",
+    exampleQuery: "我想为有机大米定价，成本约8元/斤，请帮我分析合理定价",
+    category: "business",
+  },
+  {
+    title: "营销策略",
+    icon: "📈",
+    description: "农产品营销方案，分析市场渠道和品牌推广策略",
+    exampleQuery: "我想推广家乡的土特产，请帮我制定一个线上线下结合的营销方案",
+    category: "business",
+  },
+  {
+    title: "农场巡检",
+    icon: "🔍",
+    description: "智能巡检农场，识别场景并分析作物和养殖状况",
+    exampleQuery: "请帮我分析这张巡检图片，识别场景并提供管理建议",
+    demoImage: "/demo/cow-input.jpg", // 复用现有图片
+    category: "inspection",
   },
 ];
 
@@ -623,19 +655,62 @@ export default function Home() {
               </p>
 
               {/* 功能演示卡片区域 */}
-              <div className="w-full max-w-3xl mb-8">
-                <p className="text-stone-600 text-sm font-medium mb-4 text-center">
-                  ✨ 点击下方卡片快速体验功能
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {demoConfigs.map((config) => (
-                    <FeatureDemoCard
-                      key={config.title}
-                      config={config}
-                      onClick={(query, imageUrl) => handleDemoClick(query, imageUrl)}
-                      disabled={loading}
-                    />
-                  ))}
+              <div className="w-full max-w-4xl mb-6">
+                {/* 核心能力卡片（图像检测类）*/}
+                <div className="mb-6">
+                  <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                    <span className="text-base">🌾</span>
+                    <span>核心能力</span>
+                    <span className="text-stone-400 font-normal">· 图像检测</span>
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {detectionDemoConfigs.map((config) => (
+                      <FeatureDemoCard
+                        key={config.title}
+                        config={config}
+                        onClick={(query, imageUrl) => handleDemoClick(query, imageUrl)}
+                        disabled={loading}
+                        variant="default"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 商业咨询卡片（文本交互类）*/}
+                <div className="mb-6">
+                  <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                    <span className="text-base">📊</span>
+                    <span>商业咨询</span>
+                    <span className="text-stone-400 font-normal">· 智能分析</span>
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {businessDemoConfigs.map((config) => (
+                      <FeatureDemoCard
+                        key={config.title}
+                        config={config}
+                        onClick={(query, imageUrl) => handleDemoClick(query, imageUrl)}
+                        disabled={loading}
+                        variant="compact"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 外部服务入口 */}
+                <div>
+                  <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                    <span className="text-base">🔗</span>
+                    <span>外部服务</span>
+                    <span className="text-stone-400 font-normal">· 更多功能</span>
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {externalServices.map((service) => (
+                      <ExternalServiceCard
+                        key={service.id}
+                        config={service}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
 
