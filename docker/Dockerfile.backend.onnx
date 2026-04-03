@@ -47,6 +47,8 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
 # 额外的运行时依赖（单独分层，便于快速更新）
 RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     langchain-text-splitters \
+    langchain-tavily \
+    tavily-python \
     cachetools \
     filetype \
     python-pptx \
@@ -61,25 +63,20 @@ COPY src/config.py /app/src/
 COPY src/utils /app/src/utils
 COPY src/rag /app/src/rag
 
-# ==================== 疾病知识库构建（独立层，便于缓存）====================
+# ==================== 疾病知识库（预构建）====================
 
-# 声明构建参数（通过 --build-arg 传入）
-ARG QWEN_API_KEY
+# 直接复制已构建的疾病知识库向量数据库
+# 源文档已被排除在 Git 外，使用历史提交中的预构建 chroma_db
+COPY knowledge_base/diseases/chroma_db /app/knowledge_base/diseases/chroma_db
 
-# 复制知识库构建脚本
-COPY scripts/deploy/build_disease_kb.py /app/scripts/deploy/
+# ==================== 疾病知识库复制完成 ====================
 
-# 复制疾病知识库源文档
-COPY knowledge_base/diseases/documents /app/knowledge_base/diseases/documents
+# ==================== 规划知识库（预构建）====================
 
-# 构建疾病知识库
-# 向量数据库将存储在 /app/knowledge_base/diseases/chroma_db/
-# 通过命令行参数传递 API 密钥
-RUN python scripts/deploy/build_disease_kb.py --qwen-api-key="${QWEN_API_KEY}" && \
-    # 构建完成后删除源文档以减小镜像体积
-    rm -rf /app/knowledge_base/diseases/documents
+# 复制已构建的规划知识库向量数据库
+COPY knowledge_base/chroma_db /app/knowledge_base/chroma_db
 
-# ==================== 疾病知识库构建完成 ====================
+# ==================== 规划知识库复制完成 ====================
 
 # 创建临时文件目录
 RUN mkdir -p /tmp/ruralbrain

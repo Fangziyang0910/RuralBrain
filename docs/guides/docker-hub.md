@@ -4,9 +4,9 @@
 
 - **Docker Hub 仓库**: https://hub.docker.com/r/zwxdockerbeginner/ruralbrain
 - **维护者**: zwxdockerbeginner
-- **版本**: v2.4.0
-- **最后更新**: 2026-03-21
-- **重要变更**: 统一镜像命名空间，后端镜像迁移到 zwxdockerbeginner/ruralbrain
+- **版本**: v2.5.0
+- **最后更新**: 2026-04-03
+- **重要变更**: 镜像内嵌规划知识库和疾病知识库，协作者无需本地知识库
 
 ---
 
@@ -16,8 +16,8 @@
 
 | 标签 | 说明 | 大小 | 使用场景 |
 |------|------|------|---------|
-| `backend-onnx-v2` | 后端主服务（FastAPI + Agents + RAG） | ~4.5GB | 开发/生产 |
-| `latest` | 指向 `backend-onnx-v2`（最新稳定版） | ~4.5GB | 默认拉取 |
+| `backend-onnx-v2` | 后端主服务（FastAPI + Agents + RAG + 知识库） | ~9GB | 开发/生产 |
+| `latest` | 指向 `backend-onnx-v2`（最新稳定版） | ~9GB | 默认拉取 |
 
 **功能**：
 - Orchestrator Agent V2 编排
@@ -25,14 +25,21 @@
 - 工具调用管理
 - 流式对话支持
 - **新增**：疾病预测工具（集成 RAG 知识库检索）
-- **新增**：ChromaDB 向量数据库支持
-- **新增**：疾病知识库（59 个向量，14 个文档）
+- **新增**：规划知识库（内嵌，支持规划旅游功能）
+- **新增**：疾病知识库（内嵌，支持疾病预测功能）
+- **新增**：langchain-tavily（解决联网搜索 deprecation warning）
+- ChromaDB 向量数据库支持
+
+**内嵌知识库**：
+- 规划知识库 (`/app/knowledge_base/chroma_db`)
+- 疾病知识库 (`/app/knowledge_base/diseases/chroma_db`)
 
 **依赖说明**：
 - 包含 torch + CUDA 库（支持深度学习推理）
 - ChromaDB（向量数据库）
 - sentence-transformers（文本嵌入）
 - markitdown（文档处理）
+- langchain-tavily + tavily-python（联网搜索）
 
 ---
 
@@ -87,9 +94,9 @@
    - 复制 `.env.example` 到 `.env`
    - 填写必要的 API 密钥和配置
 
-3. **准备知识库**（可选）
-   - 下载或构建知识库到 `knowledge_base/` 目录
-   - 参考：[知识库构建指南](../commands.md#知识库构建)
+3. **知识库**（已内嵌，无需本地准备）
+   - 规划知识库和疾病知识库已内嵌在镜像中
+   - 协作者无需构建或挂载本地知识库
 
 ---
 
@@ -378,21 +385,18 @@ docker pull zwxdockerbeginner/ruralbrain:backend-onnx-v2
 
 ### Q3: 知识库如何配置？
 
-**A**: 知识库通过 Docker volume 挂载
+**A**: 知识库已内嵌在镜像中，无需本地配置
 
-**目录结构**：
-```
-RuralBrain/
-├── knowledge_base/          # ⭐ 知识库目录（不推送到 GitHub）
-│   └── chroma_db/        # ChromaDB 数据
-├── docker-compose.dev.yml
-└── docker-compose.onnx.yml
-```
+**内嵌知识库**：
+- 规划知识库：`/app/knowledge_base/chroma_db`
+- 疾病知识库：`/app/knowledge_base/diseases/chroma_db`
 
-**重要**：
-- 知识库已添加到 `.gitignore`，不会推送到 GitHub
-- 每个协作者需要自己构建或获取知识库
-- 参考：[知识库构建指南](../commands.md#知识库构建)
+**docker-compose.dev.yml 不挂载知识库目录**，直接使用镜像内嵌的知识库。
+
+**如需更新知识库**：
+1. 本地构建新知识库
+2. 重新构建 Docker 镜像
+3. 推送到 Docker Hub
 
 ---
 
