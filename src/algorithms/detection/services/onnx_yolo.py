@@ -170,8 +170,11 @@ class ONNXYOLODetector:
         Returns:
             预处理后的图像数组
         """
+        # BGR 转 RGB（重要！YOLO 模型训练时使用 RGB 格式）
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
         # Resize 到模型输入尺寸
-        resized = cv2.resize(image, (self.input_width, self.input_height))
+        resized = cv2.resize(image_rgb, (self.input_width, self.input_height))
 
         # 归一化到 [0, 1]
         normalized = resized.astype(np.float32) / 255.0
