@@ -1,8 +1,8 @@
 # RuralBrain 下一阶段开发规划
 
-> **规划版本**: v2.3
+> **规划版本**: v2.4
 > **制定日期**: 2026-03-13
-> **更新日期**: 2026-04-01
+> **更新日期**: 2026-04-03
 > **目标版本**: v0.1
 > **预计周期**: 7 周
 
@@ -12,11 +12,21 @@
 
 | 目标 | 优先级 | 核心价值 |
 |------|--------|----------|
-| 1. 多模态大模型（Qwen3.5）集成 | ⭐⭐⭐ | 增强图片分析和多模态理解能力 |
+| 1. 多模态大模型（Qwen3.5/3.6）集成 | ⭐⭐⭐ | 增强图片分析和多模态理解能力 |
 | 2. 网络搜索功能 | ⭐⭐⭐ | 让 Agent 自主获取实时信息 |
-| 3. 用户体验增强 | ⭐⭐ | 体现与通用 AI 的差异化 |
-| 4. 独立功能入口集成 | ⭐⭐ | 乡村经营、规划方案、法律助手（外部服务跳转） |
-| 5. v0.1 版本部署 | ⭐⭐⭐ | 生产环境可用 |
+| 3. 用户体验增强 | ⭐⭐⭐ | 前端 Demo 卡片一键触发 + 差异化交互 |
+| 4. 生图模型集成（图文科普） | ⭐⭐ | 增强回答可视化，图解科普病症/疗法 |
+| 5. 独立功能入口集成 | ⭐⭐ | 乡村经营、规划方案、法律助手（外部服务跳转） |
+| 6. v0.1 版本部署 | ⭐⭐⭐ | 生产环境可用 |
+
+### 新增需求说明（Week 3 周五）
+
+| 需求 | 具体内容 | 技术要点 |
+|------|----------|----------|
+| **前端 Demo 卡片完善** | 各功能一键触发 Demo | 为每个 Skill 创建预设示例，点击自动填充输入 |
+| **模型分级选择** | qwen3.5-flash 用于简单任务 | 复杂推理用 plus，固定工作流用 flash，降低成本 |
+| **生图模型接入** | qwen-image-2.0 文生图科普 | 病症诊断后生成图解，类似 nano banana 科普博客 |
+| **Qwen3.6 适配** | 升级到更强模型 | https://qwen.ai/blog?id=qwen3.6 能力增强 |
 
 ---
 
@@ -130,6 +140,20 @@
 | - 分析现有工具调用性能瓶颈 | | | | |
 | - 优化多模态输入的响应时间 | | | | |
 | - 实现工具调用缓存机制 | | | | |
+| **A10: Qwen3.6 模型适配** ⭐新增 | A | 1天 | - | 待开始 |
+| - 更新 `src/config.py` 添加 qwen3.6 配置 | | | | |
+| - 测试 Qwen3.6 多模态能力增强点 | | | | |
+| - 对比 plus vs 3.6 性能和成本 | | | | |
+| **A11: 模型分级选择机制** ⭐新增 | A | 2天 | A10 | 待开始 |
+| - 设计任务复杂度判断规则 | | | | |
+| - 实现 `ModelSelector` 类（plus/flash 自动切换） | | | | |
+| - 配置 Skill 级别模型偏好（固定工作流用 flash） | | | | |
+| - 测试成本降低效果（目标降低 30%+） | | | | |
+| **B5: 前端 Demo 卡片完善** ⭐新增 | B | 2天 | B2 | 待开始 |
+| - 为每个 Skill 创建预设 Demo 示例 | | | | |
+| - 实现一键触发功能（点击自动填充输入） | | | | |
+| - Demo 示例涵盖：检测、定价、巡检、疾病预测、规划咨询 | | | | |
+| - 添加 Demo 卡片动画效果 | | | | |
 | **D3: 前端体验优化** | D | 2天 | - | 待开始 |
 | - 移动端响应式适配 | | | | |
 | - 工具调用动画效果 | | | | |
@@ -152,13 +176,17 @@
 - [ ] Qwen-VL 技术预研报告完成
 - [ ] 工具性能优化完成（响应时间提升 30%+）
 - [ ] API 文档和故障排查手册完善
+- [ ] ⭐新增：Qwen3.6 模型适配完成
+- [ ] ⭐新增：模型分级选择机制上线（plus/flash 自动切换）
+- [ ] ⭐新增：前端 Demo 卡片一键触发功能上线
 
 ---
 
-### 阶段三：功能入口集成（Week 5-6 第1-3天）
+### 阶段三：功能入口集成 + 生图模型（Week 5-6 第1-3天）
 
 #### 目标
-在前端添加三大外部服务的快捷入口，实现服务间跳转。
+1. 在前端添加三大外部服务的快捷入口，实现服务间跳转
+2. ⭐新增：集成 qwen-image-2.0 生图模型，实现图文科普功能
 
 #### ⚠️ 重要时间说明
 **阶段三在 Week 6 只占用前 3 天**，剩余 2 天为阶段四的部署预演任务预留。
@@ -170,10 +198,29 @@
 - 我们的工作：在前端添加跳转按钮/入口，点击后跳转到对应的外部部署地址
 - 不需要开发这些服务的具体功能
 
+**⭐ 生图模型集成说明**：
+- **qwen-image-2.0** / **qwen-image-2.0-pro** 用于生成图解科普内容
+- 典型应用：疾病诊断后生成病症图解、治疗方法示意图
+- 交互方式：类似 nano banana 科普博客，文字 + 图片并茂
+- 集成到 Skills：疾病预测、巡检报告等需要可视化科普的场景
+
 #### 任务清单
 
 | 任务 | 负责人 | 工作量 | 时间安排 | 依赖 | 状态 |
 |------|--------|--------|----------|------|------|
+| **A12: 生图模型集成** ⭐新增 | A | 2天 | Week 5 第 1-2 天 | A10 | 待开始 |
+| - 配置 qwen-image-2.0 / qwen-image-2.0-pro API | | | | | |
+| - 实现 `src/agents/tools/image_generation_tool.py` | | | | | |
+| - 创建 `src/agents/skills/configs/image_gen.yaml` 技能配置 | | | | | |
+| - 测试生图质量和响应时间 | | | | | |
+| **A13: 图文科普 Skills 设计** ⭐新增 | A + D | 2天 | Week 5 第 2-3 天 | A12 | 待开始 |
+| - 设计疾病预测图文科普流程（诊断 → 生图 → 图解） | | | | | |
+| - 设计巡检报告图文展示（问题 → 示意图 → 解决方案） | | | | | |
+| - 实现多模态 + 生图协同逻辑 | | | | | |
+| **D6: 图文科普前端展示** ⭐新增 | D | 1天 | Week 5 第 3 天 | A13 | 待开始 |
+| - 图文科普结果展示组件 | | | | | |
+| - 图片生成进度动画 | | | | | |
+| - 图片下载/分享功能 | | | | | |
 | **B4: 前端功能入口设计** | B | 2天 | Week 6 第 1-2 天 | - | 待开始 |
 | - 设计外部服务入口卡片 UI | | | | | |
 | - 在主页面欢迎区域集成服务入口 | | | | | |
@@ -188,17 +235,20 @@
 | - 前端状态指示灯 | | | | | |
 | **A5: 端到端测试用例** | A | 1天 | Week 6 第 3 天 | 阶段二 | 待开始 |
 | - 编写端到端测试脚本 | | | | | |
-| - 覆盖主要功能场景 | | | | | |
+| - 覆盖主要功能场景（含图文科普） | | | | | |
 | **D5: TTS 语音输出** | D | 2天 | Week 6 任意时间（独立任务） | - | 待开始 |
 | - 集成 Web Speech API | | | | | |
 | - 添加语音播报按钮和开关 | | | | | |
 | - 支持长文本分段播报 + 进度显示 | | | | | |
 
-**⚠️ Week 6 任务执行顺序**：
-1. **第 1 天**：A3/A4（配置支持）+ B4 启动
-2. **第 2 天**：B4 继续 + D5 启动
-3. **第 3 天**：A5（端到端测试）+ B4 收尾
-4. **第 4-5 天**：切换到阶段四（C3/C4 部署预演）
+**⚠️ Week 5-6 任务执行顺序**：
+1. **Week 5 第 1 天**：A12（生图模型配置）启动
+2. **Week 5 第 2 天**：A12 继续 + A13（图文科普设计）启动
+3. **Week 5 第 3 天**：A13 继续 + D6（图文科普前端）+ A3（外部服务配置）
+4. **Week 6 第 1 天**：A3/A4（配置支持）+ B4 启动
+5. **Week 6 第 2 天**：B4 继续 + D5 启动
+6. **Week 6 第 3 天**：A5（端到端测试）+ B4 收尾
+7. **Week 6 第 4-5 天**：切换到阶段四（C3/C4 部署预演）
 
 #### 里程碑
 - [ ] 外部服务入口 UI 上线
@@ -206,6 +256,9 @@
 - [ ] TTS 语音播报功能上线
 - [ ] 环境配置支持外部服务 URL
 - [ ] 端到端测试覆盖完成
+- [ ] ⭐新增：生图模型集成完成（qwen-image-2.0）
+- [ ] ⭐新增：图文科普 Skills 上线（疾病预测、巡检报告）
+- [ ] ⭐新增：图文科普前端展示组件上线
 
 ---
 
@@ -275,34 +328,20 @@
 - `src/agents/utils.py`: 添加多模态模型获取方法
 - `src/agents/orchestrator_agent_v2.py`: 增强多模态提示词
 
-#### ⚠️ 待办：前端多模态消息封装
+#### ✅ 已完成：前端多模态消息封装（2026-03-19）
 
-**当前问题**（2026-03-19）：
-- 前端只传递 `image_paths`（图片路径字符串）
-- 后端只是把路径拼接到文本消息中（`service/server.py:394-397`）
-- LLM 只收到纯文本消息，没有真正接收到图像数据
+**问题已解决**：
+- 前端现在正确传递图片 base64 数据
+- 后端构建 OpenAI 兼容的多模态消息格式
+- LLM 正确接收图像数据进行多模态理解
 
-**需要实现的 OpenAI 兼容多模态消息格式**：
+**实现方案**：
 ```python
 HumanMessage(content=[
     {"type": "text", "text": "用户问题"},
     {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}
 ])
 ```
-
-**待办任务**：
-1. **前端修改** (`frontend/src/app/page.tsx`)：
-   - 读取图片为 base64 编码
-   - 通过 API 传递 base64 数据而非仅文件路径
-
-2. **后端修改** (`service/server.py`)：
-   - 接收 base64 图片数据
-   - 构建 OpenAI 兼容的多模态消息格式
-   - 传递给 Agent 处理
-
-3. **前端提示恢复**：
-   - 取消注释 "支持图片识别" 提示
-   - 确保多模态模型真正接收到图像数据后再显示
 
 ### 5.2 网络搜索功能
 
@@ -408,6 +447,197 @@ async def check_external_services():
     return {"status": "healthy", "services": results}
 ```
 
+### 5.9 Qwen3.6 模型适配 ⭐新增
+
+**参考文档**: https://qwen.ai/blog?id=qwen3.6
+
+**配置文件**: `src/config.py` - 添加 qwen3.6 模型配置
+
+**关键特性**:
+- 能力增强：更强的推理能力、更好的多语言支持
+- 多模态能力提升：更准确的图像理解
+- 建议优先用于复杂推理任务
+
+**配置示例**:
+```python
+# src/config.py
+QWEN_MODELS = {
+    "qwen3.6": {
+        "model_name": "qwen3.6",
+        "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "capabilities": ["text", "vision", "reasoning"],
+        "recommended_for": ["complex_analysis", "multi_step_reasoning"]
+    }
+}
+```
+
+### 5.10 模型分级选择机制 ⭐新增
+
+**核心思想**: 根据任务复杂度自动选择合适的模型，降低 API 成本
+
+**实现文件**: `src/agents/utils/model_selector.py`
+
+**分级规则**:
+| 任务类型 | 推荐模型 | 理由 |
+|----------|----------|------|
+| 复杂推理（疾病诊断、定价分析） | qwen3.6 / qwen3.5-plus | 需要强推理能力 |
+| 固定工作流（检测触发、简单问答） | qwen3.5-flash | 速度快、成本低 |
+| 多模态分析（图片理解） | qwen3.5-plus / qwen3.5-flash | 两者都支持多模态 |
+| 生图任务 | qwen-image-2.0 | 专用生图模型 |
+
+**实现逻辑**:
+```python
+# src/agents/utils/model_selector.py
+class ModelSelector:
+    def select_model(self, task_type: str, complexity: str) -> str:
+        if task_type in ["disease_prediction", "pricing_analysis"]:
+            return "qwen3.6"  # 复杂推理
+        elif task_type in ["detection_trigger", "simple_query"]:
+            return "qwen3.5-flash"  # 简单任务
+        elif task_type == "image_generation":
+            return "qwen-image-2.0"
+        return "qwen3.5-plus"  # 默认
+```
+
+**Skill 级别配置**:
+```yaml
+# src/agents/skills/configs/disease_prediction.yaml
+model_preference:
+  primary: qwen3.6
+  fallback: qwen3.5-plus
+  
+# src/agents/skills/configs/detection.yaml
+model_preference:
+  primary: qwen3.5-flash  # 检测触发用 flash 即可
+```
+
+### 5.11 前端 Demo 卡片完善 ⭐新增
+
+**目标**: 为每个 Skill 创建预设 Demo 示例，用户点击即可触发
+
+**前端配置**: `frontend/src/config/demo-cards.ts`
+
+**Demo 卡片设计**:
+```typescript
+// frontend/src/config/demo-cards.ts
+export const DEMO_CARDS = [
+  {
+    skill: "pest_detection",
+    title: "病虫害识别",
+    icon: "🔍",
+    demo_input: {
+      text: "请帮我识别这张图片中的病虫害",
+      image: "/demo_images/pest_sample.jpg"
+    }
+  },
+  {
+    skill: "disease_prediction",
+    title: "疾病预测",
+    icon: "🏥",
+    demo_input: {
+      text: "我的奶牛最近食欲不振，体温升高，请帮我分析可能的疾病",
+      image: "/demo_images/cow_symptom.jpg"
+    }
+  },
+  {
+    skill: "pricing_analysis",
+    title: "定价分析",
+    icon: "💰",
+    demo_input: {
+      text: "请分析当前大米的市场定价因素"
+    }
+  },
+  // ... 其他 Skill Demo
+]
+```
+
+**一键触发逻辑**:
+```typescript
+// frontend/src/app/page.tsx
+const handleDemoClick = (demo: DemoCard) => {
+  setInputText(demo.demo_input.text)
+  if (demo.demo_input.image) {
+    // 自动加载 Demo 图片
+    setImagePreview(demo.demo_input.image)
+  }
+  // 自动触发对话
+  handleSendMessage()
+}
+```
+
+### 5.12 生图模型集成 ⭐新增
+
+**模型**: qwen-image-2.0 / qwen-image-2.0-pro
+
+**配置文件**: `src/config.py` - 添加生图模型配置
+
+**实现文件**: `src/agents/tools/image_generation_tool.py`
+
+**核心能力**:
+- 文生图：根据文字描述生成图片
+- 图解科普：生成病症示意图、治疗方法图解
+- 交互增强：文字回答 + 配图，类似 nano banana 科普博客
+
+**工具实现**:
+```python
+# src/agents/tools/image_generation_tool.py
+from langchain.tools import BaseTool
+
+class ImageGenerationTool(BaseTool):
+    name = "image_generation"
+    description = "生成图解科普图片，用于病症说明、治疗方法展示"
+    
+    async def _arun(self, prompt: str, style: str = "illustration") -> str:
+        # 调用 qwen-image-2.0 API
+        response = await dashscope_image_api.generate(
+            model="qwen-image-2.0",
+            prompt=prompt,
+            style=style
+        )
+        return response.image_url
+```
+
+### 5.13 图文科普 Skills 设计 ⭐新增
+
+**典型应用场景**:
+
+**疾病预测图文科普**:
+```
+用户上传图片 + 症状描述
+    ↓
+Qwen-VL 分析图片 + Qwen 推理病症
+    ↓
+调用 image_generation_tool 生成病症图解
+    ↓
+输出：文字诊断 + 症状图解 + 治疗建议 + 治疗示意图
+```
+
+**巡检报告图文展示**:
+```
+用户上传巡检照片
+    ↓
+Qwen-VL 分析问题（如设备故障）
+    ↓
+调用 image_generation_tool 生成问题示意图
+    ↓
+输出：文字报告 + 问题标注图 + 解决方案图解
+```
+
+**Skill 配置示例**:
+```yaml
+# src/agents/skills/configs/disease_prediction.yaml
+name: disease_prediction
+tools:
+  - disease_prediction_tool
+  - image_generation_tool  # 新增生图工具
+workflow:
+  - step: analyze_symptoms
+    model: qwen3.6
+  - step: generate_explanation_image
+    tool: image_generation_tool
+    prompt_template: "生成 {disease_name} 症状示意图，展示 {key_symptoms}"
+```
+
 ---
 
 ## 六、关键风险与缓解
@@ -423,6 +653,11 @@ async def check_external_services():
 | TTS 长文本播报卡顿 | 低 | 分段播报 + 进度显示 + 可暂停控制 |
 | 定价搜索结果质量 | 中 | 实现 result_filter 策略，过滤无效结果，置信度评分 |
 | 部署时间窗口不足 | 高 | 提前到 Week 6 开始部署准备，部署预演 |
+| ⭐新增：生图模型 API 成本过高 | 中 | 使用 qwen-image-2.0（非 pro），限制生图调用频率，仅在关键场景使用 |
+| ⭐新增：模型分级判断不准确 | 中 | 设计明确的任务分类规则，人工审核分级效果，逐步优化规则 |
+| ⭐新增：Demo 卡片图片加载慢 | 低 | 使用本地 Demo 图片，预加载优化，压缩图片体积 |
+| ⭐新增：Qwen3.6 API 兼容性问题 | 中 | 测试 API 接口兼容性，准备降级到 Qwen3.5-plus |
+| ⭐新增：图文科普生成时间过长 | 中 | 异步生图，文字先返回，图片后续推送，进度提示 |
 
 ---
 
@@ -430,6 +665,9 @@ async def check_external_services():
 
 ### API 密钥
 - [ ] qwen3.5-plus API Key（阿里云 DashScope）
+- [ ] qwen3.5-flash API Key（阿里云 DashScope）⭐新增
+- [ ] qwen3.6 API Key（阿里云 DashScope）⭐新增
+- [ ] qwen-image-2.0 API Key（阿里云 DashScope）⭐新增
 - [ ] Tavily Search API Key
 
 ### 外部服务部署
@@ -465,24 +703,26 @@ bash scripts/dev/test_production.sh
 
 | 成员 | Week 1-2 | Week 3-4 | Week 5-6 | Week 7 | 合计 | 专长利用率 |
 |------|----------|----------|----------|--------|------|------------|
-| **A** | A1(3) + A2(3) = 6天 | A7(1) + A8(2) + A9(1) = 4天 | A3(1) + A4(1) + A5(1) = 3天<br>**Week 6 第 4-5 天：参与 C4 部署预演** | A6(2) = 2天 | **15天** | ⭐⭐⭐ |
-| **B** | B1(2) = 2天 | B2(3) + B3(1) = 4天 | B4(2) = 2天<br>**Week 6 第 1-3 天：前端入口开发** | - | **8天** | ⭐⭐⭐ |
+| **A** | A1(3) + A2(3) = 6天 | A7(1) + A8(2) + A9(1) + A10(1) + A11(2) = 7天 | A3(1) + A4(1) + A5(1) + A12(2) + A13(1) = 6天<br>**Week 6 第 4-5 天：参与 C4 部署预演** | A6(2) = 2天 | **21天** | ⭐⭐⭐ |
+| **B** | B1(2) = 2天 | B2(3) + B3(1) + B5(2) = 6天 | B4(2) = 2天<br>**Week 6 第 1-3 天：前端入口开发** | - | **10天** | ⭐⭐⭐ |
 | **C** | C1(2) + C2(2) = 4天 | - | C3(2) + C4(1) = 3天<br>**Week 6 第 4-5 天：生产配置 + 预演** | C5(2) + C6(1) = 3天 | **10天** | ⭐⭐⭐ |
-| **D** | D1(2) + D2(2) = 4天 | D3(2) + D4(3) = 5天 | D5(2) = 2天 | - | **11天** | ⭐⭐⭐ |
+| **D** | D1(2) + D2(2) = 4天 | D3(2) + D4(3) = 5天 | D5(2) + D6(1) + A13协作(1) = 4天 | - | **13天** | ⭐⭐⭐ |
 
-**⚠️ Week 6 任务并行说明**：
-- **前 3 天**：B（前端入口）+ A（配置支持）并行
-- **后 2 天**：C（生产配置）+ A（部署预演协助）并行
+**⚠️ Week 5-6 任务并行说明**：
+- **Week 5**：A（生图模型 + 图文科普设计）+ D（图文科普前端 + 协作设计）并行
+- **Week 6 前 3 天**：B（前端入口）+ A（配置支持）+ D（TTS）并行
+- **Week 6 后 2 天**：C（生产配置）+ A（部署预演协助）并行
 - **D5（TTS）**：可在 Week 6 任意时间独立完成，不阻塞其他任务
 
-**对比 v1.2 优化**：
-- **A**: 8天 → 15天（+7）
-- **B**: 7天 → 8天（+1）
-- **C**: 7天 → 10天（+3）
-- **D**: 8天 → 11天（+3）
+**对比 v2.3 优化**：
+- **A**: 15天 → 21天（+6）⭐新增：Qwen3.6适配 + 模型分级 + 生图模型
+- **B**: 8天 → 10天（+2）⭐新增：前端 Demo 卡片完善
+- **C**: 10天 → 10天（不变）
+- **D**: 11天 → 13天（+2）⭐新增：图文科普前端展示
 
 **工作量平衡**：
-- 所有成员工作量在 8-15 天之间
+- A 工作量最高（21天），负责核心架构升级（Qwen3.6、模型分级、生图）
+- 所有成员工作量在 10-21 天之间
 - 每位成员的专长都得到充分利用
 - Week 7 不再是 C 的高压周（3天 vs 原 5天）
 
@@ -492,22 +732,29 @@ bash scripts/dev/test_production.sh
 
 | 文件 | 作用 | 负责人 |
 |------|------|--------|
-| `src/config.py` | 模型配置 | A |
+| `src/config.py` | 模型配置（含 Qwen3.6、flash、生图） | A |
 | `src/agents/orchestrator_agent_v2.py` | Agent 主入口 | A |
+| `src/agents/utils/model_selector.py` | ⭐新增：模型分级选择器 | A |
 | `src/agents/tools/web_search_tool.py` | 搜索工具 | A |
 | `src/agents/skills/configs/web_search.yaml` | 搜索技能 | A |
+| `src/agents/tools/image_generation_tool.py` | ⭐新增：生图工具 | A |
+| `src/agents/skills/configs/image_gen.yaml` | ⭐新增：生图技能配置 | A |
 | `src/agents/tools/pricing_tool.py` | 定价工具（集成搜索） | C |
 | `src/agents/tools/detection_tools.py` | 检测工具（多模态增强） | C |
-| `src/agents/tools/farm_inspection_tool.py` | 巡检工具（多图片） | D |
-| `src/agents/tools/disease_prediction_tool.py` | 疾病预测（多模态） | D |
+| `src/agents/tools/farm_inspection_tool.py` | 巡检工具（多图片 + 图文科普） | D |
+| `src/agents/tools/disease_prediction_tool.py` | 疾病预测（多模态 + 图文科普） | D |
 | `src/agents/skills/configs/planning.yaml` | 规划技能 | B |
 | `src/config/external_services.py` | 外部服务 URL 配置 | A |
 | `service/api/health.py` | 外部服务健康检查 | A |
 | `frontend/src/config/external-services.ts` | 外部服务前端配置 | A |
-| `frontend/src/app/page.tsx` | 主页面（含服务入口） | B |
+| `frontend/src/config/demo-cards.ts` | ⭐新增：Demo 卡片配置 | B |
+| `frontend/src/app/page.tsx` | 主页面（含服务入口 + Demo 卡片） | B |
+| `frontend/src/components/ImageExplanation.tsx` | ⭐新增：图文科普展示组件 | D |
 | `.env.production` | 生产配置（含外部服务 URL） | C |
 | `docker-compose.yml` | 部署编排 | C |
 | `docs/guides/qwen-vl-advanced.md` | Qwen-VL 技术预研报告 | A |
+| `docs/guides/model-selection.md` | ⭐新增：模型分级选择指南 | A |
+| `docs/guides/image-generation.md` | ⭐新增：生图模型使用指南 | A |
 | `docs/guides/performance-optimization.md` | 性能优化文档 | A |
 | `docs/guides/development.md` | 开发工作流（含故障排查） | A |
 
@@ -518,15 +765,41 @@ bash scripts/dev/test_production.sh
 | 版本 | 日期 | 主要内容 | 里程碑 |
 |------|------|----------|--------|
 | v0.1-alpha | Week 2 | 多模态 + 搜索功能 | - Agent 支持多模态输入<br>- Agent 可以联网搜索<br>- RAG 系统支持混合检索<br>- 定价工具支持实时价格查询 |
-| v0.1-beta | Week 4 | UI 优化完成 | - 差异化 UI 设计完成<br>- 移动端适配完成<br>- 工具调用可视化上线<br>- 知识溯源功能上线<br>- RAG 混合检索策略优化完成 |
-| v0.1-rc | Week 6 | 外部服务入口 + TTS 语音上线 | - **Week 6 第 1-3 天**：外部服务入口 UI 上线<br>- **Week 6 第 1-3 天**：外部服务健康检查上线<br>- **Week 6 第 1-3 天**：TTS 语音播报功能上线<br>- **Week 6 第 1-3 天**：端到端测试覆盖完成<br>- **Week 6 第 4-5 天**：生产环境配置完成<br>- **Week 6 第 4-5 天**：部署预演通过 |
-| v0.1 | Week 7 | 正式发布（含外部服务协调） | - 外部服务 URL 配置完成<br>- 部署验证通过<br>- 监控运维方案就绪<br>- v0.1 版本发布 |
+| v0.1-beta | Week 4 | UI 优化 + 模型升级 | - 差异化 UI 设计完成<br>- 移动端适配完成<br>- 工具调用可视化上线<br>- 知识溯源功能上线<br>- RAG 混合检索策略优化完成<br>- ⭐新增：Qwen3.6 模型适配完成<br>- ⭐新增：模型分级选择机制上线<br>- ⭐新增：前端 Demo 卡片一键触发上线 |
+| v0.1-rc | Week 6 | 外部服务 + 生图 + TTS | - **Week 5**：生图模型集成完成<br>- **Week 5**：图文科普 Skills 上线<br>- **Week 5**：图文科普前端展示上线<br>- **Week 6 第 1-3 天**：外部服务入口 UI 上线<br>- **Week 6 第 1-3 天**：外部服务健康检查上线<br>- **Week 6 第 1-3 天**：TTS 语音播报功能上线<br>- **Week 6 第 1-3 天**：端到端测试覆盖完成<br>- **Week 6 第 4-5 天**：生产环境配置完成<br>- **Week 6 第 4-5 天**：部署预演通过 |
+| v0.1 | Week 7 | 正式发布 | - 外部服务 URL 配置完成<br>- 部署验证通过<br>- 监控运维方案就绪<br>- v0.1 版本发布 |
 
 ---
 
-## 十一、v2.0 版本优化总结
+## 十一、版本优化总结
 
-### 主要改进
+### v2.4 主要改进（2026-04-03）⭐新增
+
+1. **新增四大需求**：
+   - 前端 Demo 卡片完善（B5）- 各功能一键触发
+   - 模型分级选择机制（A11）- plus/flash 自动切换，降低成本
+   - 生图模型集成（A12）- qwen-image-2.0 图文科普
+   - Qwen3.6 适配（A10）- 升级到更强模型
+
+2. **工作量调整**：
+   - A: 15天 → 21天（+6）- 承担核心架构升级
+   - B: 8天 → 10天（+2）- 前端 Demo 卡片
+   - D: 11天 → 13天（+2）- 图文科普前端展示
+
+3. **新增技术实现章节**（5.9 - 5.13）：
+   - Qwen3.6 模型适配方案
+   - 模型分级选择机制设计
+   - 前端 Demo 卡片配置
+   - 生图模型集成方案
+   - 图文科普 Skills 设计
+
+4. **新增风险项**：
+   - 生图模型 API 成本控制
+   - 模型分级判断准确性
+   - Demo 卡片图片加载优化
+   - 图文科普生成时间控制
+
+### v2.0-v2.3 主要改进
 
 1. **工作量重新分配**：所有成员工作量在 8-15 天之间，分配均衡
 2. **充分利用成员专长**：
@@ -560,6 +833,12 @@ bash scripts/dev/test_production.sh
 | A9 | 文档完善 | A | 1天 | Week 3-4 |
 | A4 | 外部服务健康检查 | A | 1天 | Week 5-6 |
 | A5 | 端到端测试用例 | A | 1天 | Week 5-6 |
+| **⭐A10** | **Qwen3.6 模型适配** | **A** | **1天** | **Week 3-4** |
+| **⭐A11** | **模型分级选择机制** | **A** | **2天** | **Week 3-4** |
+| **⭐B5** | **前端 Demo 卡片完善** | **B** | **2天** | **Week 3-4** |
+| **⭐A12** | **生图模型集成** | **A** | **2天** | **Week 5** |
+| **⭐A13** | **图文科普 Skills 设计** | **A + D** | **2天** | **Week 5** |
+| **⭐D6** | **图文科普前端展示** | **D** | **1天** | **Week 5** |
 
 ### 文件变更记录
 
@@ -568,3 +847,4 @@ bash scripts/dev/test_production.sh
 | v1.2 → v2.0 | 2026-03-13 | 优化工作量分配，充分利用成员专长，降低部署风险 |
 | v2.0 → v2.1 | 2026-03-13 | 新增成员 A Week 3-4 任务（A7/A8/A9） |
 | v2.1 → v2.2 | 2026-03-19 | 新增多模态消息封装待办任务（5.1 章节） |
+| v2.3 → v2.4 | 2026-04-03 | ⭐新增四大需求：前端 Demo 卡片、模型分级选择、生图模型集成、Qwen3.6 适配 |
