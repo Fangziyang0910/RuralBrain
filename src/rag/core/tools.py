@@ -448,12 +448,13 @@ def knowledge_search_tool(
     context_mode: str = "standard",
     search_type: str = RETRIEVE_SEARCH_TYPE,
     use_hybrid: bool = True,
+    enable_web_search: bool = False,
 ) -> str:
     """
     检索知识库（支持混合检索：向量 + BM25 关键词）。
 
     基于查询检索相关文档片段，默认使用混合检索策略（语义相似度 + 关键词匹配），
-    提高关键词精确匹配的召回率。
+    提高关键词精确匹配的召回率。当知识库结果不足时，可自动补充联网搜索。
 
     Args:
         query: 查询问题或关键词（必需）
@@ -469,11 +470,49 @@ def knowledge_search_tool(
         use_hybrid: 是否使用混合检索（可选，默认 true）
             - true: 混合检索（向量 + BM25 关键词），提高召回率
             - false: 仅向量检索
+        enable_web_search: 是否启用联网搜索补充（可选，默认 false）
+            - true: 当知识库结果不足时，自动调用联网搜索补充
+            - false: 仅使用知识库检索
 
     Returns:
-        匹配的文档片段列表，包含来源、位置、内容
+        匹配的文档片段列表，包含来源、位置、内容。如果启用联网搜索补充，
+        结果会标注来源（知识库/网络）。
     """
-    return search_knowledge(query, top_k, context_mode, search_type, use_hybrid=use_hybrid)
+    # 先检索知识库
+    kb_result = search_knowledge(query, top_k, context_mode, search_type, use_hybrid=use_hybrid)
+
+    # 判断是否需要联网搜索补充
+    need_web_search = False
+    if enable_web_search:
+        # 结果为空或数量不足
+        if "未找到相关信息" in kb_result or "知识库中没有文档" in kb_result:
+            need_web_search = True
+        # 结果数量少于 2 个
+        elif kb_result.count("【知识片段") < 2:
+            need_web_search = True
+        # 存在低相似度警告
+        elif "相似度较低" in kb_result:
+            need_web_search = True
+
+    if need_web_search:
+        logger.info(f"知识库结果不足，启用联网搜索补充: {query}")
+        try:
+            from src.agents.tools.web_search_tool import web_search_tool
+            web_result = web_search_tool.invoke(query)
+
+            # 合并结果
+            if "未找到相关信息" in kb_result or "知识库中没有文档" in kb_result:
+                # 知识库无结果，仅返回网络搜索
+                return f"📚 知识库暂无相关信息，已通过联网搜索获取：\n\n{web_result}"
+            else:
+                # 合并知识库和网络搜索结果
+                return f"📚 知识库检索结果：\n\n{kb_result}\n\n---\n\n🌐 联网搜索补充：\n\n{web_result}"
+        except Exception as e:
+            logger.warning(f"联网搜索补充失败: {e}")
+            # 联网搜索失败，返回知识库结果
+            return kb_result
+
+    return kb_result
 
 @tool
 def key_points_search_tool(query: str, sources: Optional[str] = None) -> str:

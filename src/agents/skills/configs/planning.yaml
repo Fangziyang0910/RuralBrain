@@ -49,6 +49,9 @@ consult_planning_knowledge:
         - "minimal": 仅匹配片段（最少 Token）- 最快
         - "standard": 片段 + 短上下文（300 字，默认）
         - "expanded": 片段 + 长上下文（500 字）- 最详细
+      * enable_web_search（可选）：是否启用联网搜索补充，默认 false
+        - true: 当知识库结果不足时，自动调用联网搜索补充
+        - false: 仅使用知识库检索
 
     **key_points_search_tool**：搜索关键要点（预先提取的核心信息）
     - **何时使用**：在所有文档的关键要点中搜索关键词，比全文检索更精确
