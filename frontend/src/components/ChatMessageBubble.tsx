@@ -5,11 +5,12 @@ import React, { useState } from "react";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChevronUp, ChevronDown, FileText, BookOpen } from "lucide-react";
+import { ChevronUp, ChevronDown, FileText, BookOpen, CheckCircle2, Loader2 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { LoadingDots } from "./ui/LoadingDots";
 import { MessageImageGallery } from "./ui/MessageImageGallery";
 import { ToolResultImage } from "./ui/ToolResultImage";
+import { getToolConfig, getToolColorClass } from "@/config/tool-icons";
 
 interface ToolCall {
   name: string;
@@ -166,81 +167,78 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
 function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const toolNameMap: Record<string, string> = {
-    // 检测类工具
-    pest_detection_tool: "🦗 病虫害识别",
-    rice_detection_tool: "🌾 大米品种识别",
-    cow_detection_tool: "🐄 牛只目标检测",
-    plant_disease_detection_tool: "🍃 植物病害识别",
-
-    // 商业咨询类工具
-    pricing_tool: "💰 定价分析",
-    marketing_tool: "📈 营销策略",
-
-    // 巡检类工具
-    farm_inspection_tool: "🔍 农场巡检",
-    scene_classifier_tool: "📷 场景分类",
-    disease_prediction_tool: "🏥 疾病预测",
-
-    // RAG 知识库工具
-    document_list_tool: "📋 文档列表",
-    document_overview_tool: "📖 文档概览",
-    knowledge_search_tool: "🔎 知识检索",
-    key_points_search_tool: "📌 要点搜索",
-
-    // 网络搜索工具
-    web_search_tool: "🌐 网络搜索",
-  };
-
-  const displayName = toolNameMap[toolCall.name] || toolCall.name;
+  // 从配置获取工具图标和颜色
+  const config = getToolConfig(toolCall.name);
+  const colorClass = getToolColorClass(config.color);
 
   return (
-    <div className="tool-card-enhanced">
+    <div className={cn(
+      "rounded-xl border p-3.5 transition-all duration-200",
+      colorClass.bg,
+      colorClass.border,
+      "hover:shadow-sm"
+    )}>
       <div
         className="flex items-center justify-between cursor-pointer group"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <span className="text-lg font-semibold text-stone-800">
-            {displayName}
+          {/* 工具图标 */}
+          <span className="text-xl" role="img" aria-label={config.label}>
+            {config.icon}
           </span>
-          <span className={cn(
-            "text-xs px-2.5 py-1 rounded-full font-semibold",
-            toolCall.status === "已完成"
-              ? "bg-paddy-100 text-paddy-700"
-              : "bg-gold-100 text-gold-700"
-          )}>
-            {toolCall.status}
+          {/* 工具名称 */}
+          <span className={cn("text-base font-semibold", colorClass.text)}>
+            {config.label}
           </span>
+          {/* 状态指示器 */}
+          <div className="flex items-center gap-1.5">
+            {toolCall.status === "已完成" ? (
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+            ) : (
+              <Loader2 className="w-4 h-4 text-amber-500 animate-spin" />
+            )}
+            <span className={cn(
+              "text-xs px-2 py-0.5 rounded-full font-medium",
+              toolCall.status === "已完成"
+                ? "bg-green-100 text-green-700"
+                : "bg-amber-100 text-amber-700"
+            )}>
+              {toolCall.status}
+            </span>
+          </div>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-stone-400 group-hover:text-stone-600 transition-colors" />
+          <ChevronUp className={cn("w-5 h-5 transition-colors", colorClass.text, "opacity-60 group-hover:opacity-100")} />
         ) : (
-          <ChevronDown className="w-5 h-5 text-stone-400 group-hover:text-stone-600 transition-colors" />
+          <ChevronDown className={cn("w-5 h-5 transition-colors", colorClass.text, "opacity-60 group-hover:opacity-100")} />
         )}
       </div>
 
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-stone-100 space-y-3 animate-fade-in">
+        <div className={cn(
+          "mt-4 pt-4 border-t space-y-3 animate-fade-in",
+          colorClass.border
+        )}>
           {/* 检测结果图片 */}
           {toolCall.resultImage && (
             <ToolResultImage
               src={toolCall.resultImage}
               alt="工具检测结果"
-              toolName={displayName}
+              toolName={config.label}
             />
           )}
 
           {/* 工具调用摘要 */}
           {toolCall.summary && toolCall.summary.length > 0 && (
             <div>
-              <div className="text-xs font-semibold text-stone-600 mb-2 uppercase tracking-wide">
+              <div className={cn("text-xs font-semibold mb-2 uppercase tracking-wide", colorClass.text, "opacity-70")}>
                 执行摘要
               </div>
               <ul className="space-y-1.5">
                 {toolCall.summary.map((item, idx) => (
                   <li key={idx} className="text-sm text-stone-700 flex items-start gap-2">
-                    <span className="text-paddy-500 mt-0.5">•</span>
+                    <span className={cn("mt-0.5", colorClass.text)}>•</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -255,20 +253,23 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
 
 function KnowledgeSourceDisplay({ sources }: { sources: KnowledgeSource[] }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [selectedSource, setSelectedSource] = useState<number | null>(null);
 
   return (
-    <div className="knowledge-card-enhanced">
+    <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 transition-all duration-200 hover:shadow-sm">
       <div
         className="flex items-center justify-between cursor-pointer group"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-4 h-4 text-sky-600" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-sky-100 flex items-center justify-center">
+            <BookOpen className="w-4.5 h-4.5 text-sky-600" />
+          </div>
           <span className="text-sm font-semibold text-sky-900">
-            参考知识库
+            知识库引用
           </span>
           <span className="bg-sky-200 text-sky-800 text-xs px-2 py-0.5 rounded-full font-semibold">
-            {sources.length}
+            {sources.length} 条来源
           </span>
         </div>
         {isExpanded ? (
@@ -279,25 +280,42 @@ function KnowledgeSourceDisplay({ sources }: { sources: KnowledgeSource[] }) {
       </div>
 
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-sky-100 space-y-3 animate-fade-in">
+        <div className="mt-4 pt-4 border-t border-sky-200 space-y-3 animate-fade-in">
           {sources.map((source, idx) => (
-            <div key={idx} className="knowledge-item-enhanced">
+            <div
+              key={idx}
+              className={cn(
+                "rounded-lg border p-3 transition-all cursor-pointer",
+                selectedSource === idx
+                  ? "border-sky-400 bg-sky-100"
+                  : "border-sky-100 bg-white hover:border-sky-200"
+              )}
+              onClick={() => setSelectedSource(selectedSource === idx ? null : idx)}
+            >
               <div className="flex items-start gap-3 mb-2">
                 <FileText className="w-4 h-4 text-sky-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-stone-900 mb-1">
                     {source.source}
                     {source.page !== undefined && (
-                      <span className="text-stone-500 font-normal ml-2 text-xs">
+                      <span className="text-sky-600 font-normal ml-2 text-xs bg-sky-100 px-1.5 py-0.5 rounded">
                         第 {source.page} 页
                       </span>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="text-sm text-stone-600 leading-relaxed line-clamp-3">
+              <div className={cn(
+                "text-sm text-stone-600 leading-relaxed transition-all",
+                selectedSource === idx ? "line-clamp-none" : "line-clamp-2"
+              )}>
                 {source.content}
               </div>
+              {selectedSource === idx && (
+                <div className="mt-2 text-xs text-sky-600 flex items-center gap-1">
+                  <span>👆 点击收起</span>
+                </div>
+              )}
             </div>
           ))}
         </div>

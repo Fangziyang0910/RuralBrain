@@ -80,6 +80,10 @@ class DynamicToolMiddleware(AgentMiddleware):
     - 避免 thread_id 内重复注册同一工具
     """
 
+    # LangChain middleware 要求：声明此 middleware 提供的工具
+    # 动态工具不在此静态声明，由 wrap_model_call 动态注入
+    tools: list[BaseTool] = []
+
     def __init__(self, tool_loader: Optional["ToolLoader"] = None):
         """
         初始化动态工具注册中间件
