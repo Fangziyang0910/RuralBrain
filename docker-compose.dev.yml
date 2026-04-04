@@ -2,21 +2,18 @@
 # 使用 ONNX Runtime + 开发模式前端
 
 services:
-  # 前端服务 (Next.js 开发模式)
+  # 前端服务 (Next.js standalone 模式)
   frontend:
     image: zwxdockerbeginner/ruralbrain:frontend-onnx-v3
     container_name: ruralbrain-frontend
     ports:
-      - "3001:3000"
+      - "3001:3001"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
       - BACKEND_URL=http://backend:8081
       - NEXT_PUBLIC_API_URL=http://localhost:8081
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - PORT=3001
     depends_on:
       - backend
     restart: unless-stopped
