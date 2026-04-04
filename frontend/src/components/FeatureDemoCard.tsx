@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Play, ArrowRight } from "lucide-react";
+import type { DemoCardConfig } from "@/config/demo-cards";
 
 export interface DemoConfig {
   title: string;
@@ -9,7 +10,22 @@ export interface DemoConfig {
   description: string;
   exampleQuery: string;
   demoImage?: string; // 可选的演示图片路径
-  category?: "detection" | "business" | "inspection"; // 功能分类
+  category?: "detection" | "business" | "inspection" | "planning"; // 功能分类
+}
+
+/**
+ * 将新接口 DemoCardConfig 转换为内部 DemoConfig 格式
+ * 用于适配计划文档 5.11 章节的配置结构
+ */
+export function adaptDemoCard(card: DemoCardConfig): DemoConfig {
+  return {
+    title: card.title,
+    icon: card.icon,
+    description: card.description,
+    exampleQuery: card.demo_input.text,
+    demoImage: card.demo_input.image,
+    category: card.category,
+  };
 }
 
 interface FeatureDemoCardProps {

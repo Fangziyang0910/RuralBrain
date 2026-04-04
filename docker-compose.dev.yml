@@ -4,10 +4,10 @@
 services:
   # 前端服务 (Next.js 开发模式)
   frontend:
-    image: zwxdockerbeginner/ruralbrain:frontend-dev
+    image: zwxdockerbeginner/ruralbrain:frontend-onnx-v3
     container_name: ruralbrain-frontend
     ports:
-      - "3001:3001"
+      - "3001:3000"
     environment:
       - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
@@ -25,7 +25,7 @@ services:
 
   # 后端主服务
   backend:
-    image: zwxdockerbeginner/ruralbrain:backend-onnx-v2
+    image: zwxdockerbeginner/ruralbrain:backend-onnx-v3
     container_name: ruralbrain-backend
     ports:
       - "8081:8081"
@@ -45,6 +45,8 @@ services:
       - ./src/utils:/app/src/utils
       - ./src/config.py:/app/src/config.py
       - ./src/data:/app/src/data
+      # 知识库目录映射（开发环境）
+      - ./knowledge_base:/app/knowledge_base
     tmpfs:
       - /tmp/ruralbrain:size=500M,mode=0777
     depends_on:
@@ -55,7 +57,7 @@ services:
 
   # 检测服务
   detection-service:
-    image: zwxdockerbeginner/ruralbrain:detection-onnx-v2
+    image: zwxdockerbeginner/ruralbrain:detection-onnx-v3
     container_name: ruralbrain-detection-service
     ports:
       - "8001:8001"

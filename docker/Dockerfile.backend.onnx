@@ -64,10 +64,8 @@ COPY src/utils /app/src/utils
 COPY src/rag /app/src/rag
 
 # ==================== 疾病知识库（预构建）====================
-
-# 直接复制已构建的疾病知识库向量数据库
-# 源文档已被排除在 Git 外，使用历史提交中的预构建 chroma_db
-COPY knowledge_base/diseases/chroma_db /app/knowledge_base/diseases/chroma_db
+# 注：疾病知识库目前为空，暂时跳过
+# COPY knowledge_base/diseases/chroma_db /app/knowledge_base/diseases/chroma_db
 
 # ==================== 疾病知识库复制完成 ====================
 
