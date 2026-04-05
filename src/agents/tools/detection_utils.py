@@ -3,13 +3,20 @@
 提供图像检测工具的通用辅助函数，包括结果保存、编码和格式化。
 支持多模态检测结果解释（使用 LLM 生成自然语言分析）。
 """
+import sys
+from pathlib import Path
+
+# 确保项目根目录在 sys.path 中（支持从 src 目录运行）
+_project_root = Path(__file__).parent.parent.parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
 import base64
 import json
 import logging
 import os
 import re
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Literal
 import uuid
 import mimetypes

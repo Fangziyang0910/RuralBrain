@@ -2,9 +2,12 @@
 RAG 知识库配置
 支持环境变量覆盖，适配 Docker 部署
 """
+import logging
 import os
 from pathlib import Path
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 # ==================== 项目路径配置 ====================
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -206,24 +209,21 @@ def get_embeddings():
                 import dashscope
                 from dashscope import TextEmbedding
                 from langchain_community.embeddings.dashscope import DashScopeEmbeddings
-                import logging
 
                 # 设置 API Key
                 dashscope.api_key = QWEN_API_KEY
 
-                logging.info(f"使用阿里云 DashScope Embedding: {QWEN_EMBEDDING_MODEL}")
+                logger.info(f"使用阿里云 DashScope Embedding: {QWEN_EMBEDDING_MODEL}")
                 return DashScopeEmbeddings(
                     model=QWEN_EMBEDDING_MODEL,
                     dashscope_api_key=QWEN_API_KEY
                 )
             except ImportError as e:
-                import logging
-                logging.warning(f"DashScope SDK 未正确安装: {e}，尝试 OpenAI 兼容格式")
+                logger.warning(f"DashScope SDK 未正确安装: {e}，尝试 OpenAI 兼容格式")
                 # 尝试 OpenAI 兼容格式
                 try:
                     from langchain_openai import OpenAIEmbeddings
-                    import logging
-                    logging.info(f"使用阿里云百炼 Embedding (OpenAI 兼容格式): {QWEN_EMBEDDING_MODEL}")
+                    logger.info(f"使用阿里云百炼 Embedding (OpenAI 兼容格式): {QWEN_EMBEDDING_MODEL}")
                     return OpenAIEmbeddings(
                         model=QWEN_EMBEDDING_MODEL,
                         openai_api_key=QWEN_API_KEY,
@@ -232,11 +232,9 @@ def get_embeddings():
                 except ImportError:
                     pass
             except Exception as e:
-                import logging
-                logging.warning(f"DashScope Embedding 初始化失败: {e}，降级到本地模型")
+                logger.warning(f"DashScope Embedding 初始化失败: {e}，降级到本地模型")
         # 千问不可用，降级到本地模型
-        import logging
-        logging.warning("千问 API 密钥未配置或调用失败，降级到本地 Embedding 模型")
+        logger.warning("千问 API 密钥未配置或调用失败，降级到本地 Embedding 模型")
         return _get_local_embeddings()
 
     # OpenAI API
@@ -244,8 +242,7 @@ def get_embeddings():
         if OPENAI_API_KEY:
             try:
                 from langchain_openai import OpenAIEmbeddings
-                import logging
-                logging.info(f"使用 OpenAI Embedding: {OPENAI_EMBEDDING_MODEL}")
+                logger.info(f"使用 OpenAI Embedding: {OPENAI_EMBEDDING_MODEL}")
                 return OpenAIEmbeddings(
                     model=OPENAI_EMBEDDING_MODEL,
                     openai_api_key=OPENAI_API_KEY
@@ -253,8 +250,7 @@ def get_embeddings():
             except ImportError:
                 pass
         # OpenAI 不可用，降级到本地模型
-        import logging
-        logging.warning("OpenAI API 密钥未配置或依赖缺失，降级到本地 Embedding 模型")
+        logger.warning("OpenAI API 密钥未配置或依赖缺失，降级到本地 Embedding 模型")
         return _get_local_embeddings()
 
     # 本地（默认降级方案）
@@ -266,8 +262,7 @@ def _get_local_embeddings():
     """获取本地 Embedding 模型（降级方案）"""
     try:
         from langchain_community.embeddings import HuggingFaceEmbeddings
-        import logging
-        logging.info(f"使用本地 Embedding 模型: {EMBEDDING_MODEL_NAME}")
+        logger.info(f"使用本地 Embedding 模型: {EMBEDDING_MODEL_NAME}")
         return HuggingFaceEmbeddings(
             model_name=EMBEDDING_MODEL_NAME,
             model_kwargs={'device': EMBEDDING_DEVICE},
