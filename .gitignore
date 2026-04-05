@@ -47,11 +47,20 @@ runs/
 # Training scripts - 训练相关脚本（本地使用，不提交）
 scripts/training/
 
-#rag
-src/data
+# Source data - 只忽略大文件，保留 Markdown 案例文档
+src/data/**/*.pdf
+src/data/**/*.pptx
+src/data/**/*.ppt
+src/data/**/*.docx
+src/data/**/*.doc
+src/data/**/*.xlsx
+src/data/**/*.xls
+src/data/**/*.zip
+src/data/**/*.tar*
+src/data/**/*.rar
 
-# Training data - 数据集文件（大文件，不提交）
-data/
+# Training data - 数据集文件（大文件，不提交）- 只忽略顶层 data 目录
+/data/
 
 # Knowledge base - 完全由 Docker 镜像构建，不提交到 Git
 knowledge_base/
