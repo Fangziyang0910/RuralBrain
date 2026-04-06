@@ -24,9 +24,6 @@ from typing import Optional, Literal
 from langchain_core.documents import Document
 from langchain_core.tools import Tool, tool
 
-import sys
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
 from src.rag.config import (
     DEFAULT_TOP_K,
     RETRIEVE_SCORE_THRESHOLD,
@@ -214,6 +211,17 @@ def search_knowledge(
     **返回：**
     - 匹配的文档片段列表，包含来源、位置、内容
     """
+    # 参数边界校验
+    if not query or not query.strip():
+        return "⚠️ 查询内容不能为空"
+    if not 1 <= top_k <= 20:
+        return f"⚠️ top_k 参数超出范围: {top_k}，有效范围 1-20"
+    if context_mode not in ("minimal", "standard", "expanded"):
+        logger.warning(f"未知的 context_mode: {context_mode}，使用默认值 'standard'")
+        context_mode = "standard"
+    if score_threshold is not None and not 0 <= score_threshold <= 1:
+        return f"⚠️ score_threshold 参数超出范围: {score_threshold}，有效范围 0-1"
+
     try:
         cache = get_vector_cache()
 
@@ -252,22 +260,12 @@ def search_knowledge(
 
                 logger.info(f"混合检索: 返回 {len(results)} 个结果")
 
-                # 如果混合检索有结果，跳过后续的向量检索
-                if results:
-                    # 直接跳到结果格式化
-                    pass
-                else:
-                    # 混合检索无结果，回退到向量检索
-                    logger.warning("混合检索无结果，回退到向量检索")
-                    should_use_hybrid = False
-
             except Exception as e:
                 logger.warning(f"混合检索失败，回退到向量检索: {e}")
-                should_use_hybrid = False
                 results = []
 
-        # 如果未使用混合检索或混合检索失败，使用传统向量检索
-        if not should_use_hybrid or not results:
+        # 如果混合检索无结果或未启用，使用传统向量检索
+        if not results:
             if search_type == "similarity_score_threshold":
                 # 使用带评分过滤的检索
                 results_with_scores = db.similarity_search_with_score(query, k=top_k)

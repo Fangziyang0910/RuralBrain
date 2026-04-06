@@ -7,6 +7,11 @@ import os
 from pathlib import Path
 from typing import Literal
 
+# 先加载 .env 文件，确保环境变量可用
+from dotenv import load_dotenv
+_project_root = Path(__file__).parent.parent.parent
+load_dotenv(_project_root / ".env")
+
 logger = logging.getLogger(__name__)
 
 # ==================== 项目路径配置 ====================
@@ -146,17 +151,10 @@ validate_config()
 
 
 # ==================== Embedding 单例缓存 ====================
+import threading
+
 _embedding_instance = None
-_embedding_lock = None
-
-
-def _get_embedding_lock():
-    """获取 Embedding 初始化锁"""
-    global _embedding_lock
-    if _embedding_lock is None:
-        import threading
-        _embedding_lock = threading.Lock()
-    return _embedding_lock
+_embedding_lock = threading.Lock()  # 模块加载时初始化，避免竞态条件
 
 
 def get_embeddings_cached():
@@ -173,7 +171,7 @@ def get_embeddings_cached():
     if _embedding_instance is not None:
         return _embedding_instance
 
-    with _get_embedding_lock():
+    with _embedding_lock:
         # 双重检查
         if _embedding_instance is None:
             _embedding_instance = get_embeddings()

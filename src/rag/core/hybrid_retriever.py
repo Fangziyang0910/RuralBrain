@@ -16,10 +16,6 @@ from typing import List, Optional, Tuple
 
 from langchain_core.documents import Document
 
-import sys
-from pathlib import Path
-sys.path.append(str(Path(__file__).parent.parent.parent))
-
 from src.rag.config import (
     DEFAULT_TOP_K,
     RETRIEVE_SCORE_THRESHOLD,
