@@ -241,8 +241,9 @@
     @apply bg-gradient-to-br from-paddy-500 to-paddy-600 text-white;
     @apply shadow-md;
     @apply rounded-2xl rounded-br-lg;
-    /* 完全自适应内容宽度，不设最大宽度限制 */
+    /* 自适应内容宽度，但有最大宽度限制防止超出边界 */
     width: fit-content;
+    max-width: 90%;
   }
 
   .message-ai-enhanced {
@@ -519,6 +520,139 @@
   .btn {
     @apply text-sm px-3 py-2;
   }
+
+  /* 工具调用卡片移动端优化 */
+  .tool-card,
+  .tool-card-enhanced {
+    @apply p-3;
+  }
+
+  /* 知识库卡片移动端优化 */
+  .knowledge-card,
+  .knowledge-card-enhanced {
+    @apply p-3;
+  }
+
+  /* 知识库条目移动端优化 */
+  .knowledge-item,
+  .knowledge-item-enhanced {
+    @apply p-2.5 text-sm;
+  }
+}
+
+/* ==================== 超小屏幕优化（< 480px） ==================== */
+@media (max-width: 480px) {
+  /* 消息气泡超小屏优化 */
+  .message-bubble {
+    @apply max-w-[90%] px-3 py-2.5 text-sm;
+  }
+
+  /* 用户消息气泡 - 更小的宽度避免图片溢出 */
+  .message-user-enhanced {
+    @apply max-w-[85%];
+  }
+
+  /* AI 消息气泡 - 保持稍大的宽度用于长文本 */
+  .message-ai-enhanced {
+    @apply max-w-[90%];
+  }
+
+  /* 按钮超小屏优化 */
+  .btn {
+    @apply text-xs px-2.5 py-2;
+  }
+
+  /* 工具调用卡片超小屏优化 */
+  .tool-card-enhanced {
+    @apply p-2.5;
+  }
+
+  .tool-card-enhanced .text-base {
+    @apply text-sm;
+  }
+
+  .tool-card-enhanced .text-xs {
+    @apply text-[10px];
+  }
+
+  /* 知识库卡片超小屏优化 */
+  .knowledge-card-enhanced {
+    @apply p-2.5;
+  }
+
+  /* 输入框超小屏优化 */
+  .input-enhanced {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  /* 输入容器超小屏优化 */
+  .input-container {
+    @apply px-2 py-1 gap-1.5;
+    box-sizing: border-box;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  /* 移动端输入区域限制 */
+  footer form {
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+
+  /* 图片预览卡片超小屏优化 */
+  .image-preview-card {
+    @apply h-16 w-16;
+  }
+
+  /* 用户消息图片容器超小屏优化 - 确保不溢出 */
+  .message-user-enhanced + div img {
+    @apply max-w-[140px];
+  }
+}
+
+/* ==================== 横屏模式优化 ==================== */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* 横屏时减少垂直间距 */
+  main {
+    @apply py-3;
+  }
+
+  footer {
+    @apply py-2;
+  }
+}
+
+/* ==================== 移动端工具调用样式 ==================== */
+@media (max-width: 640px) {
+  /* 工具调用标题行 */
+  .tool-call-header {
+    @apply gap-2;
+  }
+
+  /* 工具调用图标 */
+  .tool-call-icon {
+    @apply text-lg;
+  }
+
+  /* 工具调用标签 */
+  .tool-call-label {
+    @apply text-sm;
+  }
+
+  /* 工具调用状态 */
+  .tool-call-status {
+    @apply text-[10px] px-1.5 py-0.5;
+  }
+
+  /* 工具调用展开内容 */
+  .tool-call-expanded {
+    @apply mt-3 pt-3;
+  }
+
+  /* 工具调用摘要列表 */
+  .tool-call-summary li {
+    @apply text-xs;
+  }
 }
 
 /* ==================== 减少动画（可访问性） ==================== */
@@ -699,7 +833,7 @@
   }
 }
 
-/* ==================== 图片响应式优化 ==================== */
+/* ==================== 图片智能响应式优化 ==================== */
 @media (max-width: 640px) {
   .image-preview-card-modern img {
     @apply h-20;
@@ -708,6 +842,124 @@
   .image-double-modern img,
   .image-grid-modern img {
     @apply h-24;
+  }
+}
+
+/* ==================== 智能响应式图片容器 ==================== */
+@layer components {
+  /* 用户消息图片容器 - 智能宽度计算 */
+  .user-image-responsive {
+    max-width: calc(100vw - 80px);
+  }
+
+  @media (min-width: 480px) {
+    .user-image-responsive {
+      max-width: calc(100vw - 90px);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .user-image-responsive {
+      max-width: calc(100vw - 120px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .user-image-responsive {
+      max-width: 320px;
+    }
+  }
+
+  /* 智能高度 - 基于视口高度但有上限 */
+  .user-image-height-sm {
+    max-height: min(40vh, 200px);
+  }
+
+  @media (min-width: 480px) {
+    .user-image-height-sm {
+      max-height: min(45vh, 220px);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .user-image-height-sm {
+      max-height: min(50vh, 250px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .user-image-height-sm {
+      max-height: 280px;
+    }
+  }
+
+  /* 网格图片智能高度 */
+  .grid-image-height-sm {
+    height: min(18vh, 70px);
+  }
+
+  @media (min-width: 480px) {
+    .grid-image-height-sm {
+      height: min(20vh, 80px);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .grid-image-height-sm {
+      height: min(25vh, 90px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .grid-image-height-sm {
+      height: 96px; /* h-24 */
+    }
+  }
+
+  /* 大网格图片智能高度 */
+  .grid-image-height-lg {
+    height: min(25vh, 100px);
+  }
+
+  @media (min-width: 480px) {
+    .grid-image-height-lg {
+      height: min(28vh, 120px);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .grid-image-height-lg {
+      height: min(32vh, 140px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .grid-image-height-lg {
+      height: 160px; /* h-40 */
+    }
+  }
+
+  /* 双图网格图片智能高度 */
+  .double-image-height {
+    height: min(20vh, 80px);
+  }
+
+  @media (min-width: 480px) {
+    .double-image-height {
+      height: min(22vh, 90px);
+    }
+  }
+
+  @media (min-width: 640px) {
+    .double-image-height {
+      height: min(25vh, 100px);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .double-image-height {
+      height: 96px; /* h-24 */
+    }
   }
 }
 

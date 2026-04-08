@@ -11,6 +11,7 @@ import { externalServices } from "@/config/external-services";
 import { detectionDemoCards, businessDemoCards, planningDemoCards } from "@/config/demo-cards";
 import { Upload, Send, Loader2, Mic } from "lucide-react";
 import { useASR } from "@/hooks/useASR";
+import { cn } from "@/utils/cn";
 
 const API_BASE = "/api";
 
@@ -692,18 +693,21 @@ export default function Home() {
 
       {/* 输入区域 */}
       <footer className="border-t border-stone-200 bg-white/95 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-4">
+          <form onSubmit={handleSubmit} className="space-y-1.5 sm:space-y-3">
             {/* 知识库开关 */}
             <button
               type="button"
               onClick={() => setEnableKnowledgeBase(!enableKnowledgeBase)}
               disabled={loading}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all border-2 shadow-sm hover:shadow-md ${
+              className={cn(
+                "rounded-full font-medium transition-all border-2 shadow-sm hover:shadow-md",
+                "px-3 py-1.5 sm:px-4 sm:py-2", // 响应式内边距
+                "text-xs sm:text-sm", // 响应式字体
                 enableKnowledgeBase
                   ? "bg-green-50 border-green-500 text-green-700"
                   : "bg-white border-stone-300 text-stone-600"
-              }`}
+              )}
             >
               知识库 {enableKnowledgeBase ? "✓" : ""}
             </button>
@@ -713,11 +717,14 @@ export default function Home() {
               type="button"
               onClick={() => setEnableWebSearch(!enableWebSearch)}
               disabled={loading}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all border-2 shadow-sm hover:shadow-md ${
+              className={cn(
+                "rounded-full font-medium transition-all border-2 shadow-sm hover:shadow-md",
+                "px-3 py-1.5 sm:px-4 sm:py-2", // 响应式内边距
+                "text-xs sm:text-sm", // 响应式字体
                 enableWebSearch
                   ? "bg-blue-50 border-blue-500 text-blue-700"
                   : "bg-white border-stone-300 text-stone-600"
-              }`}
+              )}
             >
               联网搜索 {enableWebSearch ? "✓" : ""}
             </button>
@@ -727,7 +734,14 @@ export default function Home() {
               value={selectedModelId}
               onChange={(e) => setSelectedModelId(e.target.value)}
               disabled={loading}
-              className="px-4 py-2 rounded-full text-sm font-medium border-2 border-stone-200 bg-white text-stone-700 hover:border-stone-300 focus:outline-none focus:border-paddy-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className={cn(
+                "rounded-full font-medium border-2 bg-white text-stone-700",
+                "px-3 py-1.5 sm:px-4 sm:py-2", // 响应式内边距
+                "text-xs sm:text-sm", // 响应式字体
+                "border-stone-200 hover:border-stone-300",
+                "focus:outline-none focus:border-paddy-500",
+                "transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              )}
             >
               {models.map(model => (
                 <option key={model.id} value={model.id}>
@@ -736,15 +750,17 @@ export default function Home() {
               ))}
             </select>
 
-            {/* 多模态提示 - 暂时隐藏，待实现真正的多模态消息封装后再启用 */}
-            {/* 当前实现只是将图片路径拼接到文本中，并未让 LLM 真正接收图像数据 */}
-            {/* {models.find(m => m.id === selectedModelId)?.is_multimodal && (
+            {/* 多模态提示 - Qwen 模型支持图片识别 */}
+            {models.find(m => m.id === selectedModelId)?.is_multimodal && (
               <span className="text-xs text-green-600 font-medium">支持图片识别</span>
-            )} */}
+            )}
 
             {/* 图片预览 */}
             {imagePreviews.length > 0 && (
-              <div className="flex flex-wrap gap-3">
+              <div className={cn(
+                "flex flex-wrap gap-2 sm:gap-3", // 响应式间距
+                "max-h-32 sm:max-h-40 overflow-y-auto" // 限制高度并添加滚动
+              )}>
                 {imagePreviews.map((preview, index) => (
                   <ImagePreviewCard
                     key={index}
@@ -759,7 +775,13 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={handleRemoveAllImages}
-                    className="px-5 py-2.5 bg-white text-stone-700 text-sm rounded-full hover:bg-red-50 hover:text-red-600 transition-all border-2 border-stone-200 hover:border-red-300 shadow-sm hover:shadow-md"
+                    className={cn(
+                      "rounded-full transition-all border-2 shadow-sm hover:shadow-md",
+                      "bg-white text-stone-700 border-stone-200",
+                      "hover:bg-red-50 hover:text-red-600 hover:border-red-300",
+                      "px-3 sm:px-5 py-2 sm:py-2.5", // 响应式内边距
+                      "text-xs sm:text-sm" // 响应式字体
+                    )}
                   >
                     清除全部
                   </button>
@@ -768,7 +790,10 @@ export default function Home() {
             )}
 
             {/* 输入框和按钮 */}
-            <div className="input-container">
+            <div className={cn(
+              "input-container",
+              "px-2 sm:px-3 py-1 sm:py-2" // 响应式内边距 - 移动端更薄
+            )}>
               {/* 上传按钮 */}
               <input
                 ref={fileInputRef}
@@ -784,9 +809,12 @@ export default function Home() {
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={loading}
-                className="flex-none"
+                className={cn(
+                  "flex-none",
+                  "w-7 h-7 sm:w-9 sm:h-9" // 移动端按钮更小
+                )}
               >
-                <Upload className="w-5 h-5" />
+                <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
 
               {/* 麦克风按钮 */}
@@ -797,10 +825,14 @@ export default function Home() {
                   size="icon"
                   onClick={toggle}
                   disabled={loading}
-                  className={`flex-none ${isListening ? 'voice-recording' : ''}`}
+                  className={cn(
+                    "flex-none",
+                    "w-7 h-7 sm:w-9 sm:h-9", // 移动端按钮更小
+                    isListening ? 'voice-recording' : ''
+                  )}
                   title={isListening ? '停止录音' : '点击开始语音输入'}
                 >
-                  <Mic className="w-5 h-5" />
+                  <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               ) : null}
 
@@ -811,31 +843,58 @@ export default function Home() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
-                placeholder="输入消息... (Shift+Enter 换行，Ctrl+V 粘贴图片，拖拽图片到任意位置)"
+                placeholder="输入消息..." // 简化的 placeholder
                 disabled={loading}
-                className="input-enhanced flex-1 resize-none border-0 bg-transparent shadow-none focus:ring-0 focus:shadow-none"
-                rows={1}
+                className={cn(
+                  "flex-1 resize-none border-0 bg-transparent shadow-none",
+                  "focus:ring-0 focus:shadow-none",
+                  "text-sm sm:text-base",
+                  "px-2 sm:px-4",
+                  // 业界最佳实践
+                  "min-w-0",      // 关键：允许 flex 收缩
+                  "overflow-hidden",  // 防止溢出
+                  "flex-shrink"   // 允许收缩
+                )}
+                style={{
+                  // 垂直居中
+                  lineHeight: '20px',
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                  // 盒模型
+                  boxSizing: 'border-box',
+                  // Flexbox 最佳实践
+                  flexBasis: '0%',
+                  minWidth: '0'
+                }}
               />
 
               {/* 发送按钮 */}
               <Button
                 type="submit"
                 disabled={(!input.trim() && selectedImages.length === 0) || loading}
-                className="btn btn-primary flex-none"
+                className={cn(
+                  "btn btn-primary flex-none",
+                  "w-8 h-8 sm:w-9 sm:h-9" // 响应式按钮大小
+                )}
                 size="icon"
               >
                 {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </Button>
             </div>
 
-            {/* 提示文字 */}
-            <p className="text-xs text-stone-500 text-center">
+            {/* 提示文字 - 响应式 */}
+            <p className="hidden sm:block text-stone-500 text-center text-xs">
               Enter 发送 · Shift+Enter 换行 · Ctrl+V 粘贴图片 · 拖拽图片到任意位置
               {isSupported && " · 点击麦克风语音输入"}
+            </p>
+            {/* 移动端简版提示 */}
+            <p className="sm:hidden text-stone-500 text-center text-[10px]">
+              Enter 发送 · 支持粘贴图片和拖拽上传
+              {isSupported && " · 语音输入"}
             </p>
 
             {/* 语音状态提示 */}

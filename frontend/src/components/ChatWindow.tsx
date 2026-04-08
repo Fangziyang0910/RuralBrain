@@ -147,25 +147,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   return (
     <div className="flex flex-col h-screen bg-white">
-      {/* 头部 */}
-      <div className="flex-none border-b border-stone-200 bg-white/95 backdrop-blur-sm px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-paddy-500 to-paddy-600 flex items-center justify-center text-white shadow-md">
+      {/* 头部 - 响应式内边距 */}
+      <div className="flex-none border-b border-stone-200 bg-white/95 backdrop-blur-sm px-3 py-3 sm:px-4 sm:py-3.5 md:px-6 md:py-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-paddy-500 to-paddy-600 flex items-center justify-center text-white shadow-md flex-shrink-0">
             🌾
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-stone-900">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base sm:text-lg md:text-xl font-bold text-stone-900 truncate">
               AI农业智能检测助手
             </h1>
-            <p className="text-sm text-stone-600 mt-0.5">
+            <p className="text-xs sm:text-sm text-stone-600 mt-0.5 truncate">
               基于大模型的病虫害、水稻、牛只智能检测
             </p>
           </div>
         </div>
       </div>
 
-      {/* 消息区域 */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      {/* 消息区域 - 响应式内边距 */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-3.5 md:px-6 md:py-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-stone-600">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-paddy-400 to-paddy-500 flex items-center justify-center text-4xl shadow-lg mb-4">
@@ -191,8 +191,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         )}
       </div>
 
-      {/* 输入区域 */}
-      <div className="flex-none border-t border-stone-200 bg-white/95 backdrop-blur-sm px-6 py-4">
+      {/* 输入区域 - 响应式内边距 */}
+      <div className="flex-none border-t border-stone-200 bg-white/95 backdrop-blur-sm px-3 py-3 sm:px-4 sm:py-3.5 md:px-6 md:py-4">
         <form
           onSubmit={handleSubmit}
           onDragEnter={handleDragEnter}
@@ -239,7 +239,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              placeholder="输入消息... (Shift+Enter 换行，Ctrl+V 粘贴图片，拖拽图片到任意位置)"
+              placeholder="输入消息..."
               disabled={loading}
               className="input-enhanced flex-1 resize-none border-0 bg-transparent shadow-none focus:ring-0 focus:shadow-none"
               rows={1}
