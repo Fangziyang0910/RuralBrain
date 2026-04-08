@@ -68,3 +68,4 @@ knowledge_base/
 src/algorithms/detection/models/plant_disease/best.pt
 src/algorithms/detection/models/scene/best.pt
 
+.superpowers/
