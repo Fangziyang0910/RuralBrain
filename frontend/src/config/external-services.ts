@@ -51,3 +51,34 @@ export async function checkServiceStatus(url: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * ========== 四层架构分组配置 ==========
+ */
+
+// 第一层：经营规划服务入口（乡村经营智能体 + 乡村规划智能体）
+export const layer1ExternalServices: ExternalServiceConfig[] = [
+  {
+    id: "management",
+    title: "乡村经营智能体",
+    icon: "🏘️",
+    description: "乡村经营管理、产业对接、资源整合等综合服务",
+    url: process.env.NEXT_PUBLIC_MANAGEMENT_URL || "http://localhost:3002",
+  },
+  {
+    id: "planning",
+    title: "乡村规划智能体",
+    icon: "📋",
+    description: "乡村发展规划、产业布局、项目申报等专业方案",
+    url: process.env.NEXT_PUBLIC_PLANNING_URL || "http://localhost:3003",
+  },
+];
+
+// 第四层：法律咨询服务（外部服务）
+export const layer4LegalService: ExternalServiceConfig = {
+  id: "legal",
+  title: "法律咨询",
+  icon: "⚖️",
+  description: "农村法律咨询、合同审查、权益维护等法律服务",
+  url: process.env.NEXT_PUBLIC_LEGAL_URL || "http://localhost:3004",
+};

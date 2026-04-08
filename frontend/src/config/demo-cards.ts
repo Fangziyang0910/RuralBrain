@@ -154,3 +154,118 @@ export const planningDemoCards: DemoCardConfig[] = [
  * 获取所有 Demo 卡片
  */
 export const allDemoCards = [...detectionDemoCards, ...businessDemoCards, ...planningDemoCards];
+
+/**
+ * ========== 四层架构分组配置 ==========
+ * 按用户需求重新组织卡片展示顺序
+ */
+
+// 第二层：图像检测 Demo 卡片（病虫害检测 + 疾病预测）
+export const layer2DetectionCards: DemoCardConfig[] = [
+  {
+    skill: "pest_detection",
+    title: "病虫害检测",
+    icon: "🐛",
+    description: "智能识别农作物病虫害，分析危害程度并提供科学防治方案",
+    demo_input: {
+      text: "请帮我检测这张图片中的病虫害，并给出防治建议",
+      image: "/demo/pest-input.jpg",
+    },
+    category: "detection",
+    variant: "default",
+  },
+  {
+    skill: "disease_prediction",
+    title: "疾病预测",
+    icon: "🏥",
+    description: "智能预测畜禽疾病，基于患处图片和症状提供专业分析建议",
+    demo_input: {
+      text: "请帮我看一下图片中的牛患了什么病",
+      image: "/demo/disease-input.jpg",
+    },
+    category: "detection",
+    variant: "default",
+  },
+];
+
+// 第三层：销售咨询 Demo 卡片（定价分析 + 营销策略）
+export const layer3SalesCards: DemoCardConfig[] = [
+  {
+    skill: "pricing_analysis",
+    title: "定价分析",
+    icon: "💰",
+    description: "农产品定价建议，分析成本、市场和竞争因素",
+    demo_input: {
+      text: "我想为有机大米定价，成本约8元/斤，请帮我分析合理定价",
+    },
+    category: "business",
+    variant: "compact",
+  },
+  {
+    skill: "marketing_strategy",
+    title: "营销策略",
+    icon: "📈",
+    description: "农产品营销方案，分析市场渠道和品牌推广策略",
+    demo_input: {
+      text: "我想推广家乡的土特产，请帮我制定一个线上线下结合的营销方案",
+    },
+    category: "business",
+    variant: "compact",
+  },
+];
+
+// 第四层：RuralBrain 原生规划咨询（知识库检索类）
+// 合政策查询和案例参考为一个卡片，删除知识库概览
+export const layer4PlanningCards: DemoCardConfig[] = [
+  {
+    skill: "consult_planning_knowledge",
+    title: "规划咨询",
+    icon: "📋",
+    description: "查询乡村振兴政策扶持与产业发展成功案例参考",
+    demo_input: {
+      text: "我想发展乡村特色产业，请帮我查询相关政策扶持和成功案例参考",
+    },
+    category: "planning",
+    variant: "compact",
+  },
+];
+
+// 其他栏目卡片（奶牛检测 + 大米品种识别 + 农场巡检）
+export const otherCards: DemoCardConfig[] = [
+  {
+    skill: "cow_detection",
+    title: "奶牛检测",
+    icon: "🐄",
+    description: "识别牛只品种和数量，提供养殖管理、疫病防控和繁殖建议",
+    demo_input: {
+      text: "请帮我数一下这张图片中有多少头牛",
+      image: "/demo/cow-input.jpg",
+    },
+    category: "detection",
+    variant: "compact",
+  },
+  {
+    skill: "rice_detection",
+    title: "大米品种识别",
+    icon: "🍚",
+    description: "识别大米品种，分析品质特征，提供烹饪建议和储存方法",
+    demo_input: {
+      text: "请帮我识别这张图片中的大米品种",
+      image: "/demo/rice-input.jpg",
+    },
+    category: "detection",
+    variant: "compact",
+  },
+  {
+    skill: "farm_inspection",
+    title: "农场巡检",
+    icon: "🔍",
+    description: "智能巡检农场，识别场景并分析作物和养殖状况",
+    demo_input: {
+      text: "请帮我分析这张巡检图片，识别场景并提供管理建议",
+      image: "/demo/cow-input.jpg",
+    },
+    category: "inspection",
+    variant: "compact",
+  },
+];

@@ -7,8 +7,20 @@ import { Button } from "@/components/ui/button";
 import { ImagePreviewCard } from "@/components/ui/ImagePreviewCard";
 import { FeatureDemoCard, adaptDemoCard } from "@/components/FeatureDemoCard";
 import { ExternalServiceCard } from "@/components/ExternalServiceCard";
-import { externalServices } from "@/config/external-services";
-import { detectionDemoCards, businessDemoCards, planningDemoCards } from "@/config/demo-cards";
+import {
+  externalServices,
+  layer1ExternalServices,
+  layer4LegalService
+} from "@/config/external-services";
+import {
+  detectionDemoCards,
+  businessDemoCards,
+  planningDemoCards,
+  layer2DetectionCards,
+  layer3SalesCards,
+  layer4PlanningCards,
+  otherCards
+} from "@/config/demo-cards";
 import { Upload, Send, Loader2, Mic } from "lucide-react";
 import { useASR } from "@/hooks/useASR";
 import { cn } from "@/utils/cn";
@@ -596,15 +608,32 @@ export default function Home() {
 
               {/* 功能演示卡片区域 */}
               <div className="w-full max-w-4xl mb-6">
-                {/* 核心能力卡片（图像检测类）*/}
+                {/* 第一层：经营规划 - 外部服务入口 */}
                 <div className="mb-6">
                   <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
-                    <span className="text-base">🌾</span>
-                    <span>核心能力</span>
-                    <span className="text-stone-400 font-normal">· 图像检测</span>
+                    <span className="text-base">🏘️</span>
+                    <span>经营规划</span>
+                    <span className="text-stone-400 font-normal">· 智能体服务</span>
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {detectionDemoCards.map((card) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {layer1ExternalServices.map((service) => (
+                      <ExternalServiceCard
+                        key={service.id}
+                        config={service}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* 第二层：图像检测 - Demo 卡片 */}
+                <div className="mb-6">
+                  <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                    <span className="text-base">🔍</span>
+                    <span>图像检测</span>
+                    <span className="text-stone-400 font-normal">· 智能识别</span>
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {layer2DetectionCards.map((card) => (
                       <FeatureDemoCard
                         key={card.title}
                         config={adaptDemoCard(card)}
@@ -616,15 +645,15 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* 商业咨询卡片（文本交互类）*/}
+                {/* 第三层：销售咨询 - Demo 卡片 */}
                 <div className="mb-6">
                   <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
                     <span className="text-base">📊</span>
-                    <span>商业咨询</span>
-                    <span className="text-stone-400 font-normal">· 智能分析</span>
+                    <span>销售咨询</span>
+                    <span className="text-stone-400 font-normal">· 市场分析</span>
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {businessDemoCards.map((card) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {layer3SalesCards.map((card) => (
                       <FeatureDemoCard
                         key={card.title}
                         config={adaptDemoCard(card)}
@@ -636,15 +665,21 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* 规划咨询卡片（知识库检索类）*/}
+                {/* 第四层：咨询服务 - 混合展示 */}
                 <div className="mb-6">
                   <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
-                    <span className="text-base">📚</span>
-                    <span>规划咨询</span>
-                    <span className="text-stone-400 font-normal">· 知识库检索</span>
+                    <span className="text-base">💬</span>
+                    <span>咨询服务</span>
+                    <span className="text-stone-400 font-normal">· 专业支持</span>
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {planningDemoCards.map((card) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {/* 法律咨询 - 外部服务卡片 */}
+                    <ExternalServiceCard
+                      key={layer4LegalService.id}
+                      config={layer4LegalService}
+                    />
+                    {/* RuralBrain 原生规划咨询 - Demo 卡片 */}
+                    {layer4PlanningCards.map((card) => (
                       <FeatureDemoCard
                         key={card.title}
                         config={adaptDemoCard(card)}
@@ -656,18 +691,21 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* 外部服务入口 */}
-                <div>
+                {/* 其他栏目 */}
+                <div className="mb-6">
                   <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
-                    <span className="text-base">🔗</span>
-                    <span>外部服务</span>
-                    <span className="text-stone-400 font-normal">· 更多功能</span>
+                    <span className="text-base">📦</span>
+                    <span>其他功能</span>
+                    <span className="text-stone-400 font-normal">· 更多服务</span>
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {externalServices.map((service) => (
-                      <ExternalServiceCard
-                        key={service.id}
-                        config={service}
+                    {otherCards.map((card) => (
+                      <FeatureDemoCard
+                        key={card.title}
+                        config={adaptDemoCard(card)}
+                        onClick={(query, imageUrl) => handleDemoClick(query, imageUrl)}
+                        disabled={loading}
+                        variant={card.variant || "compact"}
                       />
                     ))}
                   </div>
