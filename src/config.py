@@ -18,12 +18,12 @@ MODEL_CONFIGS = {
         "api_key_env": "ZHIPUAI_API_KEY",
         "base_url": "https://open.bigmodel.cn/api/paas/v4/",
     },
-    # 通义千问 Qwen3.5-Plus
+    # 通义千问 Qwen3.6-Plus
     # 使用阿里云百炼 OpenAI 兼容格式
-    # 注意: 当前图片处理通过检测工具(YOLO)实现，尚未启用多模态消息格式
+    # 注意: 当前图片处理通过检测工具(YOLO)实现，同时也支持多模态消息格式
     # 模型列表: https://help.aliyun.com/model-studio/getting-started/models
     "qwen": {
-        "default_model": "qwen3.5-plus",
+        "default_model": "qwen3.6-plus",
         "api_key_env": "QWEN_API_KEY",
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
     },
@@ -85,10 +85,17 @@ AVAILABLE_MODELS = {
         "is_multimodal": False,
     },
     "qwen": {
+        "name": "Qwen3.6-Plus",
+        "provider": "qwen",
+        "model_name": "qwen3.6-plus",
+        "description": "通义千问 3.6 多模态大模型（更强推理能力，支持图片理解）",
+        "is_multimodal": True,
+    },
+    "qwen3.5": {
         "name": "Qwen3.5-Plus",
         "provider": "qwen",
         "model_name": "qwen3.5-plus",
-        "description": "通义千问多模态大模型（支持图片理解）",
+        "description": "通义千问 3.5 多模态大模型（支持图片理解）",
         "is_multimodal": True,
     },
 }

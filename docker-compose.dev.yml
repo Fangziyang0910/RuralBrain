@@ -14,6 +14,9 @@ services:
       - BACKEND_URL=http://backend:8081
       - NEXT_PUBLIC_API_URL=http://localhost:8081
       - PORT=3001
+    volumes:
+      # API 代理热重载（禁用缓存配置）
+      - ./frontend/src/app/api:/app/frontend/src/app/api
     depends_on:
       - backend
     restart: unless-stopped

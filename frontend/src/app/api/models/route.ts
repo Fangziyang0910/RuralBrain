@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 // 使用 Node.js Runtime 以支持环境变量
 export const runtime = 'nodejs';
 
+// 禁用缓存，确保每次请求都获取最新数据
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     // 优先使用环境变量，否则使用本地开发地址
@@ -13,6 +16,8 @@ export async function GET() {
       headers: {
         'Content-Type': 'application/json',
       },
+      // 禁用 Next.js 数据缓存
+      cache: 'no-store',
     });
 
     if (!response.ok) {

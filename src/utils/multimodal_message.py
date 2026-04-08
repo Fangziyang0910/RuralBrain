@@ -63,7 +63,7 @@ def build_multimodal_message(
             # 编码图片为 base64
             image_base64 = encode_image_to_base64(image_path)
 
-            # 使用 OpenAI 兼容格式（Qwen3.5-Plus 支持）
+            # 使用 OpenAI 兼容格式（Qwen3.6-Plus 支持）
             content_blocks.append({
                 "type": "image_url",
                 "image_url": {
