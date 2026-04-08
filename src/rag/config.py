@@ -88,7 +88,8 @@ ADD_START_INDEX = os.getenv("ADD_START_INDEX", "true").lower() == "true"
 # ==================== 检索配置 ====================
 # Planning Agent 需要更多上下文，默认返回更多文档
 DEFAULT_TOP_K = int(os.getenv("DEFAULT_TOP_K", "5"))
-RETRIEVE_SCORE_THRESHOLD = float(os.getenv("RETRIEVE_SCORE_THRESHOLD", "0.7"))
+# 相似度阈值：阿里云百炼 text-embedding-v4 模型分数偏低，阈值设为 0.5 更合适
+RETRIEVE_SCORE_THRESHOLD = float(os.getenv("RETRIEVE_SCORE_THRESHOLD", "0.5"))
 
 # 检索策略配置
 # 支持的策略: "similarity"（相似度）, "mmr"（最大边际相关性）, "similarity_score_threshold"（带阈值过滤）
