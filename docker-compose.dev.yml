@@ -2,21 +2,25 @@
 # 使用 ONNX Runtime + 开发模式前端
 
 services:
-  # 前端服务 (Next.js standalone 模式)
+  # 前端服务 (Next.js 开发模式，支持热重载)
   frontend:
-    image: zwxdockerbeginner/ruralbrain:frontend-onnx-v3
+    image: zwxdockerbeginner/ruralbrain:frontend-dev
     container_name: ruralbrain-frontend
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - NEXT_TELEMETRY_DISABLED=1
       - BACKEND_URL=http://backend:8081
       - NEXT_PUBLIC_API_URL=http://localhost:8081
       - PORT=3001
     volumes:
-      # API 代理热重载（禁用缓存配置）
-      - ./frontend/src/app/api:/app/frontend/src/app/api
+      # 挂载源代码实现热重载
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      # 排除 node_modules 和 .next（使用容器内的版本）
+      - /app/node_modules
+      - /app/.next
     depends_on:
       - backend
     restart: unless-stopped

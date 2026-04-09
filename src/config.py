@@ -5,7 +5,7 @@ from typing import Literal
 # 模型配置
 ModelProvider = Literal["deepseek", "glm", "qwen"]
 
-DEFAULT_PROVIDER: ModelProvider = os.getenv("MODEL_PROVIDER", "deepseek")
+DEFAULT_PROVIDER: ModelProvider = os.getenv("MODEL_PROVIDER", "qwen")
 DEFAULT_TEMPERATURE = float(os.getenv("MODEL_TEMPERATURE", "0.7"))
 MODEL_MAX_TOKENS = int(os.getenv("MODEL_MAX_TOKENS", "2000"))
 
@@ -91,13 +91,6 @@ AVAILABLE_MODELS = {
         "description": "通义千问 3.6 多模态大模型（更强推理能力，支持图片理解）",
         "is_multimodal": True,
     },
-    "qwen3.5": {
-        "name": "Qwen3.5-Plus",
-        "provider": "qwen",
-        "model_name": "qwen3.5-plus",
-        "description": "通义千问 3.5 多模态大模型（支持图片理解）",
-        "is_multimodal": True,
-    },
 }
 
-DEFAULT_MODEL_ID = "deepseek"
+DEFAULT_MODEL_ID = "qwen"
