@@ -7,7 +7,9 @@
 - 支持 time_range 参数提高时效性
 - 支持 topic 参数区分普通搜索和新闻搜索
 - 使用官方推荐的 langchain-tavily 包
+- 返回结构化 JSON 数据供前端可视化展示
 """
+import json
 import logging
 import os
 from typing import Literal, Optional
@@ -60,6 +62,54 @@ def _format_results(results: list) -> str:
         output_lines.append(f"   摘要: {content}")
 
     return "\n".join(output_lines)
+
+
+def _structure_results(results: list) -> list:
+    """
+    将 Tavily 结果转换为结构化格式
+
+    Args:
+        results: Tavily API 返回的结果列表
+
+    Returns:
+        结构化的结果列表，每条结果包含:
+        - title: 标题
+        - url: 链接
+        - snippet: 摘要片段（前50字）
+        - type: 类型（news/web）
+        - published_date: 发布时间（可选）
+    """
+    return [
+        {
+            "title": r.get("title", "无标题"),
+            "url": r.get("url", ""),
+            "snippet": r.get("content", "")[:50] + "..." if r.get("content") else "",
+            "type": "news" if r.get("topic") == "news" else "web",
+            "published_date": r.get("published_date")
+        }
+        for r in results
+    ]
+
+
+def _calculate_stats(results: list) -> dict:
+    """
+    计算结果统计信息
+
+    Args:
+        results: Tavily API 返回的结果列表
+
+    Returns:
+        统计信息字典:
+        - total: 总结果数
+        - news: 新闻类型数量
+        - web: 网页类型数量
+    """
+    news_count = sum(1 for r in results if r.get("topic") == "news")
+    return {
+        "total": len(results),
+        "news": news_count,
+        "web": len(results) - news_count
+    }
 
 
 @tool
@@ -139,17 +189,24 @@ def web_search_tool(
             # 新版 TavilySearch 返回格式
             result_list = results.get("results", [])
             answer = results.get("answer", "")
-            formatted = _format_results(result_list)
-            if answer:
-                formatted = f"**AI 摘要**: {answer}\n\n{formatted}"
         else:
             # 旧版 TavilySearchResults 返回格式
-            formatted = _format_results(results)
+            result_list = results
+            answer = ""
 
-        result_count = len(results.get("results", results)) if isinstance(results, dict) else len(results)
+        # 构建结构化数据
+        structured_data = {
+            "ai_summary": answer,
+            "results": _structure_results(result_list),
+            "stats": _calculate_stats(result_list),
+            "agent_text": _format_results(result_list)  # Agent 继续使用的 Markdown 文本
+        }
+
+        result_count = len(result_list)
         logger.info(f"搜索完成，返回 {result_count} 条结果")
 
-        return formatted
+        # 返回 JSON 字符串（Agent 可解析，前端可提取）
+        return json.dumps(structured_data, ensure_ascii=False)
 
     except ImportError:
         error_msg = "联网搜索依赖未安装，请运行: uv add langchain-tavily"
