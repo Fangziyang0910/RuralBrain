@@ -10,7 +10,7 @@ interface WebSearchCardProps {
 }
 
 export const WebSearchCard: React.FC<WebSearchCardProps> = ({ data }) => {
-  const [expanded, setShowAll] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [showAllResults, setShowAllResults] = useState(false);
 
   const { ai_summary, results, stats } = data;
@@ -31,7 +31,7 @@ export const WebSearchCard: React.FC<WebSearchCardProps> = ({ data }) => {
           "flex items-center justify-between cursor-pointer group",
           "gap-2 sm:gap-3"
         )}
-        onClick={() => setShowAll(!expanded)}
+        onClick={() => setExpanded(!expanded)}
       >
         <div className={cn(
           "flex items-center gap-2 sm:gap-3",
@@ -156,7 +156,7 @@ export const WebSearchCard: React.FC<WebSearchCardProps> = ({ data }) => {
             "text-xs sm:text-sm",
             "cursor-pointer hover:text-purple-800 transition-colors"
           )}
-          onClick={() => setShowAll(true)}
+          onClick={() => setExpanded(true)}
         >
           ▼ 点击展开查看详细结果
         </div>
