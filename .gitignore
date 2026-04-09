@@ -23,6 +23,9 @@ ENV/
 .claude/
 .idea/
 
+# TypeScript build cache
+*.tsbuildinfo
+
 # Local development docs
 docs/local/ 
 
