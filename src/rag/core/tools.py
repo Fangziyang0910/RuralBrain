@@ -495,16 +495,27 @@ def knowledge_search_tool(
     if need_web_search:
         logger.info(f"知识库结果不足，启用联网搜索补充: {query}")
         try:
+            import json
             from src.agents.tools.web_search_tool import web_search_tool
             web_result = web_search_tool.invoke(query)
+
+            # 解析 web_search_tool 返回的 JSON，提取 agent_text
+            agent_text = web_result
+            if web_result.startswith("{"):
+                try:
+                    parsed = json.loads(web_result)
+                    if isinstance(parsed, dict) and "agent_text" in parsed:
+                        agent_text = parsed["agent_text"]
+                except json.JSONDecodeError:
+                    pass
 
             # 合并结果
             if "未找到相关信息" in kb_result or "知识库中没有文档" in kb_result:
                 # 知识库无结果，仅返回网络搜索
-                return f"📚 知识库暂无相关信息，已通过联网搜索获取：\n\n{web_result}"
+                return f"📚 知识库暂无相关信息，已通过联网搜索获取：\n\n{agent_text}"
             else:
                 # 合并知识库和网络搜索结果
-                return f"📚 知识库检索结果：\n\n{kb_result}\n\n---\n\n🌐 联网搜索补充：\n\n{web_result}"
+                return f"📚 知识库检索结果：\n\n{kb_result}\n\n---\n\n🌐 联网搜索补充：\n\n{agent_text}"
         except Exception as e:
             logger.warning(f"联网搜索补充失败: {e}")
             # 联网搜索失败，返回知识库结果

@@ -15,6 +15,29 @@ from langchain_core.tools import tool
 logger = logging.getLogger(__name__)
 
 
+def _parse_web_search_result(result: str) -> str:
+    """
+    解析 web_search_tool 的返回结果，提取 Agent 可用的文本。
+
+    web_search_tool 可能返回 JSON（结构化数据）或纯文本（错误信息）。
+    JSON 格式时提取 agent_text 字段供 Agent 使用。
+
+    Args:
+        result: web_search_tool 的返回值
+
+    Returns:
+        Agent 可用的 Markdown 文本
+    """
+    if result.startswith("{"):
+        try:
+            parsed = json.loads(result)
+            if isinstance(parsed, dict) and "agent_text" in parsed:
+                return parsed["agent_text"]
+        except json.JSONDecodeError:
+            pass
+    return result
+
+
 def _search_realtime_price(product_name: str, product_category: str) -> dict:
     """
     搜索实时市场价格信息
@@ -27,7 +50,8 @@ def _search_realtime_price(product_name: str, product_category: str) -> dict:
         包含搜索结果的字典，格式：
         {
             "success": bool,
-            "raw_result": str,  # 搜索结果文本
+            "raw_result": str,  # 搜索结果文本（Markdown）
+            "structured_data": dict,  # 结构化数据（前端可视化）
             "error": str        # 错误信息（如果失败）
         }
     """
@@ -40,9 +64,21 @@ def _search_realtime_price(product_name: str, product_category: str) -> dict:
 
         result = web_search_tool.invoke(query)
 
+        # 解析结果，提取 Agent 可用的文本
+        agent_text = _parse_web_search_result(result)
+
+        # 尝试保留结构化数据供前端使用
+        structured_data = None
+        if result.startswith("{"):
+            try:
+                structured_data = json.loads(result)
+            except json.JSONDecodeError:
+                pass
+
         return {
             "success": True,
-            "raw_result": result,
+            "raw_result": agent_text,
+            "structured_data": structured_data,
             "source": "联网搜索"
         }
 
