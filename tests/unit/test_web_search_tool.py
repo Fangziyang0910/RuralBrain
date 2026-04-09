@@ -69,3 +69,123 @@ class TestWebSearchTool:
 
         # agent_text 应包含 Markdown 格式的搜索结果
         assert "【联网搜索结果】" in agent_text
+
+    @patch.dict(os.environ, {"TAVILY_API_KEY": "test-key"})
+    @patch("langchain_tavily.TavilySearch")
+    def test_web_search_tool_ai_summary_field(self, mock_tavily):
+        """测试 ai_summary 字段包含 AI 摘要内容"""
+        mock_instance = MagicMock()
+        mock_instance.invoke.return_value = {
+            "results": [
+                {"title": "大米价格", "url": "https://example.com", "content": "测试内容"}
+            ],
+            "answer": "AI 生成的摘要内容"
+        }
+        mock_tavily.return_value = mock_instance
+
+        from src.agents.tools.web_search_tool import web_search_tool
+
+        result = web_search_tool.invoke({"query": "大米价格"})
+        parsed = json.loads(result)
+
+        # ai_summary 应存在且为字符串
+        assert "ai_summary" in parsed
+        assert isinstance(parsed["ai_summary"], str)
+        assert parsed["ai_summary"] == "AI 生成的摘要内容"
+
+    @patch.dict(os.environ, {"TAVILY_API_KEY": "test-key"})
+    @patch("langchain_tavily.TavilySearch")
+    def test_web_search_tool_results_structure(self, mock_tavily):
+        """测试 results 列表中每条结果的结构完整性"""
+        mock_instance = MagicMock()
+        mock_instance.invoke.return_value = {
+            "results": [
+                {
+                    "title": "测试标题",
+                    "url": "https://example.com/test",
+                    "content": "这是一段测试内容，用于验证摘要截断逻辑",
+                    "published_date": "2026-04-01"
+                }
+            ],
+            "answer": "摘要"
+        }
+        mock_tavily.return_value = mock_instance
+
+        from src.agents.tools.web_search_tool import web_search_tool
+
+        result = web_search_tool.invoke({"query": "测试查询", "topic": "general"})
+        parsed = json.loads(result)
+
+        results = parsed.get("results", [])
+        assert len(results) == 1
+
+        item = results[0]
+        # 验证必需字段存在
+        assert "title" in item
+        assert "url" in item
+        assert "snippet" in item
+        assert "type" in item
+        assert "published_date" in item
+
+        # 验证字段值类型和内容
+        assert item["title"] == "测试标题"
+        assert item["url"] == "https://example.com/test"
+        assert isinstance(item["snippet"], str)
+        assert len(item["snippet"]) <= 53  # 前50字 + "..."
+        assert item["type"] == "web"  # topic="general" 时应为 web
+
+    @patch.dict(os.environ, {"TAVILY_API_KEY": "test-key"})
+    @patch("langchain_tavily.TavilySearch")
+    def test_web_search_tool_stats_values(self, mock_tavily):
+        """测试 stats 统计字段的数值正确性"""
+        mock_instance = MagicMock()
+        mock_instance.invoke.return_value = {
+            "results": [
+                {"title": "结果1", "url": "https://a.com", "content": "内容1"},
+                {"title": "结果2", "url": "https://b.com", "content": "内容2"},
+                {"title": "结果3", "url": "https://c.com", "content": "内容3"},
+            ],
+            "answer": "摘要"
+        }
+        mock_tavily.return_value = mock_instance
+
+        from src.agents.tools.web_search_tool import web_search_tool
+
+        # topic="general" 时
+        result = web_search_tool.invoke({"query": "测试", "topic": "general"})
+        parsed = json.loads(result)
+        stats = parsed.get("stats", {})
+
+        assert stats["total"] == 3
+        assert stats["web"] == 3
+        assert stats["news"] == 0
+
+    @patch.dict(os.environ, {"TAVILY_API_KEY": "test-key"})
+    @patch("langchain_tavily.TavilySearch")
+    def test_web_search_tool_topic_news(self, mock_tavily):
+        """测试 topic="news" 时结果类型和统计正确"""
+        mock_instance = MagicMock()
+        mock_instance.invoke.return_value = {
+            "results": [
+                {"title": "新闻1", "url": "https://news.com/1", "content": "新闻内容1"},
+                {"title": "新闻2", "url": "https://news.com/2", "content": "新闻内容2"},
+            ],
+            "answer": "新闻摘要"
+        }
+        mock_tavily.return_value = mock_instance
+
+        from src.agents.tools.web_search_tool import web_search_tool
+
+        result = web_search_tool.invoke({"query": "最新新闻", "topic": "news"})
+        parsed = json.loads(result)
+
+        # 验证所有结果 type 为 "news"
+        results = parsed.get("results", [])
+        for item in results:
+            assert item["type"] == "news"
+
+        # 验证 stats 统计正确
+        stats = parsed.get("stats", {})
+        assert stats["total"] == 2
+        assert stats["news"] == 2
+        assert stats["web"] == 0

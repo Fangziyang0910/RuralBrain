@@ -64,52 +64,62 @@ def _format_results(results: list) -> str:
     return "\n".join(output_lines)
 
 
-def _structure_results(results: list) -> list:
+def _structure_results(results: list, topic: str = "general") -> list:
     """
     将 Tavily 结果转换为结构化格式
 
     Args:
         results: Tavily API 返回的结果列表
+        topic: 请求级的搜索主题（"general" 或 "news"）
 
     Returns:
         结构化的结果列表，每条结果包含:
         - title: 标题
         - url: 链接
         - snippet: 摘要片段（前50字）
-        - type: 类型（news/web）
+        - type: 类型（news/web，基于请求级 topic）
         - published_date: 发布时间（可选）
     """
+    result_type = "news" if topic == "news" else "web"
     return [
         {
             "title": r.get("title", "无标题"),
             "url": r.get("url", ""),
             "snippet": r.get("content", "")[:50] + "..." if r.get("content") else "",
-            "type": "news" if r.get("topic") == "news" else "web",
+            "type": result_type,
             "published_date": r.get("published_date")
         }
         for r in results
     ]
 
 
-def _calculate_stats(results: list) -> dict:
+def _calculate_stats(results: list, topic: str = "general") -> dict:
     """
     计算结果统计信息
 
     Args:
         results: Tavily API 返回的结果列表
+        topic: 请求级的搜索主题（"general" 或 "news"）
 
     Returns:
         统计信息字典:
         - total: 总结果数
-        - news: 新闻类型数量
+        - news: 新闻类型数量（基于请求级 topic）
         - web: 网页类型数量
     """
-    news_count = sum(1 for r in results if r.get("topic") == "news")
-    return {
-        "total": len(results),
-        "news": news_count,
-        "web": len(results) - news_count
-    }
+    # 使用请求级 topic 判断统计
+    if topic == "news":
+        return {
+            "total": len(results),
+            "news": len(results),
+            "web": 0
+        }
+    else:
+        return {
+            "total": len(results),
+            "news": 0,
+            "web": len(results)
+        }
 
 
 @tool
@@ -197,8 +207,8 @@ def web_search_tool(
         # 构建结构化数据
         structured_data = {
             "ai_summary": answer,
-            "results": _structure_results(result_list),
-            "stats": _calculate_stats(result_list),
+            "results": _structure_results(result_list, topic),
+            "stats": _calculate_stats(result_list, topic),
             "agent_text": _format_results(result_list)  # Agent 继续使用的 Markdown 文本
         }
 
