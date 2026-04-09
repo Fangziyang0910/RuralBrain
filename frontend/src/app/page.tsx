@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ImagePreviewCard } from "@/components/ui/ImagePreviewCard";
 import { FeatureDemoCard, adaptDemoCard } from "@/components/FeatureDemoCard";
 import { ExternalServiceCard } from "@/components/ExternalServiceCard";
+import { WebSearchData } from "@/types/tool";
 import {
   externalServices,
   layer1ExternalServices,
@@ -407,15 +408,15 @@ export default function Home() {
                   // Planning Service 的工具调用事件
                   console.log("工具调用:", data.tool_name, data.status);
                 } else if (data.type === "tool_call") {
-                  // 图像检测的工具调用事件（兼容旧版本）
-                  // 直接使用相对路径，Next.js rewrites 会自动代理到后端
-                  // 这样在本地和远程服务器部署都能正常工作
+                  // 工具调用事件（支持结构化数据）
                   const resultImageUrl = data.result_image || undefined;
+                  const resultData = data.result_data as WebSearchData | undefined;
 
                   const toolCall = {
                     name: data.tool_name,
                     status: data.status as "运行中" | "已完成",
                     resultImage: resultImageUrl,
+                    resultData: resultData,  // 新增：联网搜索的结构化数据
                   };
                   setMessages((prev) =>
                     prev.map((msg) =>

@@ -10,12 +10,15 @@ import { LoadingDots } from "./ui/LoadingDots";
 import { MessageImageGallery } from "./ui/MessageImageGallery";
 import { ToolResultImage } from "./ui/ToolResultImage";
 import { getToolConfig, getToolColorClass } from "@/config/tool-icons";
+import { WebSearchData } from "@/types/tool";
+import { WebSearchCard } from "./WebSearchCard";
 
-interface ToolCall {
+export interface ToolCall {
   name: string;
   status: "运行中" | "已完成";
   resultImage?: string;
   summary?: string[];
+  resultData?: WebSearchData;  // 新增：联网搜索的结构化数据
 }
 
 interface KnowledgeSource {
@@ -75,7 +78,12 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           <div className="w-full space-y-2">
             {message.toolCalls.map((toolCall, idx) => (
               <div key={idx} className="animate-slide-up" style={{ animationDelay: `${idx * 0.1}s` }}>
-                <ToolCallDisplay toolCall={toolCall} />
+                {/* 联网搜索工具使用专用卡片 */}
+                {toolCall.name === "web_search_tool" && toolCall.resultData ? (
+                  <WebSearchCard data={toolCall.resultData} />
+                ) : (
+                  <ToolCallDisplay toolCall={toolCall} />
+                )}
               </div>
             ))}
           </div>

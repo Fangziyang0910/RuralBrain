@@ -492,6 +492,38 @@ async def chat_stream(request: ChatRequest):
                                 if images:
                                     result_image = f"/cow_results/{images[0].name}"
 
+                        # 解析 web_search_tool 的结构化输出
+                        result_data = None
+                        if tool_name == "web_search_tool":
+                            try:
+                                # 从事件的 data 字段获取工具输出
+                                tool_output = event.get("data")
+
+                                # data 是一个 dict，包含 'output' 键，output 是 ToolMessage 对象
+                                if tool_output and isinstance(tool_output, dict):
+                                    output_msg = tool_output.get("output")
+                                    # ToolMessage 有 content 属性
+                                    if output_msg and hasattr(output_msg, 'content'):
+                                        content = output_msg.content
+                                        parsed = json.loads(content)
+                                        result_data = {
+                                            "ai_summary": parsed.get("ai_summary", ""),
+                                            "results": parsed.get("results", []),
+                                            "stats": parsed.get("stats", {"total": 0, "news": 0, "web": 0})
+                                        }
+                                        logger.info(f"联网搜索结果数据: {result_data['stats']}")
+                                    elif isinstance(output_msg, str):
+                                        parsed = json.loads(output_msg)
+                                        result_data = {
+                                            "ai_summary": parsed.get("ai_summary", ""),
+                                            "results": parsed.get("results", []),
+                                            "stats": parsed.get("stats", {"total": 0, "news": 0, "web": 0})
+                                        }
+                                        logger.info(f"联网搜索结果数据: {result_data['stats']}")
+                            except (json.JSONDecodeError, TypeError, AttributeError) as e:
+                                logger.warning(f"解析 web_search_tool 输出失败: {e}")
+                                # 保持原有行为，result_data 为 None
+
                         # 发送工具调用完成事件
                         # 添加完整的基础 URL（前端通过前端 API 路由访问）
                         tool_event = {
@@ -499,6 +531,7 @@ async def chat_stream(request: ChatRequest):
                             "tool_name": tool_name,
                             "status": "已完成",
                             "result_image": result_image,  # 相对路径，前端会通过代理访问
+                            "result_data": result_data,  # 新增：联网搜索的结构化数据
                         }
                         yield f"data: {json.dumps(tool_event, ensure_ascii=False)}\n\n"
 
