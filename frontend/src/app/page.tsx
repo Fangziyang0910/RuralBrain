@@ -22,9 +22,10 @@ import {
   layer4PlanningCards,
   otherCards
 } from "@/config/demo-cards";
-import { Upload, Send, Loader2, Mic } from "lucide-react";
+import { Upload, Send, Loader2, Mic, Database, Globe } from "lucide-react";
 import { useASR } from "@/hooks/useASR";
 import { cn } from "@/utils/cn";
+import { ToggleButton } from "@/components/ui/ToggleButton";
 
 const API_BASE = "/api";
 
@@ -737,39 +738,27 @@ export default function Home() {
       <footer className="border-t-2 border-earth-100 bg-white/95 backdrop-blur-sm shadow-natural">
         <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-4">
           <form onSubmit={handleSubmit} className="space-y-1.5 sm:space-y-3">
-            {/* 知识库开关 - 有机风格 */}
-            <button
-              type="button"
-              onClick={() => setEnableKnowledgeBase(!enableKnowledgeBase)}
+            {/* 知识库开关 - 现代化 Toggle 按钮 */}
+            <ToggleButton
+              enabled={enableKnowledgeBase}
+              onToggle={() => setEnableKnowledgeBase(!enableKnowledgeBase)}
               disabled={loading}
-              className={cn(
-                "rounded-organic-full font-medium transition-all border-2 shadow-natural hover:shadow-natural-md",
-                "px-3 py-1.5 sm:px-4 sm:py-2",
-                "text-xs sm:text-sm",
-                enableKnowledgeBase
-                  ? "bg-earth-50 border-earth-500 text-earth-700"
-                  : "bg-white border-earth-200 text-stone-600 hover:bg-earth-50"
-              )}
-            >
-              知识库 {enableKnowledgeBase ? "✓" : ""}
-            </button>
+              label="知识库"
+              icon={Database}
+              activeTheme="earth"
+              size="md"
+            />
 
-            {/* 联网搜索开关 - 有机风格 */}
-            <button
-              type="button"
-              onClick={() => setEnableWebSearch(!enableWebSearch)}
+            {/* 联网搜索开关 - 现代化 Toggle 按钮 */}
+            <ToggleButton
+              enabled={enableWebSearch}
+              onToggle={() => setEnableWebSearch(!enableWebSearch)}
               disabled={loading}
-              className={cn(
-                "rounded-organic-full font-medium transition-all border-2 shadow-natural hover:shadow-natural-md",
-                "px-3 py-1.5 sm:px-4 sm:py-2",
-                "text-xs sm:text-sm",
-                enableWebSearch
-                  ? "bg-sky-50 border-sky-500 text-sky-700"
-                  : "bg-white border-earth-200 text-stone-600 hover:bg-sky-50"
-              )}
-            >
-              联网搜索 {enableWebSearch ? "✓" : ""}
-            </button>
+              label="联网搜索"
+              icon={Globe}
+              activeTheme="sky"
+              size="md"
+            />
 
             {/* 模型选择器 - 有机风格 */}
             <select

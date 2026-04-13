@@ -1140,3 +1140,45 @@
     transform: translateX(-50%) translateY(0);
   }
 }
+
+/* ==================== ToggleButton 动画 ==================== */
+
+/* 一次性脉冲动画 - 状态切换时图标闪烁 */
+@keyframes pulse-once {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pulse-once {
+  animation: pulse-once 0.4s ease-out;
+}
+
+/* ToggleButton 启用状态发光效果 */
+.toggle-active-glow {
+  position: relative;
+}
+
+.toggle-active-glow::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, currentColor 0%, transparent 70%);
+  opacity: 0.1;
+  pointer-events: none;
+  transition: opacity 0.3s ease-out;
+}
+
+.toggle-active-glow:hover::before {
+  opacity: 0.2;
+}
