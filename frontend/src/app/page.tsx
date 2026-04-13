@@ -26,6 +26,7 @@ import { Upload, Send, Loader2, Mic, Database, Globe } from "lucide-react";
 import { useASR } from "@/hooks/useASR";
 import { cn } from "@/utils/cn";
 import { ToggleButton } from "@/components/ui/ToggleButton";
+import { ModelSelector } from "@/components/ui/ModelSelector";
 
 const API_BASE = "/api";
 
@@ -760,31 +761,13 @@ export default function Home() {
               size="md"
             />
 
-            {/* 模型选择器 - 有机风格 */}
-            <select
-              value={selectedModelId}
-              onChange={(e) => setSelectedModelId(e.target.value)}
+            {/* 模型选择器 - 现代化组件 */}
+            <ModelSelector
+              models={models}
+              selectedModelId={selectedModelId}
+              onSelect={setSelectedModelId}
               disabled={loading}
-              className={cn(
-                "rounded-organic-full font-medium border-2 bg-white text-earth-700",
-                "px-3 py-1.5 sm:px-4 sm:py-2",
-                "text-xs sm:text-sm",
-                "border-earth-200 hover:border-earth-300",
-                "focus:outline-none focus:border-earth-500 focus:ring-2 focus:ring-earth-500/20",
-                "transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-natural"
-              )}
-            >
-              {models.map(model => (
-                <option key={model.id} value={model.id}>
-                  {model.name}
-                </option>
-              ))}
-            </select>
-
-            {/* 多模态提示 - Qwen 模型支持图片识别 */}
-            {models.find(m => m.id === selectedModelId)?.is_multimodal && (
-              <span className="text-xs text-earth-600 font-medium">支持图片识别</span>
-            )}
+            />
 
             {/* 图片预览 */}
             {imagePreviews.length > 0 && (

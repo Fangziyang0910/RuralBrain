@@ -1182,3 +1182,131 @@
 .toggle-active-glow:hover::before {
   opacity: 0.2;
 }
+
+/* ==================== ModelSelector 动画 ==================== */
+
+/* 下拉面板入场动画 */
+@keyframes dropdown-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-dropdown-enter {
+  animation: dropdown-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 选项入场动画 */
+@keyframes option-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-option-enter {
+  opacity: 0;
+  animation: option-enter 0.2s ease-out forwards;
+}
+
+.delay-0 {
+  animation-delay: 0ms;
+}
+
+.delay-50 {
+  animation-delay: 50ms;
+}
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-150 {
+  animation-delay: 150ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-250 {
+  animation-delay: 250ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+/* 选中标记入场动画 */
+@keyframes check-enter {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-check-enter {
+  animation: check-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 模型选项 hover 效果 */
+.model-option:hover {
+  transform: translateX(2px);
+}
+
+.model-option:active {
+  transform: scale(0.98);
+}
+
+/* ==================== ModelSelector 高级样式 ==================== */
+
+/* 触发按钮选中状态 */
+.model-selector-trigger[data-selected="true"] {
+  background: linear-gradient(135deg, #F0FDF4 0%, #FEFCE8 100%);
+}
+
+/* 下拉面板玻璃效果 */
+.model-selector-dropdown {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+/* 模型选项卡片效果 */
+.model-option {
+  position: relative;
+}
+
+.model-option::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  transition: all 0.2s ease-out;
+}
+
+.model-option:hover::before {
+  background: linear-gradient(180deg, #22C55E 0%, #16A34A 100%);
+}
+
+.model-option[aria-selected="true"]::before {
+  background: linear-gradient(180deg, #15803D 0%, #166534 100%);
+}
