@@ -58,9 +58,9 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
 
   return (
     <div className={`flex gap-3 mb-8 animate-fade-in ${isUser ? "justify-end" : "justify-start"}`}>
-      {/* 头像 */}
+      {/* 头像 - Organic Biophilic 设计 */}
       {!isUser && (
-        <div className="flex-shrink-0 w-9 h-9 rounded-2xl bg-gradient-to-br from-paddy-500 to-paddy-600 flex items-center justify-center text-white shadow-md">
+        <div className="flex-shrink-0 w-9 h-9 rounded-organic-xl bg-gradient-to-br from-earth-500 to-earth-700 flex items-center justify-center text-white shadow-organic">
           <span className="text-base">🌱</span>
         </div>
       )}
@@ -75,15 +75,14 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
         )}
 
         {/* 工具调用展示 */}
-        {/* 条件渲染 */}
         {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
           <div className="w-full space-y-2">
             {message.toolCalls.map((toolCall, idx) => (
               <div key={idx} className="animate-slide-up" style={{ animationDelay: `${idx * 0.1}s` }}>
-                {/* 原始工具调用卡片 - 始终显示（工具名称 + 状态 + 结果图片） */}
+                {/* 原始工具调用卡片 */}
                 <ToolCallDisplay toolCall={toolCall} />
 
-                {/* 结构化数据专用卡片 - 额外展示在下方 */}
+                {/* 结构化数据专用卡片 */}
                 {toolCall.name === "disease_prediction_tool" && toolCall.resultData && (
                   <div className="mt-2">
                     <DiseasePredictionCard data={toolCall.resultData as DiseasePredictionData} />
@@ -109,7 +108,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           </div>
         )}
 
-        {/* 文字消息 - 应用新的设计系统 */}
+        {/* 文字消息 - Organic Biophilic 设计 */}
         <div
           className={cn(
             "message-bubble",
@@ -125,24 +124,24 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           ) : (
             <div className="text-base leading-relaxed">
               {!message.content && message.isStreaming ? (
-                <LoadingDots size="md" color="#22c55e" />
+                <LoadingDots size="md" color="#22C55E" />
               ) : (
                 <div className="prose prose-stone max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-headings:my-3">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      p: ({ children }) => <p className="my-2 text-base text-stone-700">{children}</p>,
-                      strong: ({ children }) => <strong className="font-semibold text-stone-900">{children}</strong>,
+                      p: ({ children }) => <p className="my-2 text-base text-earth-800">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold text-earth-900">{children}</strong>,
                       ul: ({ children }) => <ul className="list-none space-y-1.5 my-2 text-base">{children}</ul>,
                       ol: ({ children }) => <ol className="list-decimal list-inside space-y-1.5 my-2 text-base">{children}</ol>,
-                      li: ({ children }) => <li className="my-1 text-stone-700">{children}</li>,
-                      h1: ({ children }) => <h1 className="text-xl font-bold my-3 text-stone-900">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-lg font-bold my-2.5 text-stone-900">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-base font-bold my-2 text-stone-900">{children}</h3>,
+                      li: ({ children }) => <li className="my-1 text-earth-700">{children}</li>,
+                      h1: ({ children }) => <h1 className="text-xl font-bold my-3 text-earth-900">{children}</h1>,
+                      h2: ({ children }) => <h2 className="text-lg font-bold my-2.5 text-earth-900">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-base font-bold my-2 text-earth-900">{children}</h3>,
                       a: ({ children, href }) => (
                         <a
                           href={href}
-                          className="text-paddy-600 hover:text-paddy-700 underline underline-offset-2 transition-colors"
+                          className="text-earth-600 hover:text-earth-700 underline underline-offset-2 transition-colors"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -154,7 +153,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
                     {message.content}
                   </ReactMarkdown>
                   {message.isStreaming && (
-                    <span className="inline-block w-0.5 h-4 ml-1 bg-paddy-500 animate-pulse rounded-full align-middle" />
+                    <span className="inline-block w-0.5 h-4 ml-1 bg-earth-500 animate-pulse rounded-full align-middle" />
                   )}
                 </div>
               )}
@@ -162,18 +161,18 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           )}
         </div>
 
-        {/* 用户上传的图片 - 使用固定宽度确保不溢出 */}
+        {/* 用户上传的图片 */}
         {isUser && (message.images || message.image) && (
           <div className="mt-1.5 max-w-[120px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-[320px]">
             {message.images && message.images.length > 0 ? (
               <MessageImageGallery images={message.images} alt={message.content} />
             ) : (
               <div className="relative group inline-block max-w-[120px] xs:max-w-[140px] sm:max-w-[180px] md:max-w-[320px]">
-                <div className="absolute -inset-1 bg-gradient-to-br from-gold-400/30 via-paddy-500/20 to-gold-600/30 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-xl" />
+                <div className="absolute -inset-1 bg-gradient-to-br from-harvest-400/30 via-earth-500/20 to-harvest-600/30 rounded-organic-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl" />
                 <img
                   src={message.image}
                   alt="上传的图片"
-                  className="relative w-full h-auto max-h-[120px] xs:max-h-[140px] sm:max-h-[180px] md:max-h-[280px] object-contain rounded-3xl shadow-2xl shadow-gold-500/20 group-hover:shadow-paddy-500/30 transition-all duration-500 group-hover:scale-[1.02]"
+                  className="relative w-full h-auto max-h-[120px] xs:max-h-[140px] sm:max-h-[180px] md:max-h-[280px] object-contain rounded-organic-2xl shadow-organic-lg group-hover:shadow-organic-md transition-all duration-500 group-hover:scale-[1.02]"
                 />
               </div>
             )}
@@ -181,9 +180,9 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
         )}
       </div>
 
-      {/* 用户头像 */}
+      {/* 用户头像 - 丰收金 */}
       {isUser && (
-        <div className="flex-shrink-0 w-9 h-9 rounded-2xl bg-gradient-to-br from-gold-500 to-gold-600 flex items-center justify-center text-white shadow-md">
+        <div className="flex-shrink-0 w-9 h-9 rounded-organic-xl bg-gradient-to-br from-harvest-500 to-harvest-700 flex items-center justify-center text-white shadow-organic">
           <span className="text-base">👨‍🌾</span>
         </div>
       )}

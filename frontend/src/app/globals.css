@@ -3,37 +3,48 @@
 @tailwind utilities;
 
 /* ==================== 字体导入 ==================== */
-/* 使用更具特色的字体组合 */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Organic Biophilic 设计系统字体: Plus Jakarta Sans */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @layer base {
   :root {
-    /* ==================== RuralBrain 色彩系统 ==================== */
-    /* 主色 - 稻田绿 */
-    --color-paddy-50: #f0fdf7;
-    --color-paddy-100: #dcfce7;
-    --color-paddy-200: #bbf7d0;
-    --color-paddy-300: #86efac;
-    --color-paddy-400: #4ade80;
-    --color-paddy-500: #22c55e;
-    --color-paddy-600: #16a34a;
-    --color-paddy-700: #15803d;
-    --color-paddy-800: #166534;
-    --color-paddy-900: #14532d;
+    /* ==================== RuralBrain 设计系统 ==================== */
+    /* Organic Biophilic - 有机生物亲和设计 */
 
-    /* 强调色 - 稻穗金 */
-    --color-gold-50: #fefce8;
-    --color-gold-100: #fef9c3;
-    --color-gold-200: #fef08a;
-    --color-gold-300: #fde047;
-    --color-gold-400: #facc15;
-    --color-gold-500: #eab308;
-    --color-gold-600: #ca8a04;
-    --color-gold-700: #a16207;
-    --color-gold-800: #854d0e;
-    --color-gold-900: #713f12;
+    /* 主色 - 大地绿 Earth Green */
+    --color-earth-50: #F0FDF4;
+    --color-earth-100: #DCFCE7;
+    --color-earth-200: #BBF7D0;
+    --color-earth-300: #86EFAC;
+    --color-earth-400: #4ADE80;
+    --color-earth-500: #22C55E;
+    --color-earth-600: #16A34A;
+    --color-earth-700: #15803D;
+    --color-earth-800: #166534;
+    --color-earth-900: #14532D;
 
-    /* 辅助色 - 晴空蓝 */
+    /* 强调色 - 丰收金 Harvest Gold */
+    --color-harvest-50: #FEFCE8;
+    --color-harvest-100: #FEF9C3;
+    --color-harvest-200: #FEF08A;
+    --color-harvest-300: #FDE047;
+    --color-harvest-400: #FACC15;
+    --color-harvest-500: #EAB308;
+    --color-harvest-600: #CA8A04;
+    --color-harvest-700: #A16207;
+    --color-harvest-800: #854D0E;
+    --color-harvest-900: #713F12;
+
+    /* 自然色 - Nature Distilled */
+    --color-nature-terracotta: #C67B5C;
+    --color-nature-sand: #D4C4A8;
+    --color-nature-clay: #B5651D;
+    --color-nature-cream: #F5F0E1;
+    --color-nature-olive: #6B7B3C;
+    --color-nature-forest: #228B22;
+    --color-nature-sky: #87CEEB;
+
+    /* 辅助色 - 晴空蓝 Sky Blue */
     --color-sky-50: #f0f9ff;
     --color-sky-100: #e0f2fe;
     --color-sky-200: #bae6fd;
@@ -63,21 +74,37 @@
     --color-stone-800: #292524;
     --color-stone-900: #1c1917;
 
+    /* 有机圆角系统 */
+    --radius-organic-sm: 12px;
+    --radius-organic-md: 16px;
+    --radius-organic-lg: 20px;
+    --radius-organic-xl: 24px;
+    --radius-organic-2xl: 28px;
+    --radius-organic-full: 32px;
+
+    /* 自然阴影系统 */
+    --shadow-organic: 0 8px 32px rgba(21, 128, 61, 0.08);
+    --shadow-organic-md: 0 12px 48px rgba(21, 128, 61, 0.12);
+    --shadow-organic-lg: 0 16px 64px rgba(21, 128, 61, 0.16);
+    --shadow-natural: 0 4px 16px rgba(0, 0, 0, 0.06);
+    --shadow-natural-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+
     /* 主题变量 */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --primary: 142 76% 36%; /* 稻田绿 #16a34a */
-    --primary-foreground: 355.7 100% 97.3%;
-    --secondary: 48 96% 53%; /* 稻穗金 #eab308 */
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 199 89% 48%; /* 晴空蓝 #0ea5e9 */
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 142 76% 36%;
-    --radius: 0.75rem;
+    --background: #FFFFFF;
+    --foreground: #14532D;
+    --card: #FFFFFF;
+    --card-foreground: #14532D;
+    --primary: #15803D;
+    --primary-foreground: #FFFFFF;
+    --secondary: #22C55E;
+    --secondary-foreground: #0F172A;
+    --accent: #A16207;
+    --accent-foreground: #FFFFFF;
+    --muted: #E8F0F1;
+    --muted-foreground: #64748B;
+    --border: #BBF7D0;
+    --ring: #15803D;
+    --radius: 1rem;
   }
 
   * {
@@ -85,46 +112,46 @@
   }
 
   body {
-    font-family: 'Outfit', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    @apply bg-background text-foreground;
+    @apply bg-white text-earth-900;
   }
 
   /* 改善焦点可见性 */
   *:focus-visible {
-    outline: 2px solid var(--color-paddy-500);
+    outline: 2px solid var(--color-earth-500);
     outline-offset: 2px;
   }
 
-  /* 改善滚动条样式 */
+  /* 改善滚动条样式 - 有机风格 */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--color-stone-100);
-    border-radius: 10px;
+    background: var(--color-earth-50);
+    border-radius: 20px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--color-stone-300);
-    border-radius: 10px;
+    background: var(--color-earth-200);
+    border-radius: 20px;
     transition: background 0.2s;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-stone-400);
+    background: var(--color-earth-300);
   }
 }
 
 /* ==================== 组件样式 ==================== */
 @layer components {
-  /* 按钮基础样式 */
+  /* 按钮基础样式 - Organic Biophilic */
   .btn {
     @apply inline-flex items-center justify-center gap-2;
-    @apply font-medium rounded-xl;
+    @apply font-medium rounded-organic-md;
     @apply transition-all duration-300 ease-out;
     @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
@@ -132,84 +159,84 @@
   }
 
   .btn-primary {
-    @apply bg-gradient-to-r from-paddy-500 to-paddy-600 text-white;
-    @apply hover:from-paddy-600 hover:to-paddy-700 active:scale-95;
-    @apply shadow-md shadow-paddy-500/20 hover:shadow-lg hover:shadow-paddy-500/30;
-    @apply focus:ring-paddy-400;
+    @apply bg-gradient-to-r from-earth-600 to-earth-700 text-white;
+    @apply hover:from-earth-700 hover:to-earth-800 active:scale-95;
+    @apply shadow-organic hover:shadow-organic-md;
+    @apply focus:ring-earth-400;
   }
 
   .btn-secondary {
-    @apply bg-white text-stone-700 border border-stone-200;
-    @apply hover:bg-stone-50 hover:border-stone-300 active:bg-stone-100 active:scale-95;
-    @apply focus:ring-stone-400;
+    @apply bg-white text-stone-700 border-2 border-earth-200;
+    @apply hover:bg-earth-50 hover:border-earth-300 active:bg-earth-100 active:scale-95;
+    @apply focus:ring-earth-400;
   }
 
   .btn-ghost {
     @apply bg-transparent text-stone-600;
-    @apply hover:bg-stone-100 active:bg-stone-200 focus:ring-stone-400;
+    @apply hover:bg-earth-50 active:bg-earth-100 focus:ring-earth-400;
   }
 
-  /* 卡片基础样式 */
+  /* 卡片基础样式 - 有机曲线 */
   .card {
-    @apply bg-white rounded-2xl border border-stone-200;
-    @apply shadow-sm hover:shadow-md;
+    @apply bg-white rounded-organic-xl border-2 border-earth-100;
+    @apply shadow-natural hover:shadow-natural-md;
     @apply transition-all duration-300 ease-out;
   }
 
-  /* 输入框基础样式 */
+  /* 输入框基础样式 - 有机设计 */
   .input {
     @apply w-full px-4 py-3;
-    @apply rounded-xl border border-stone-300 bg-white;
-    @apply focus:outline-none focus:ring-2 focus:ring-paddy-400 focus:border-transparent;
+    @apply rounded-organic-lg border-2 border-earth-200 bg-white;
+    @apply focus:outline-none focus:ring-2 focus:ring-earth-400 focus:border-transparent;
     @apply transition-all duration-200 ease-out;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
     @apply overflow-hidden;
   }
 
   .input:focus {
-    @apply shadow-md shadow-paddy-500/10;
+    @apply shadow-organic;
   }
 
   .input::placeholder {
     @apply text-stone-400;
   }
 
-  /* 增强的输入框样式 */
+  /* 增强的输入框样式 - 有机曲线 */
   .input-enhanced {
     @apply w-full px-5 py-3.5;
-    @apply rounded-full border-2 border-stone-200 bg-white;
-    @apply focus:outline-none focus:border-paddy-400 focus:ring-2 focus:ring-paddy-400/20;
+    @apply rounded-organic-full border-2 border-earth-200 bg-white;
+    @apply focus:outline-none focus:border-earth-400 focus:ring-2 focus:ring-earth-400/20;
     @apply transition-all duration-200 ease-out;
     @apply disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .input-enhanced:focus {
-    @apply bg-white;
+    @apply bg-white shadow-organic;
   }
 
   .input-enhanced::placeholder {
     @apply text-stone-400;
   }
 
-  /* 输入框容器美化 */
+  /* 输入框容器美化 - 有机设计 */
   .input-container {
     @apply relative;
     @apply flex items-center gap-2;
-    @apply bg-white rounded-full;
-    @apply border-2 border-stone-200;
-    @apply shadow-sm;
+    @apply bg-white rounded-organic-full;
+    @apply border-2 border-earth-200;
+    @apply shadow-natural;
     @apply transition-all duration-200 ease-out;
     @apply px-3 py-2;
   }
 
   .input-container:focus-within {
-    @apply border-paddy-400 ring-2 ring-paddy-400/20;
-    @apply shadow-md;
+    @apply border-earth-400 ring-2 ring-earth-400/20;
+    @apply shadow-organic;
   }
 
-  /* 输入框内部装饰 */
+  /* 输入框内部装饰 - 渐变线条 */
   .input-decoration {
-    @apply absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-paddy-400 via-gold-400 to-paddy-400;
+    @apply absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-earth-400 via-harvest-400 to-earth-400;
     @apply w-0;
     @apply transition-all duration-300 ease-out;
   }
@@ -218,55 +245,53 @@
     @apply w-full;
   }
 
-  /* 消息气泡 */
+  /* 消息气泡 - 有机设计 */
   .message-bubble {
-    @apply px-5 py-4 rounded-3xl;
+    @apply px-5 py-4 rounded-organic-2xl;
     @apply transition-all duration-300 ease-out;
   }
 
   .message-user {
-    @apply bg-gradient-to-br from-paddy-500 to-paddy-600 text-white;
-    @apply shadow-md shadow-paddy-500/20 rounded-br-lg;
+    @apply bg-gradient-to-br from-earth-500 to-earth-600 text-white;
+    @apply shadow-organic rounded-br-organic-sm;
     width: fit-content;
   }
 
   .message-ai {
-    @apply bg-white border border-stone-200 text-stone-800 rounded-bl-lg;
-    @apply shadow-sm hover:shadow-md;
+    @apply bg-white border-2 border-earth-100 text-stone-800 rounded-bl-organic-sm;
+    @apply shadow-natural hover:shadow-natural-md;
   }
 
-  /* 增强的消息气泡样式 */
+  /* 增强的消息气泡样式 - 有机曲线 */
   .message-user-enhanced {
     @apply relative;
-    @apply bg-gradient-to-br from-paddy-500 to-paddy-600 text-white;
-    @apply shadow-md;
-    @apply rounded-2xl rounded-br-lg;
-    /* 自适应内容宽度，但有最大宽度限制防止超出边界 */
+    @apply bg-gradient-to-br from-earth-500 to-earth-600 text-white;
+    @apply shadow-organic-md;
+    @apply rounded-organic-xl rounded-br-organic-sm;
     width: fit-content;
     max-width: 90%;
   }
 
   .message-ai-enhanced {
-    @apply relative bg-white border border-stone-200;
-    @apply shadow-sm;
-    @apply rounded-2xl rounded-bl-lg;
+    @apply relative bg-white border-2 border-earth-100;
+    @apply shadow-natural;
+    @apply rounded-organic-xl rounded-bl-organic-sm;
     @apply transition-shadow duration-200 ease-out;
-    /* AI消息保持一定的最大宽度，便于阅读长文本 */
     width: fit-content;
     max-width: 90%;
   }
 
   .message-ai-enhanced:hover {
-    @apply shadow-md;
+    @apply shadow-natural-md border-earth-200;
   }
 
-  /* 加载动画 */
+  /* 加载动画 - 有机风格 */
   .loading-dots {
     @apply flex items-center gap-1.5;
   }
 
   .loading-dot {
-    @apply w-2 h-2 bg-paddy-500 rounded-full;
+    @apply w-2 h-2 bg-earth-500 rounded-full;
     animation: bounce 1.4s infinite ease-in-out both;
   }
 
@@ -291,40 +316,40 @@
 
   /* Skeleton Screen */
   .skeleton {
-    @apply bg-stone-200 animate-pulse rounded;
+    @apply bg-earth-100 animate-pulse rounded-organic-sm;
   }
 
-  /* 图片预览卡片 */
+  /* 图片预览卡片 - 有机设计 */
   .image-preview-card {
-    @apply relative inline-block rounded-xl overflow-hidden;
-    @apply border border-stone-200 shadow-sm;
+    @apply relative inline-block rounded-organic-xl overflow-hidden;
+    @apply border-2 border-earth-100 shadow-natural;
     @apply transition-all duration-300 ease-out;
   }
 
   .image-preview-card:hover {
-    @apply shadow-lg transform scale-105;
+    @apply shadow-organic transform scale-105;
   }
 
-  /* 模式切换按钮 */
+  /* 模式切换按钮 - 有机风格 */
   .mode-toggle {
     @apply flex items-center gap-2 px-4 py-2.5;
-    @apply rounded-xl border border-stone-200;
+    @apply rounded-organic-xl border-2 border-earth-200;
     @apply transition-all duration-300 ease-out;
     @apply cursor-pointer;
   }
 
   .mode-toggle-active {
-    @apply bg-paddy-50 border-paddy-500 text-paddy-700 shadow-sm;
+    @apply bg-earth-50 border-earth-500 text-earth-700 shadow-natural;
   }
 
   .mode-toggle-inactive {
-    @apply bg-white text-stone-600 hover:bg-stone-50;
+    @apply bg-white text-stone-600 hover:bg-earth-50;
   }
 
-  /* Toast 通知 */
+  /* Toast 通知 - 有机设计 */
   .toast {
     @apply fixed top-4 right-4 z-50;
-    @apply bg-white rounded-2xl shadow-lg border border-stone-200;
+    @apply bg-white rounded-organic-2xl shadow-organic-md border-2 border-earth-100;
     @apply px-4 py-3 animate-slide-in;
   }
 
@@ -339,97 +364,97 @@
     }
   }
 
-  /* 徽章 */
+  /* 徽章 - 有机风格 */
   .badge {
     @apply inline-flex items-center px-2.5 py-1;
-    @apply rounded-full text-xs font-semibold;
+    @apply rounded-organic-full text-xs font-semibold;
   }
 
   .badge-primary {
-    @apply bg-paddy-100 text-paddy-700;
+    @apply bg-earth-100 text-earth-700;
   }
 
   .badge-secondary {
-    @apply bg-gold-100 text-gold-700;
+    @apply bg-harvest-100 text-harvest-700;
   }
 
   .badge-sky {
     @apply bg-sky-100 text-sky-700;
   }
 
-  /* 工具调用卡片 */
+  /* 工具调用卡片 - 有机设计 */
   .tool-card {
-    @apply bg-white rounded-2xl border border-stone-200 p-4;
-    @apply shadow-sm hover:shadow-md;
+    @apply bg-white rounded-organic-xl border-2 border-earth-100 p-4;
+    @apply shadow-natural hover:shadow-natural-md;
     @apply transition-all duration-300 ease-out;
   }
 
   /* 增强的工具调用卡片 */
   .tool-card-enhanced {
-    @apply relative bg-white rounded-xl border border-stone-200 p-4;
-    @apply shadow-sm hover:shadow-md;
+    @apply relative bg-white rounded-organic-xl border-2 border-earth-100 p-4;
+    @apply shadow-natural hover:shadow-natural-md;
     @apply transition-shadow duration-200 ease-out;
   }
 
   .tool-card-enhanced:hover {
-    @apply border-stone-300;
+    @apply border-earth-200;
   }
 
-  /* 知识库引用卡片 */
+  /* 知识库引用卡片 - 有机设计 */
   .knowledge-card {
-    @apply bg-sky-50 rounded-xl border border-sky-200 p-4;
+    @apply bg-sky-50 rounded-organic-xl border-2 border-sky-100 p-4;
     @apply transition-shadow duration-200 ease-out;
   }
 
   /* 增强的知识库卡片 */
   .knowledge-card-enhanced {
-    @apply relative bg-sky-50 rounded-xl border border-sky-200 p-4;
-    @apply shadow-sm hover:shadow-md;
+    @apply relative bg-sky-50 rounded-organic-xl border-2 border-sky-100 p-4;
+    @apply shadow-natural hover:shadow-natural-md;
     @apply transition-shadow duration-200 ease-out;
   }
 
   .knowledge-card-enhanced:hover {
-    @apply border-sky-300;
+    @apply border-sky-200;
   }
 
-  /* 知识库条目卡片 */
+  /* 知识库条目卡片 - 有机风格 */
   .knowledge-item {
-    @apply bg-white rounded-lg p-3 border border-sky-100;
-    @apply shadow-sm hover:shadow-md;
+    @apply bg-white rounded-organic-lg p-3 border-2 border-sky-50;
+    @apply shadow-natural hover:shadow-natural-md;
     @apply transition-shadow duration-200 ease-out;
   }
 
   .knowledge-item-enhanced {
-    @apply bg-white rounded-lg p-3 border border-sky-200;
-    @apply shadow-sm hover:shadow-md;
+    @apply bg-white rounded-organic-lg p-3 border-2 border-sky-100;
+    @apply shadow-natural hover:shadow-natural-md;
     @apply transition-all duration-200 ease-out;
   }
 
   .knowledge-item-enhanced:hover {
-    @apply border-sky-300;
+    @apply border-sky-200;
   }
 }
 
 /* ==================== 工具类 ==================== */
 @layer utilities {
-  /* Text Gradient - 稻田渐变 */
+  /* Text Gradient - 有机渐变 */
   .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #16a34a 0%, #22c55e 50%, #4ade80 100%);
+    background-image: linear-gradient(135deg, #15803D 0%, #22C55E 50%, #4ADE80 100%);
   }
 
   /* Glass Effect - 磨砂玻璃效果 */
   .glass {
-    @apply bg-white/70 backdrop-blur-xl border border-white/30;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    @apply bg-white/70 backdrop-blur-xl border-2 border-white/30;
+    box-shadow: var(--shadow-organic);
   }
 
-  /* 稻田纹理背景 */
-  .bg-paddy-texture {
+  /* Organic Biophilic 纹理背景 */
+  .bg-organic-texture {
     background-image:
-      radial-gradient(circle at 20% 50%, rgba(34, 197, 94, 0.03) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(234, 179, 8, 0.03) 0%, transparent 50%),
-      radial-gradient(circle at 40% 20%, rgba(14, 165, 233, 0.02) 0%, transparent 50%);
+      radial-gradient(circle at 20% 50%, rgba(21, 128, 61, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(161, 98, 7, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 40% 20%, rgba(134, 239, 172, 0.03) 0%, transparent 50%);
   }
 
   /* Hide Scrollbar */
@@ -457,7 +482,7 @@
     overflow: hidden;
   }
 
-  /* 入场动画 */
+  /* 入场动画 - 有机风格 */
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out;
   }
@@ -501,7 +526,7 @@
     }
   }
 
-  /* 悬停效果 */
+  /* 悬停效果 - 自然提升 */
   .hover-lift {
     @apply transition-transform duration-300 ease-out;
   }

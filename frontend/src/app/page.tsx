@@ -547,7 +547,7 @@ export default function Home() {
 
   return (
     <div
-      className="flex flex-col h-screen dynamic-texture page-load-animate"
+      className="flex flex-col h-screen bg-organic-texture page-load-animate"
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -557,25 +557,26 @@ export default function Home() {
       {isDragging && (
         <div className="drag-overlay">
           <div className="drag-overlay-content">
-            <Upload className="w-12 h-12 mb-3 text-paddy-600" />
+            <Upload className="w-12 h-12 mb-3 text-earth-600" />
             <p className="text-lg font-semibold text-stone-900">拖拽图片到任意位置</p>
             <p className="text-sm text-stone-500 mt-2">松开鼠标即可上传 · 支持 JPG、PNG、GIF、WebP</p>
           </div>
         </div>
       )}
 
-      {/* 顶部标题栏 */}
-      <header className="border-b border-stone-200 glass-enhanced">
+      {/* 顶部标题栏 - Organic Biophilic 设计 */}
+      <header className="border-b-2 border-earth-100 glass bg-white/95">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-paddy-500 to-paddy-600 flex items-center justify-center text-white shadow-md">
+            {/* Logo - 有机曲线设计 */}
+            <div className="w-10 h-10 rounded-organic-xl bg-gradient-to-br from-earth-500 to-earth-700 flex items-center justify-center text-white shadow-organic">
               <span className="text-xl">🌾</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-stone-900">
+              <h1 className="text-xl font-bold text-earth-900 tracking-tight">
                 RuralBrain 乡村智慧大脑
               </h1>
-              <p className="text-sm text-stone-600 mt-0.5">
+              <p className="text-sm text-earth-600 mt-0.5 font-medium">
                 统一智能助手 · 图像检测与规划咨询
               </p>
             </div>
@@ -584,26 +585,28 @@ export default function Home() {
       </header>
 
       {/* 对话区域 */}
-      <main ref={mainContainerRef} className="flex-1 overflow-y-auto">
+      <main ref={mainContainerRef} className="flex-1 overflow-y-auto bg-white">
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* 条件渲染，显示欢迎信息或聊天消息 */}
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full pt-16">
-              {/* 主图标区域 */}
+              {/* 主图标区域 - Organic Biophilic */}
               <div className="relative mb-6">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-paddy-400 to-paddy-500 flex items-center justify-center text-5xl shadow-lg">
+                <div className="w-20 h-20 rounded-organic-2xl bg-gradient-to-br from-earth-400 to-earth-600 flex items-center justify-center text-5xl shadow-organic-lg animate-organic-float">
                   🌾
                 </div>
+                {/* 有机装饰 - 简化版 */}
+                <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-harvest-400 opacity-60" />
               </div>
 
-              {/* 欢迎文字 */}
-              <h2 className="text-2xl font-bold text-stone-900 mb-2">
+              {/* 欢迎文字 - 有机设计 */}
+              <h2 className="text-2xl font-bold text-earth-900 mb-2 tracking-tight">
                 你好！我是 RuralBrain
               </h2>
-              <p className="text-stone-600 mb-3">
+              <p className="text-earth-700 mb-3 font-medium">
                 乡村智慧大脑，为你提供专业的智能服务
               </p>
-              <p className="text-stone-500 text-sm mb-8">
+              <p className="text-earth-500 text-sm mb-8">
                 支持图像识别、规划咨询、科学方案等功能
               </p>
 
@@ -611,10 +614,10 @@ export default function Home() {
               <div className="w-full max-w-4xl mb-6">
                 {/* 第一层：经营规划 - 外部服务入口 */}
                 <div className="mb-6">
-                  <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                  <p className="text-earth-800 text-sm font-semibold mb-3 flex items-center gap-2">
                     <span className="text-base">🏘️</span>
                     <span>经营规划</span>
-                    <span className="text-stone-400 font-normal">· 智能体服务</span>
+                    <span className="text-earth-400 font-normal">· 智能体服务</span>
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {layer1ExternalServices.map((service) => (
@@ -628,10 +631,10 @@ export default function Home() {
 
                 {/* 第二层：图像检测 - Demo 卡片 */}
                 <div className="mb-6">
-                  <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                  <p className="text-earth-800 text-sm font-semibold mb-3 flex items-center gap-2">
                     <span className="text-base">🔍</span>
                     <span>图像检测</span>
-                    <span className="text-stone-400 font-normal">· 智能识别</span>
+                    <span className="text-earth-400 font-normal">· 智能识别</span>
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {layer2DetectionCards.map((card) => (
@@ -648,10 +651,10 @@ export default function Home() {
 
                 {/* 第三层：销售咨询 - Demo 卡片 */}
                 <div className="mb-6">
-                  <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                  <p className="text-earth-800 text-sm font-semibold mb-3 flex items-center gap-2">
                     <span className="text-base">📊</span>
                     <span>销售咨询</span>
-                    <span className="text-stone-400 font-normal">· 市场分析</span>
+                    <span className="text-earth-400 font-normal">· 市场分析</span>
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {layer3SalesCards.map((card) => (
@@ -668,10 +671,10 @@ export default function Home() {
 
                 {/* 第四层：咨询服务 - 混合展示 */}
                 <div className="mb-6">
-                  <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                  <p className="text-earth-800 text-sm font-semibold mb-3 flex items-center gap-2">
                     <span className="text-base">💬</span>
                     <span>咨询服务</span>
-                    <span className="text-stone-400 font-normal">· 专业支持</span>
+                    <span className="text-earth-400 font-normal">· 专业支持</span>
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {/* 法律咨询 - 外部服务卡片 */}
@@ -694,10 +697,10 @@ export default function Home() {
 
                 {/* 其他栏目 */}
                 <div className="mb-6">
-                  <p className="text-stone-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                  <p className="text-earth-800 text-sm font-semibold mb-3 flex items-center gap-2">
                     <span className="text-base">📦</span>
                     <span>其他功能</span>
-                    <span className="text-stone-400 font-normal">· 更多服务</span>
+                    <span className="text-earth-400 font-normal">· 更多服务</span>
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {otherCards.map((card) => (
@@ -714,7 +717,7 @@ export default function Home() {
               </div>
 
               {/* 提示文字 */}
-              <p className="text-stone-500 text-sm">
+              <p className="text-earth-500 text-sm">
                 💡 上传图片或直接提问，我会自动判断如何帮助你
               </p>
             </div>
@@ -730,56 +733,56 @@ export default function Home() {
         </div>
       </main>
 
-      {/* 输入区域 */}
-      <footer className="border-t border-stone-200 bg-white/95 backdrop-blur-sm">
+      {/* 输入区域 - Organic Biophilic 设计 */}
+      <footer className="border-t-2 border-earth-100 bg-white/95 backdrop-blur-sm shadow-natural">
         <div className="max-w-4xl mx-auto px-2 sm:px-4 py-2 sm:py-4">
           <form onSubmit={handleSubmit} className="space-y-1.5 sm:space-y-3">
-            {/* 知识库开关 */}
+            {/* 知识库开关 - 有机风格 */}
             <button
               type="button"
               onClick={() => setEnableKnowledgeBase(!enableKnowledgeBase)}
               disabled={loading}
               className={cn(
-                "rounded-full font-medium transition-all border-2 shadow-sm hover:shadow-md",
-                "px-3 py-1.5 sm:px-4 sm:py-2", // 响应式内边距
-                "text-xs sm:text-sm", // 响应式字体
+                "rounded-organic-full font-medium transition-all border-2 shadow-natural hover:shadow-natural-md",
+                "px-3 py-1.5 sm:px-4 sm:py-2",
+                "text-xs sm:text-sm",
                 enableKnowledgeBase
-                  ? "bg-green-50 border-green-500 text-green-700"
-                  : "bg-white border-stone-300 text-stone-600"
+                  ? "bg-earth-50 border-earth-500 text-earth-700"
+                  : "bg-white border-earth-200 text-stone-600 hover:bg-earth-50"
               )}
             >
               知识库 {enableKnowledgeBase ? "✓" : ""}
             </button>
 
-            {/* 联网搜索开关 */}
+            {/* 联网搜索开关 - 有机风格 */}
             <button
               type="button"
               onClick={() => setEnableWebSearch(!enableWebSearch)}
               disabled={loading}
               className={cn(
-                "rounded-full font-medium transition-all border-2 shadow-sm hover:shadow-md",
-                "px-3 py-1.5 sm:px-4 sm:py-2", // 响应式内边距
-                "text-xs sm:text-sm", // 响应式字体
+                "rounded-organic-full font-medium transition-all border-2 shadow-natural hover:shadow-natural-md",
+                "px-3 py-1.5 sm:px-4 sm:py-2",
+                "text-xs sm:text-sm",
                 enableWebSearch
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "bg-white border-stone-300 text-stone-600"
+                  ? "bg-sky-50 border-sky-500 text-sky-700"
+                  : "bg-white border-earth-200 text-stone-600 hover:bg-sky-50"
               )}
             >
               联网搜索 {enableWebSearch ? "✓" : ""}
             </button>
 
-            {/* 模型选择器 */}
+            {/* 模型选择器 - 有机风格 */}
             <select
               value={selectedModelId}
               onChange={(e) => setSelectedModelId(e.target.value)}
               disabled={loading}
               className={cn(
-                "rounded-full font-medium border-2 bg-white text-stone-700",
-                "px-3 py-1.5 sm:px-4 sm:py-2", // 响应式内边距
-                "text-xs sm:text-sm", // 响应式字体
-                "border-stone-200 hover:border-stone-300",
-                "focus:outline-none focus:border-paddy-500",
-                "transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                "rounded-organic-full font-medium border-2 bg-white text-earth-700",
+                "px-3 py-1.5 sm:px-4 sm:py-2",
+                "text-xs sm:text-sm",
+                "border-earth-200 hover:border-earth-300",
+                "focus:outline-none focus:border-earth-500 focus:ring-2 focus:ring-earth-500/20",
+                "transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-natural"
               )}
             >
               {models.map(model => (
@@ -791,7 +794,7 @@ export default function Home() {
 
             {/* 多模态提示 - Qwen 模型支持图片识别 */}
             {models.find(m => m.id === selectedModelId)?.is_multimodal && (
-              <span className="text-xs text-green-600 font-medium">支持图片识别</span>
+              <span className="text-xs text-earth-600 font-medium">支持图片识别</span>
             )}
 
             {/* 图片预览 */}
@@ -926,12 +929,12 @@ export default function Home() {
             </div>
 
             {/* 提示文字 - 响应式 */}
-            <p className="hidden sm:block text-stone-500 text-center text-xs">
+            <p className="hidden sm:block text-earth-500 text-center text-xs">
               Enter 发送 · Shift+Enter 换行 · Ctrl+V 粘贴图片 · 拖拽图片到任意位置
               {isSupported && " · 点击麦克风语音输入"}
             </p>
             {/* 移动端简版提示 */}
-            <p className="sm:hidden text-stone-500 text-center text-[10px]">
+            <p className="sm:hidden text-earth-500 text-center text-[10px]">
               Enter 发送 · 支持粘贴图片和拖拽上传
               {isSupported && " · 语音输入"}
             </p>
