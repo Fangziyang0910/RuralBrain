@@ -41,6 +41,7 @@ services:
       - PEST_DETECTION_API_URL=http://detection-service:8001/detection/pest/detect
       - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
+      - DISEASE_DETECTION_API_URL=http://detection-service:8001/detection/disease/detect
     volumes:
       # knowledge_base 已内置在镜像中，无需挂载
       - ./src/rag:/app/src/rag

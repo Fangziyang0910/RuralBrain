@@ -47,7 +47,10 @@ logger = logging.getLogger(__name__)
 
 # ==================== 常量配置 ====================
 
-DISEASE_DETECTION_API_URL = "http://localhost:8001/detection/disease/detect"
+DISEASE_DETECTION_API_URL = os.getenv(
+    "DISEASE_DETECTION_API_URL",
+    "http://detection-service:8001/detection/disease/detect"
+)
 SUPPORTED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp'}
 SUPPORTED_VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov'}
 SUPPORTED_MEDIA_EXTENSIONS = SUPPORTED_IMAGE_EXTENSIONS | SUPPORTED_VIDEO_EXTENSIONS

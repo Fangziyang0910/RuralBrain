@@ -27,6 +27,50 @@ export interface WebSearchData {
 }
 
 /**
+ * 单个检测结果
+ */
+export interface DetectionItem {
+  name: string;
+  count: number;
+  confidence?: number;
+}
+
+/**
+ * 检测工具结果数据
+ */
+export interface DetectionData {
+  detections: DetectionItem[];
+  totalCount: number;
+  severity: "low" | "medium" | "high" | "none";
+  summary: string;
+  suggestions?: string[];
+}
+
+/**
+ * 单个疾病预测结果
+ */
+export interface DiseasePrediction {
+  name: string;
+  probability: number;
+  reason: string;
+}
+
+/**
+ * 疾病预测工具结果数据
+ */
+export interface DiseasePredictionData {
+  diseases: DiseasePrediction[];
+  urgency: "high" | "medium" | "low";
+  symptoms: string[];
+  suggestions: {
+    isolation?: string;
+    treatment?: string;
+    prevention?: string;
+  };
+  reminder?: string;
+}
+
+/**
  * 工具调用事件（扩展后）
  */
 export interface ToolCallEventData {
@@ -34,5 +78,5 @@ export interface ToolCallEventData {
   tool_name: string;
   status: '运行中' | '已完成';
   result_image?: string;
-  result_data?: WebSearchData;  // 联网搜索的结构化数据
+  result_data?: WebSearchData | DetectionData | DiseasePredictionData;
 }

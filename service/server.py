@@ -45,6 +45,374 @@ SSE_HEADERS = {
 }
 
 
+# ==================== 检测工具结构化数据解析 ====================
+
+def parse_detection_tool_output(tool_output: str, tool_name: str) -> dict | None:
+    """解析检测工具的输出，提取结构化数据
+
+    Args:
+        tool_output: 工具返回的文本内容
+        tool_name: 工具名称
+
+    Returns:
+        结构化的检测数据，解析失败返回 None
+    """
+    try:
+        import re
+
+        # 清理 Markdown 格式标记（**粗体**）
+        def clean_markdown(text: str) -> str:
+            """清理文本中的 Markdown 标记"""
+            # 移除 **粗体** 标记
+            text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+            # 移除 *斜体* 标记（包括 *斜体内容*）
+            text = re.sub(r'\*([^*]+)\*', r'\1', text)
+            # 移除 `代码` 标记
+            text = re.sub(r'`(.+?)`', r'\1', text)
+            # 移除括号中的学名如 （*Spodoptera exigua*）
+            text = re.sub(r'\([^*]*\*[^)]*\)', '', text)
+            return text.strip()
+
+        # 多种格式的检测结果解析
+        detections = []
+        total_count = 0
+        summary_text = ""
+
+        # 格式1: "检测结果: 瓜实蝇(3只)、斜纹夜蛾(1只)"
+        match1 = re.search(r'检测结果[:：]\s*([^\n]+)', tool_output)
+        if match1:
+            result_str = match1.group(1)
+            # 匹配 "名称(数量只)" 或 "名称(数量粒)" 或 "名称(数量头)"
+            for det_match in re.finditer(r'([^\(、]+?)\((\d+)[只粒头个]\)', result_str):
+                name = clean_markdown(det_match.group(1).strip())
+                count = int(det_match.group(2))
+                if name and count >= 0:
+                    detections.append({"name": name, "count": count})
+                    total_count += count
+
+        # 格式2: "**检测对象**：甜菜夜蛾（*Spodoptera exigua*）。**数量**：1头"
+        if not detections:
+            object_match = re.search(r'\*{0,2}检测对象\*{0,2}[:：]\s*([^\n。]+?)(?:\*\*数量|数量|\.|$)', tool_output, re.IGNORECASE)
+            count_match = re.search(r'\*{0,2}数量\*{0,2}[:：]\s*(\d+)', tool_output, re.IGNORECASE)
+
+            if object_match:
+                name = clean_markdown(object_match.group(1).strip())
+                count = int(count_match.group(1)) if count_match else 1
+                if name:
+                    detections.append({"name": name, "count": count})
+                    total_count += count
+
+        # 格式3: "检测到 X 个Y" 或 "发现 Y: X个"
+        if not detections:
+            # 匹配 "检测到3只瓜实蝇"
+            for det_match in re.finditer(r'(?:检测到|发现|识别出)\s*(\d+)\s*[只粒头个]*(?:的)?\s*([^\n，。、]+?)(?:[,，。、]|\s|$)', tool_output):
+                count = int(det_match.group(1))
+                name = clean_markdown(det_match.group(2).strip())
+                if name and count >= 0:
+                    detections.append({"name": name, "count": count})
+                    total_count += count
+
+        # 格式4: "瓜实蝇: 3只" 或 "瓜实蝇 - 3只"
+        if not detections:
+            for det_match in re.finditer(r'([^\n:：-]+?)[:：\s*-]\s*(\d+)\s*[只粒头个]', tool_output):
+                name = clean_markdown(det_match.group(1).strip())
+                count = int(det_match.group(2))
+                if name and count >= 0 and len(name) < 50:  # 名称长度限制
+                    # 排除非检测内容的行
+                    if not any(kw in name for kw in ["成本", "价格", "品质", "市场", "建议", "数据"]):
+                        detections.append({"name": name, "count": count})
+                        total_count += count
+
+        # 计算严重程度
+        if total_count == 0:
+            severity = "none"
+        elif total_count <= 3:
+            severity = "low"
+        elif total_count <= 10:
+            severity = "medium"
+        else:
+            severity = "high"
+
+        # 提取建议部分
+        suggestions = []
+        suggestion_sections = ["防治建议", "处理建议", "建议措施", "应对措施", "建议"]
+        for section_name in suggestion_sections:
+            if section_name in tool_output:
+                section_match = re.search(
+                    rf'{section_name}[:：]\s*\n((?:[^#\n].*\n?){{1,10}})',
+                    tool_output,
+                    re.IGNORECASE
+                )
+                if section_match:
+                    section_text = section_match.group(1)
+                    for line in section_text.split("\n"):
+                        line = clean_markdown(line.strip())
+                        if line and not line.startswith("#") and 10 < len(line) < 150:
+                            if line.startswith(("-", "•", "*", "·")):
+                                suggestions.append(line.lstrip("-•*· ").strip())
+                            elif re.match(r'^\d+[.、)]', line):
+                                suggestions.append(re.sub(r'^\d+[.、)]\s*', '', line))
+                            elif not any(kw in line for kw in ["检测", "结果", "数量", "形态", "注意"]):
+                                suggestions.append(line)
+                    if suggestions:
+                        break
+
+        # 提取描述/摘要
+        summary_parts = []
+        # 优先使用专门的摘要或结论
+        summary_patterns = [
+            r'(?:摘要|结论|综合判断)[:：]\s*([^\n]+)',
+            r'(?:当前)?严重程度[:：]\s*([^\n]+)',
+        ]
+        for pattern in summary_patterns:
+            match = re.search(pattern, tool_output)
+            if match:
+                summary_parts.append(clean_markdown(match.group(1).strip()))
+                break
+
+        # 如果没有找到专门的摘要，提取第一段有效内容
+        if not summary_parts:
+            for line in tool_output.split("\n")[:5]:
+                cleaned = clean_markdown(line.strip())
+                if cleaned and not cleaned.startswith("#") and 15 < len(cleaned) < 200:
+                    # 排除标题行
+                    if not any(kw in cleaned for kw in ["检测结果", "检测对象", "数量统计", "形态辨析"]):
+                        summary_parts.append(cleaned)
+                        if len(summary_parts) >= 2:
+                            break
+
+        # 构建返回数据
+        if detections or total_count > 0:
+            return {
+                "detections": detections,
+                "totalCount": total_count,
+                "severity": severity,
+                "summary": " ".join(summary_parts) if summary_parts else f"检测到 {total_count} 个目标",
+                "suggestions": suggestions[:5] if suggestions else None,
+            }
+        elif "未检测到" in tool_output or "未发现" in tool_output:
+            return {
+                "detections": [],
+                "totalCount": 0,
+                "severity": "none",
+                "summary": "未检测到相关目标",
+                "suggestions": ["继续保持田间卫生", "定期巡查监测"][:2]
+            }
+
+        return None
+    except Exception as e:
+        logger.warning(f"解析检测工具输出失败: {e}")
+        return None
+
+
+def parse_disease_prediction_output(tool_output: str) -> dict | None:
+    """解析疾病预测工具的输出，提取结构化数据
+
+    Args:
+        tool_output: 工具返回的文本内容
+
+    Returns:
+        结构化的疾病预测数据，解析失败返回 None
+    """
+    try:
+        import re
+
+        # 清理 Markdown 格式标记
+        def clean_markdown(text: str) -> str:
+            """清理文本中的 Markdown 标记"""
+            # 清理 **粗体**
+            text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+            # 清理 *斜体*
+            text = re.sub(r'\*([^*]+)\*', r'\1', text)
+            # 清理 `代码`
+            text = re.sub(r'`([^`]+)`', r'\1', text)
+            return text.strip()
+
+        # 解析可能的疾病（多种格式支持）
+        diseases = []
+
+        # 添加调试日志
+        logger.info(f"疾病预测解析 - 输出片段: {tool_output[:800] if tool_output else 'None'}...")
+
+        # 格式1: "**疾病名称**（可能性：XX%）" - 修复：精确匹配 **...** 格式
+        pattern1 = r'\*\*([^**]+)\*\*\s*[（(]\s*可能性\s*[：:]?\s*(\d+)\s*%?\s*[）)]'
+        for match in re.finditer(pattern1, tool_output):
+            name = clean_markdown(match.group(1).strip())
+            probability = int(match.group(2))
+            logger.info(f"匹配到疾病候选: '{name}' ({probability}%)")
+
+            # 更严格的过滤条件
+            invalid_keywords = ["可能性", "依据", "分析", "病变", "发展阶段", "处于", "不同", "可能", "提示", "建议", "需要", "考虑"]
+            is_valid = (
+                len(name) >= 2 and
+                len(name) < 30 and
+                not any(kw in name for kw in invalid_keywords) and
+                not name.endswith(("处于", "可能", "不同", "阶段")) and
+                # 疾病名称应该包含医学相关词汇
+                any(medical_kw in name for medical_kw in ["炎", "病", "症", "感染", "中毒", "综合征", "损伤", "障碍"])
+            )
+
+            if is_valid and name not in [d["name"] for d in diseases]:
+                diseases.append({"name": name, "probability": probability, "reason": ""})
+
+        # 格式2: "1. **疾病名称**（可能性：XX%）" 或列表格式
+        if not diseases:
+            pattern2 = r'(?:^\d+[\.\)]\s*|[-*])\s*\*\*([^**]+)\*\*\s*[（(]\s*(?:可能性)?\s*(\d+)\s*%?\s*[）)]'
+            for match in re.finditer(pattern2, tool_output, re.MULTILINE):
+                name = clean_markdown(match.group(1).strip())
+                probability = int(match.group(2))
+                if len(name) >= 2 and len(name) < 30 and name not in [d["name"] for d in diseases]:
+                    diseases.append({"name": name, "probability": probability, "reason": ""})
+
+        # 格式3: "可能是X疾病" 或 "疑似X"
+        if not diseases:
+            pattern3 = r'(?:可能是|疑似|怀疑为|考虑|提示)\s*\*{0,2}([^*，。、]+?)(?:病|综合症|征)?\*{0,2}(?:[，。、]|$)'
+            for match in re.finditer(pattern3, tool_output):
+                name = clean_markdown(match.group(1).strip())
+                # 如果没有以"病"结尾，添加它
+                if not name.endswith(("病", "症", "炎", "感染")):
+                    name = name + "病"
+                if len(name) >= 2 and len(name) < 30 and name not in [d["name"] for d in diseases]:
+                    diseases.append({"name": name, "probability": 60, "reason": ""})
+
+        # 为每个疾病查找判断依据
+        for disease in diseases:
+            # 尝试多种方式找到判断依据
+            reason_patterns = [
+                rf'{re.escape(disease["name"])}[^。\n]*?判断依据[：:]\s*([^。\n]+)',
+                rf'[:#]\s*{re.escape(disease["name"])}.*?[:：]\s*([^。\n]+?)(?=\n|$|\d+[\.)])',
+            ]
+            for pattern in reason_patterns:
+                match = re.search(pattern, tool_output, re.DOTALL)
+                if match:
+                    disease["reason"] = clean_markdown(match.group(1).strip())[:100]
+                    break
+
+        # 解析紧急程度（多种格式）
+        urgency = "medium"
+        urgency_patterns = [
+            r"紧急程度\s*[:：]\s*(🚨\s*高|⚠️\s*中|ℹ️\s*低|高|中|低)",
+            r"(?:紧急|严重)(?:程度|性)?[：:]\s*(高|中|低)",
+            r"🚨|⚠️|ℹ️",  # 仅表情符号
+        ]
+        for pattern in urgency_patterns:
+            match = re.search(pattern, tool_output)
+            if match:
+                urgency_text = match.group(1) if match.lastindex and match.group(1) else ""
+                if not urgency_text and match.group(0):
+                    urgency_text = match.group(0)
+                urgency_text = urgency_text.replace("🚨", "").replace("⚠️", "").replace("ℹ️", "").strip()
+                if "高" in urgency_text:
+                    urgency = "high"
+                elif "低" in urgency_text:
+                    urgency = "low"
+                else:
+                    urgency = "medium"
+                break
+
+        # 解析关键症状
+        symptoms = []
+        symptoms_patterns = [
+            r"(?:关键)?症状依据?[:：]\s*\n((?:[^#\n].*\n?){1,15})",
+            r"(?:主要)?症状[:：]\s*([^\n]+)",
+            r"(?:临床表现|临表)[：:]\s*([^\n]+)",
+        ]
+        for pattern in symptoms_patterns:
+            match = re.search(pattern, tool_output, re.DOTALL)
+            if match:
+                section_text = match.group(1) if match.lastindex >= 1 else match.group(0)
+                for line in section_text.split("\n"):
+                    line = clean_markdown(line.strip())
+                    if line and not line.startswith("#") and len(line) < 80:
+                        if line.startswith(("-", "•", "*", "·")):
+                            symptoms.append(clean_markdown(line.lstrip("-•*· ").strip())[:50])
+                        elif re.match(r'^\d+[\.)]', line):
+                            symptoms.append(clean_markdown(re.sub(r'^\d+[\.)]\s*', '', line))[:50])
+                        elif not any(kw in line for kw in ["建议", "处理", "预防", "提醒"]):
+                            symptoms.append(line[:50])
+                if symptoms:
+                    break
+
+        # 如果没找到专门的症状部分，尝试从整个文本中提取
+        if not symptoms:
+            for line in tool_output.split("\n"):
+                line = clean_markdown(line.strip())
+                if line and 15 < len(line) < 100:
+                    if any(kw in line for kw in ["发热", "咳嗽", "精神", "食欲", "粪便", "皮肤", "肿胀"]):
+                        symptoms.append(line[:50])
+                        if len(symptoms) >= 5:
+                            break
+
+        # 解析处理建议
+        suggestions = {}
+        suggestions_section = re.search(
+            r"(?:处理建议|应对措施|治疗方案|防控措施)[：:]\s*\n((?:[^#\n].*\n?){1,20})",
+            tool_output,
+            re.DOTALL | re.IGNORECASE
+        )
+        if suggestions_section:
+            suggestions_text = suggestions_section.group(1)
+
+            # 隔离观察（多种关键词）
+            isolation_patterns = [
+                r"(?:隔离|分开)[^。\n]{0,20}",
+                r"1[\.\)]\s*[^。\n]{0,30}",
+            ]
+            for pattern in isolation_patterns:
+                match = re.search(pattern, suggestions_text, re.IGNORECASE)
+                if match:
+                    suggestions["isolation"] = clean_markdown(match.group(0).strip())[:100]
+                    break
+
+            # 对症治疗
+            treatment_patterns = [
+                r"(?:对症治疗|治疗|用药)[：:][^。\n]{0,100}",
+                r"2[\.\)]\s*[^。\n]{0,30}",
+            ]
+            for pattern in treatment_patterns:
+                match = re.search(pattern, suggestions_text, re.IGNORECASE)
+                if match:
+                    suggestions["treatment"] = clean_markdown(match.group(0).strip())[:100]
+                    break
+
+            # 预防措施
+            prevention_patterns = [
+                r"(?:预防|防控)[^。\n]{0,100}",
+                r"3[\.\)]\s*[^。\n]{0,30}",
+            ]
+            for pattern in prevention_patterns:
+                match = re.search(pattern, suggestions_text, re.IGNORECASE)
+                if match:
+                    suggestions["prevention"] = clean_markdown(match.group(0).strip())[:100]
+                    break
+
+        # 解析重要提醒
+        reminder = ""
+        reminder_patterns = [
+            r"(?:重要提醒|注意事项|注意)[：:]\s*([^\n]+)",
+            r"⚠️\s*([^\n]+)",
+        ]
+        for pattern in reminder_patterns:
+            match = re.search(pattern, tool_output, re.IGNORECASE)
+            if match:
+                reminder = clean_markdown(match.group(1) if match.lastindex >= 1 else match.group(0)).strip()[:150]
+                break
+
+        if diseases or symptoms:
+            return {
+                "diseases": diseases[:5],
+                "urgency": urgency,
+                "symptoms": symptoms[:8],
+                "suggestions": suggestions,
+                "reminder": reminder if reminder else None
+            }
+
+        return None
+    except Exception as e:
+        logger.warning(f"解析疾病预测输出失败: {e}")
+        return None
+
+
 # ==================== 推理过程过滤器 ====================
 
 class ThinkingProcessFilter:
@@ -492,37 +860,46 @@ async def chat_stream(request: ChatRequest):
                                 if images:
                                     result_image = f"/cow_results/{images[0].name}"
 
-                        # 解析 web_search_tool 的结构化输出
+                        # 解析工具的结构化输出
                         result_data = None
-                        if tool_name == "web_search_tool":
-                            try:
-                                # 从事件的 data 字段获取工具输出
-                                tool_output = event.get("data")
 
-                                # data 是一个 dict，包含 'output' 键，output 是 ToolMessage 对象
-                                if tool_output and isinstance(tool_output, dict):
-                                    output_msg = tool_output.get("output")
-                                    # ToolMessage 有 content 属性
-                                    if output_msg and hasattr(output_msg, 'content'):
-                                        content = output_msg.content
-                                        parsed = json.loads(content)
-                                        result_data = {
-                                            "ai_summary": parsed.get("ai_summary", ""),
-                                            "results": parsed.get("results", []),
-                                            "stats": parsed.get("stats", {"total": 0, "news": 0, "web": 0})
-                                        }
-                                        logger.info(f"联网搜索结果数据: {result_data['stats']}")
-                                    elif isinstance(output_msg, str):
-                                        parsed = json.loads(output_msg)
-                                        result_data = {
-                                            "ai_summary": parsed.get("ai_summary", ""),
-                                            "results": parsed.get("results", []),
-                                            "stats": parsed.get("stats", {"total": 0, "news": 0, "web": 0})
-                                        }
-                                        logger.info(f"联网搜索结果数据: {result_data['stats']}")
+                        # 获取工具输出内容
+                        tool_output = event.get("data")
+                        tool_output_text = None
+
+                        if tool_output and isinstance(tool_output, dict):
+                            output_msg = tool_output.get("output")
+                            if output_msg and hasattr(output_msg, 'content'):
+                                tool_output_text = output_msg.content
+                            elif isinstance(output_msg, str):
+                                tool_output_text = output_msg
+
+                        # 解析联网搜索工具的结构化输出
+                        if tool_name == "web_search_tool" and tool_output_text:
+                            try:
+                                parsed = json.loads(tool_output_text)
+                                result_data = {
+                                    "ai_summary": parsed.get("ai_summary", ""),
+                                    "results": parsed.get("results", []),
+                                    "stats": parsed.get("stats", {"total": 0, "news": 0, "web": 0})
+                                }
+                                logger.info(f"联网搜索结果数据: {result_data['stats']}")
                             except (json.JSONDecodeError, TypeError, AttributeError) as e:
                                 logger.warning(f"解析 web_search_tool 输出失败: {e}")
-                                # 保持原有行为，result_data 为 None
+
+                        # 解析检测工具的结构化输出
+                        elif tool_name in ["pest_detection_tool", "rice_detection_tool", "cow_detection_tool"]:
+                            result_data = parse_detection_tool_output(tool_output_text or "", tool_name)
+                            if result_data:
+                                logger.info(f"{tool_name} 结构化数据: {result_data['summary']}")
+
+                        # 解析疾病预测工具的结构化输出
+                        elif tool_name == "disease_prediction_tool":
+                            # 添加调试日志
+                            logger.info(f"疾病预测工具原始输出（前500字符）: {tool_output_text[:500] if tool_output_text else 'None'}")
+                            result_data = parse_disease_prediction_output(tool_output_text or "")
+                            if result_data:
+                                logger.info(f"disease_prediction_tool 结构化数据: {len(result_data['diseases'])} 个疾病预测 - {result_data['diseases'][:2]}")
 
                         # 发送工具调用完成事件
                         # 添加完整的基础 URL（前端通过前端 API 路由访问）

@@ -10,15 +10,17 @@ import { LoadingDots } from "./ui/LoadingDots";
 import { MessageImageGallery } from "./ui/MessageImageGallery";
 import { ToolResultImage } from "./ui/ToolResultImage";
 import { getToolConfig, getToolColorClass } from "@/config/tool-icons";
-import { WebSearchData } from "@/types/tool";
+import { WebSearchData, DetectionData, DiseasePredictionData } from "@/types/tool";
 import { WebSearchCard } from "./WebSearchCard";
+import { DetectionCard } from "./tool-cards/DetectionCard";
+import { DiseasePredictionCard } from "./tool-cards/DiseasePredictionCard";
 
 export interface ToolCall {
   name: string;
   status: "运行中" | "已完成";
   resultImage?: string;
   summary?: string[];
-  resultData?: WebSearchData;  // 新增：联网搜索的结构化数据
+  resultData?: WebSearchData | DetectionData | DiseasePredictionData;
 }
 
 interface KnowledgeSource {
@@ -78,11 +80,29 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
           <div className="w-full space-y-2">
             {message.toolCalls.map((toolCall, idx) => (
               <div key={idx} className="animate-slide-up" style={{ animationDelay: `${idx * 0.1}s` }}>
-                {/* 联网搜索工具使用专用卡片 */}
-                {toolCall.name === "web_search_tool" && toolCall.resultData ? (
-                  <WebSearchCard data={toolCall.resultData} />
-                ) : (
-                  <ToolCallDisplay toolCall={toolCall} />
+                {/* 原始工具调用卡片 - 始终显示（工具名称 + 状态 + 结果图片） */}
+                <ToolCallDisplay toolCall={toolCall} />
+
+                {/* 结构化数据专用卡片 - 额外展示在下方 */}
+                {toolCall.name === "disease_prediction_tool" && toolCall.resultData && (
+                  <div className="mt-2">
+                    <DiseasePredictionCard data={toolCall.resultData as DiseasePredictionData} />
+                  </div>
+                )}
+                {(toolCall.name === "pest_detection_tool" ||
+                  toolCall.name === "rice_detection_tool" ||
+                  toolCall.name === "cow_detection_tool") && toolCall.resultData && (
+                  <div className="mt-2">
+                    <DetectionCard
+                      data={toolCall.resultData as DetectionData}
+                      toolName={getToolConfig(toolCall.name).label}
+                    />
+                  </div>
+                )}
+                {toolCall.name === "web_search_tool" && toolCall.resultData && (
+                  <div className="mt-2">
+                    <WebSearchCard data={toolCall.resultData as WebSearchData} />
+                  </div>
                 )}
               </div>
             ))}
