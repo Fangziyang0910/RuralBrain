@@ -1,8 +1,8 @@
 # RuralBrain 下一阶段开发规划
 
-> **规划版本**: v2.4
+> **规划版本**: v2.5
 > **制定日期**: 2026-03-13
-> **更新日期**: 2026-04-05
+> **更新日期**: 2026-04-14
 > **目标版本**: v0.1
 > **预计周期**: 7 周
 
@@ -81,7 +81,7 @@
 | - 检测工具支持多模态消息提取 base64 图片 | | | | ✅ |
 | - 检测结果用 Qwen 生成自然语言解释 | | | | ✅ `generate_detection_explanation()` |
 | - 提供处理建议和预防措施 | | | | ✅ |
-| - 增强前端展示 | | | | ❌ 待实现 |
+| - 增强前端展示 | | | | ✅ DetectionCard 区分检测类型 + AnnotatedImage 交互式标注 |
 | **D1: 巡检图片分析增强** | D | 2天 | A1 | ✅ 已完成 |
 | - `farm_inspection_tool` 支持多图片输入 | | | | ✅ |
 | - Qwen-VL 综合分析多张巡检照片 | | | | ✅ |
@@ -744,6 +744,12 @@ bash scripts/dev/test_production.sh
 | `src/agents/skills/configs/image_gen.yaml` | ⭐新增：生图技能配置 | A |
 | `src/agents/tools/pricing_tool.py` | 定价工具（集成搜索） | C |
 | `src/agents/tools/detection_tools.py` | 检测工具（多模态增强） | C |
+| `src/agents/tools/rice_detection_tool.py` | 大米检测工具（详细检测数据） | C |
+| `src/algorithms/api/routes/detection.py` | 检测 API 路由（含 rice/predict_detailed） | C |
+| `src/algorithms/detection/services/rice_service.py` | 大米检测服务（detect_detailed） | C |
+| `src/algorithms/detection/services/onnx_yolo.py` | ONNX 检测器（OpenCV 绘制标签） | C |
+| `frontend/src/components/tool-cards/DetectionCard.tsx` | 检测结果卡片（区分检测类型） | C |
+| `frontend/src/components/ui/AnnotatedImage.tsx` | 交互式标注图片组件 | C |
 | `src/agents/tools/farm_inspection_tool.py` | 巡检工具（多图片 + 图文科普） | D |
 | `src/agents/tools/disease_prediction_tool.py` | 疾病预测（多模态 + 图文科普） | D |
 | `src/agents/skills/configs/planning.yaml` | 规划技能 | B |
@@ -826,8 +832,8 @@ bash scripts/dev/test_production.sh
 
 | 任务编号 | 任务名称 | 负责人 | 工作量 | 阶段 |
 |----------|----------|--------|--------|------|
-| C1 | 定价工具集成搜索 | C | 2天 | Week 1-2 |
-| C2 | 检测多模态增强 | C | 2天 | Week 1-2 |
+| C1 | 定价工具集成搜索 | C | 2天 | Week 1-2 | ✅ 已完成 |
+| C2 | 检测多模态增强（含前端展示） | C | 2天 | Week 1-2 | ✅ 已完成 |
 | D1 | 巡检图片分析增强 | D | 2天 | Week 1-2 |
 | D2 | 疾病预测多模态 | D | 2天 | Week 1-2 |
 | B3 | RAG 与搜索融合测试 | B | 1天 | Week 3-4 |
@@ -855,6 +861,8 @@ bash scripts/dev/test_production.sh
 | — | 2026-04-05 | ✅ B3 完成：混合检索 A/B 测试，推荐 `bm25_dominant` 配置（关键词覆盖率 97%） |
 | — | 2026-04-05 | 🧹 代码清理：删除过时测试文件，修复导入路径，清理重复导入 |
 | — | 2026-04-06 | 📚 知识库补充：完成15个典型案例入库目标，切片796个，覆盖五大振兴 |
+| v2.4 → v2.5 | 2026-04-14 | ✅ C2 完成：检测前端展示增强（DetectionCard 区分检测类型 + AnnotatedImage 交互式标注） |
+| — | 2026-04-14 | 🔧 大米检测：添加详细检测 API，返回 bbox/confidence 数据，使用 OpenCV 绘制标签 |
 
 ---
 
