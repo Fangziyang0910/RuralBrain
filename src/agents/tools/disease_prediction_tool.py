@@ -73,8 +73,18 @@ def _get_disease_vectorstore():
             path=str(chroma_dir),
             settings=Settings(anonymized_telemetry=False, allow_reset=True)
         )
+
+        # 检查集合是否存在
+        collection_name = "diseases_knowledge"
+        try:
+            # 尝试获取集合
+            client.get_collection(collection_name)
+        except:
+            # 集合不存在，返回 None
+            return None
+
         vectorstore = Chroma(
-            collection_name="diseases_knowledge",
+            collection_name=collection_name,
             embedding_function=embeddings,
             client=client,
             persist_directory=str(chroma_dir)

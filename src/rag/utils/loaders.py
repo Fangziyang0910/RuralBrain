@@ -86,7 +86,7 @@ class FileTypeDetector:
             'application/wps-office.xls',
             'application/x-ole-storage'
         ]:
-            print(f"⚠️  检测到伪装成 .docx 的 .doc 文件: {file_path.name}")
+            print(f"[WARN]  检测到伪装成 .docx 的 .doc 文件: {file_path.name}")
             return 'doc'
 
         return doc_type or cls.EXT_TYPE_MAP.get(ext, 'unknown')
@@ -165,10 +165,19 @@ class BaseDocumentLoader:
         if not self.cleaner.is_meaningful_content(cleaned_content):
             return None
 
+        # 提取 frontmatter 字段
+        frontmatter = metadata_kwargs.pop('frontmatter', {})
+
+        # 构建基础元数据
         metadata = {
             "source": str(self.file_path.name),
             **metadata_kwargs
         }
+
+        # 合并 frontmatter 中的字段（不会覆盖已有的字段）
+        for key, value in frontmatter.items():
+            if key not in metadata:
+                metadata[key] = value
 
         if self.category:
             metadata["category"] = self.category
@@ -189,7 +198,7 @@ class DOCLoader(BaseDocumentLoader):
     def load(self) -> list[Document]:
         """加载 DOC 文件"""
         self._validate_file()
-        print(f"📝 正在读取 Word 文档（DOC 格式）: {self.file_path} ...")
+        print(f"[INFO] Reading Word document (DOC format): {self.file_path} ...")
 
         try:
             text = self._extract_text()
@@ -208,7 +217,7 @@ class DOCLoader(BaseDocumentLoader):
         for idx, extractor in enumerate(extractors, 1):
             try:
                 if idx > 1:
-                    print(f"⚠️  前一种方法失败，尝试下一种...")
+                    print(f"[WARN]  前一种方法失败，尝试下一种...")
                 return extractor()
             except Exception as e:
                 continue
@@ -274,13 +283,13 @@ class DOCLoader(BaseDocumentLoader):
                             text_segment = re.sub(r'\n{3,}', '\n\n', text_segment)
 
                             if len(text_segment.strip()) > 20:
-                                print(f"   ✓ 使用 {encoding} 编码提取了 {len(text_segment)} 个字符")
+                                print(f"   [OK] 使用 {encoding} 编码提取了 {len(text_segment)} 个字符")
                                 text_parts.append(text_segment)
                                 break
                     except:
                         continue
             except Exception as e:
-                print(f"   ⚠️  解析流 {stream_name} 失败: {e}")
+                print(f"   [WARN]  解析流 {stream_name} 失败: {e}")
                 continue
 
         ole.close()
@@ -305,7 +314,7 @@ class DOCLoader(BaseDocumentLoader):
             if doc:
                 documents.append(doc)
 
-        print(f"✅ 提取完成，共获取 {len(documents)} 个段落")
+        print(f"[OK] 提取完成，共获取 {len(documents)} 个段落")
         return documents
 
 
@@ -317,7 +326,7 @@ class DOCXLoader(BaseDocumentLoader):
     def load(self) -> list[Document]:
         """加载 DOCX 文件"""
         self._validate_file()
-        print(f"📝 正在读取 Word 文档（DOCX 格式）: {self.file_path} ...")
+        print(f"[INFO] Reading Word document (DOCX format): {self.file_path} ...")
 
         if DocxDocument is None:
             raise Exception("python-docx 未安装，请运行: uv add python-docx")
@@ -326,8 +335,8 @@ class DOCXLoader(BaseDocumentLoader):
             doc = DocxDocument(str(self.file_path))
             return self._parse_docx(doc)
         except Exception as e:
-            print(f"⚠️  python-docx 读取失败: {e}")
-            print(f"⚠️  可能是伪装成 .docx 的 .doc 文件，尝试使用 DOCLoader...")
+            print(f"[WARN]  python-docx 读取失败: {e}")
+            print(f"[WARN]  可能是伪装成 .docx 的 .doc 文件，尝试使用 DOCLoader...")
             return DOCLoader(self.file_path, self.category).load()
 
     def _parse_docx(self, doc) -> list[Document]:
@@ -374,7 +383,7 @@ class DOCXLoader(BaseDocumentLoader):
         if not documents:
             return self._parse_as_paragraphs(doc)
 
-        print(f"✅ 提取完成，共获取 {len(documents)} 个文档片段")
+        print(f"[OK] 提取完成，共获取 {len(documents)} 个文档片段")
         return documents
 
     def _extract_heading_level(self, style_name: str) -> int:
@@ -409,7 +418,7 @@ class PDFLoader(BaseDocumentLoader):
     def load(self) -> list[Document]:
         """加载 PDF 文件"""
         self._validate_file()
-        print(f"📄 正在读取 PDF: {self.file_path} ...")
+        print(f"[FILE] 正在读取 PDF: {self.file_path} ...")
 
         if PdfReader is None:
             raise Exception("pypdf 未安装，请运行: uv add pypdf")
@@ -438,10 +447,10 @@ class PDFLoader(BaseDocumentLoader):
                 if doc:
                     documents.append(doc)
             except Exception as e:
-                print(f"⚠️  处理第 {page_idx} 页时出错: {e}")
+                print(f"[WARN]  处理第 {page_idx} 页时出错: {e}")
                 continue
 
-        print(f"✅ 提取完成，共获取 {len(documents)} 页有效内容")
+        print(f"[OK] 提取完成，共获取 {len(documents)} 页有效内容")
         return documents
 
 
@@ -478,7 +487,7 @@ class PPTXLoader(BaseDocumentLoader):
                 if doc:
                     documents.append(doc)
 
-        print(f"✅ 提取完成，共获取 {len(documents)} 页有效内容")
+        print(f"[OK] 提取完成，共获取 {len(documents)} 页有效内容")
         return documents
 
 
@@ -499,18 +508,54 @@ class MarkdownLoader(BaseDocumentLoader):
     def load(self) -> list[Document]:
         """加载 Markdown 文件"""
         self._validate_file()
-        print(f"📄 正在读取 Markdown: {self.file_path} ...")
+        print(f"[FILE] 正在读取 Markdown: {self.file_path} ...")
 
         with open(self.file_path, "r", encoding=self.encoding, errors="ignore") as f:
             content = f.read()
 
-        content = self.cleaner.clean_text(content)
-        documents = self._split_by_headers(content)
+        # 提取 YAML front matter
+        frontmatter, content = self._extract_frontmatter(content)
 
-        print(f"✅ 提取完成，共获取 {len(documents)} 个文档片段")
+        content = self.cleaner.clean_text(content)
+        documents = self._split_by_headers(content, frontmatter)
+
+        print(f"[OK] 提取完成，共获取 {len(documents)} 个文档片段")
         return documents
 
-    def _split_by_headers(self, content: str) -> list[Document]:
+    def _extract_frontmatter(self, content: str) -> tuple[dict, str]:
+        """提取 YAML front matter"""
+        import yaml
+
+        lines = content.split("\n")
+
+        # 检查是否有 YAML front matter
+        if len(lines) < 2 or lines[0].strip() != "---":
+            return {}, content
+
+        # 找到 front matter 结束位置
+        end_idx = -1
+        for i in range(1, len(lines)):
+            if lines[i].strip() == "---":
+                end_idx = i
+                break
+
+        if end_idx == -1:
+            return {}, content
+
+        # 提取 front matter 内容
+        frontmatter_text = "\n".join(lines[1:end_idx])
+        remaining_content = "\n".join(lines[end_idx + 1:])
+
+        # 解析 YAML
+        try:
+            frontmatter = yaml.safe_load(frontmatter_text)
+            if not isinstance(frontmatter, dict):
+                return {}, content
+            return frontmatter, remaining_content
+        except Exception:
+            return {}, content
+
+    def _split_by_headers(self, content: str, frontmatter: dict = None) -> list[Document]:
         """按 Markdown 标题分割文档"""
         documents = []
         lines = content.split("\n")
@@ -520,18 +565,23 @@ class MarkdownLoader(BaseDocumentLoader):
         current_level = 0
         section_idx = 0
 
+        # 合并 frontmatter 元数据，但保留默认元数据优先级
+        base_metadata = frontmatter or {}
+
         for line in lines:
             header_match = re.match(r'^(#{1,6})\s+(.+)$', line)
 
             if header_match:
                 if current_section:
                     section_content = "\n".join(current_section).strip()
+                    # 构建元数据：frontmatter 不会覆盖默认值
                     doc = self._create_document(
                         section_content,
                         section=section_idx + 1,
                         type="markdown",
                         header=current_header,
                         header_level=current_level,
+                        frontmatter=base_metadata,  # 传递 frontmatter 作为单独字段
                     )
                     if doc:
                         documents.append(doc)
@@ -545,12 +595,14 @@ class MarkdownLoader(BaseDocumentLoader):
 
         if current_section:
             section_content = "\n".join(current_section).strip()
+            # 构建元数据：frontmatter 不会覆盖默认值
             doc = self._create_document(
                 section_content,
                 section=section_idx + 1,
                 type="markdown",
                 header=current_header,
                 header_level=current_level,
+                frontmatter=base_metadata,  # 传递 frontmatter 作为单独字段
             )
             if doc:
                 documents.append(doc)
@@ -579,7 +631,7 @@ class MarkItDownLoader(BaseDocumentLoader):
                 "或安装对应格式的专用加载器"
             )
 
-        print(f"📄 使用 markitdown 加载: {self.file_path} ...")
+        print(f"[FILE] 使用 markitdown 加载: {self.file_path} ...")
 
         try:
             md = MarkItDown()
@@ -592,12 +644,12 @@ class MarkItDownLoader(BaseDocumentLoader):
             # 按标题分割文档
             documents = self._split_by_headers(cleaned_content)
 
-            print(f"✅ markitdown 加载完成，共 {len(documents)} 个片段")
+            print(f"[OK] markitdown 加载完成，共 {len(documents)} 个片段")
             return documents
 
         except Exception as e:
-            print(f"⚠️  markitdown 加载失败: {e}")
-            print(f"⚠️  将尝试使用专用加载器...")
+            print(f"[WARN]  markitdown 加载失败: {e}")
+            print(f"[WARN]  将尝试使用专用加载器...")
             raise
 
     def _split_by_headers(self, content: str) -> list[Document]:
@@ -688,7 +740,7 @@ class TextFileLoader(BaseDocumentLoader):
             if doc:
                 documents.append(doc)
 
-        print(f"✅ 提取完成，共获取 {len(documents)} 个段落")
+        print(f"[OK] 提取完成，共获取 {len(documents)} 个段落")
         return documents
 
 
@@ -715,7 +767,7 @@ def load_documents_from_directory(
 
         try:
             real_type = FileTypeDetector.detect(file_path)
-            print(f"🔍 检测文件类型: {file_path.name} -> {real_type}")
+            print(f"[SEARCH] 检测文件类型: {file_path.name} -> {real_type}")
 
             loader = _create_loader(file_path, real_type, category)
             if loader is None:
@@ -724,7 +776,7 @@ def load_documents_from_directory(
             documents = loader.load()
             all_documents.extend(documents)
         except Exception as e:
-            print(f"⚠️  加载文件 {file_path} 时出错: {e}")
+            print(f"[WARN]  加载文件 {file_path} 时出错: {e}")
             continue
 
     print(f"📚 总共加载了 {len(all_documents)} 个文档片段")
@@ -763,9 +815,9 @@ def _create_loader(
     loader_class = loader_map.get(file_type)
     if loader_class is None:
         if file_type == 'ppt':
-            print(f"⚠️  暂不支持 PPT 格式，请转换为 PPTX: {file_path.name}")
+            print(f"[WARN]  暂不支持 PPT 格式，请转换为 PPTX: {file_path.name}")
         else:
-            print(f"⚠️  不支持的文件类型: {file_type}，跳过: {file_path.name}")
+            print(f"[WARN]  不支持的文件类型: {file_type}，跳过: {file_path.name}")
         return None
 
     return loader_class(file_path, category=category)
@@ -795,7 +847,7 @@ def load_knowledge_base(
     for category in categories:
         category_dir = data_dir / category
         if not category_dir.exists():
-            print(f"⚠️  目录不存在，跳过: {category_dir}")
+            print(f"[WARN]  目录不存在，跳过: {category_dir}")
             continue
 
         print(f"\n{'='*60}")
@@ -810,7 +862,7 @@ def load_knowledge_base(
         all_documents.extend(documents)
 
     print(f"\n{'='*60}")
-    print(f"✅ 知识库加载完成！")
+    print(f"[OK] 知识库加载完成！")
     print(f"   - 总文档数: {len(all_documents)}")
     print(f"   - 类别: {', '.join(categories)}")
     print(f"{'='*60}\n")
