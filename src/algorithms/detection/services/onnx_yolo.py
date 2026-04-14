@@ -329,33 +329,23 @@ class ONNXYOLODetector:
         Returns:
             标注后的图像
         """
-        # 将 OpenCV 图像转换为 PIL 图像
-        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        pil_image = Image.fromarray(image_rgb)
-        draw = ImageDraw.Draw(pil_image)
+        # 复制图像以避免修改原图
+        annotated_image = image.copy()
 
         # 检测是否在 Docker 环境中，Docker 环境强制使用英文
         use_english = is_docker_environment()
         if use_english:
             print("[ONNX YOLO] 检测到 Docker 环境，使用英文标签")
 
-        # 加载字体（英文使用默认字体即可）
-        try:
-            font = ImageFont.load_default()
-        except Exception as e:
-            print(f"[ONNX YOLO] 加载字体失败: {e}")
-            font = ImageFont.load_default()
-
         for det in detections:
             box = det["box"]
             conf = det["confidence"]
             class_name = det["class_name"]
-            class_id = det.get("class_id", -1)
 
             x1, y1, x2, y2 = map(int, box)
 
             # 绘制边界框（绿色）
-            draw.rectangle([(x1, y1), (x2, y2)], outline=(0, 255, 0), width=2)
+            cv2.rectangle(annotated_image, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
             # 在 Docker 环境中，强制使用英文
             if use_english:
@@ -363,25 +353,44 @@ class ONNXYOLODetector:
             else:
                 label_name = class_name
 
-            # 绘制标签背景
+            # 构建标签文字
             label = f"{label_name} {conf:.2f}"
-            bbox = draw.textbbox((0, 0), label, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
 
-            # 确保 y1 - text_height - 5 >= 0
+            # 使用 OpenCV 绘制文字（支持字体大小调整）
+            # HersheySimplex 是 OpenCV 内置的字体，支持 scale 参数
+            font_scale = 0.5  # 字体大小
+            font_thickness = 1  # 字体粗细
+            font = cv2.FONT_HERSHEY_SIMPLEX
+
+            # 获取文字大小
+            (text_width, text_height), baseline = cv2.getTextSize(
+                label, font, font_scale, font_thickness
+            )
+
+            # 计算标签位置（在边界框上方）
             label_y = y1 - text_height - 5
-            if label_y < 0:
+            if label_y < 10:
                 label_y = y2 + 5  # 如果上方空间不足，画在下方
 
-            draw.rectangle(
-                [(x1, label_y), (x1 + text_width, label_y + text_height + 2)],
-                fill=(0, 255, 0, 200)
+            # 绘制标签背景（绿色）
+            cv2.rectangle(
+                annotated_image,
+                (x1, label_y - 2),
+                (x1 + text_width + 4, label_y + text_height + 2),
+                (0, 255, 0),
+                -1  # 填充
             )
 
             # 绘制标签文字（黑色）
-            draw.text((x1 + 2, label_y + 1), label, fill=(0, 0, 0), font=font)
+            cv2.putText(
+                annotated_image,
+                label,
+                (x1 + 2, label_y + text_height),
+                font,
+                font_scale,
+                (0, 0, 0),
+                font_thickness,
+                cv2.LINE_AA  # 抗锯齿
+            )
 
-        # 将 PIL 图像转换回 OpenCV 格式
-        annotated_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
         return annotated_image

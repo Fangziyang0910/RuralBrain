@@ -22,7 +22,11 @@ from algorithms.detection.services.plant_disease_service import plant_disease_se
 
 # 导入数据模型
 from algorithms.detection.schemas.pest import DetectRequest as PestDetectionRequest, DetectResponse as PestDetectionResponse
-from algorithms.detection.schemas.rice import RicePredictionRequest as RiceDetectionRequest, RicePredictionResponse as RiceDetectionResponse
+from algorithms.detection.schemas.rice import (
+    RicePredictionRequest as RiceDetectionRequest,
+    RicePredictionResponse as RiceDetectionResponse,
+    RiceDetailedDetectResponse
+)
 from algorithms.detection.schemas.cow import (
     DetectRequest as CowDetectionRequest,
     DetectResponse as CowDetectionResponse,
@@ -78,6 +82,30 @@ async def predict_rice(request: RiceDetectionRequest):
         return result
     except Exception as e:
         logger.error(f"大米识别失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/rice/predict_detailed", response_model=RiceDetailedDetectResponse)
+async def predict_rice_detailed(request: RiceDetectionRequest):
+    """
+    详细大米品种识别
+
+    返回完整的检测信息，包括：
+    - 每粒米的边界框坐标 (bbox)
+    - 置信度 (confidence)
+    - 品种分布统计
+
+    Args:
+        request: 包含 base64 编码的图片数据
+
+    Returns:
+        详细大米检测结果
+    """
+    try:
+        result = rice_service.detect_detailed(request.image_base64)
+        return result
+    except Exception as e:
+        logger.error(f"大米详细识别失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

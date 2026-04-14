@@ -4,12 +4,15 @@
 支持多模态和非多模态模型：
 - 多模态模型：自动从消息历史中提取 base64 图片
 - 非多模态模型：自动从消息历史中提取图片路径
+
+增强版本：返回详细检测数据（边界框、置信度），供前端可视化展示。
 """
 from pathlib import Path
 import os
 from typing import Any
 import uuid
 import logging
+import json
 
 import requests
 from langchain_core.tools import tool
@@ -25,9 +28,15 @@ from .detection_utils import (
 logger = logging.getLogger(__name__)
 
 
-API_URL = os.getenv(
+# 基础检测 API URL
+DETECTION_API_URL = os.getenv(
     "RICE_DETECTION_API_URL",
     "http://detection-service:8001/detection/rice/predict"
+)
+# 详细检测 API URL（新增）
+DETECTION_API_URL_DETAILED = os.getenv(
+    "RICE_DETECTION_API_URL_DETAILED",
+    "http://detection-service:8001/detection/rice/predict_detailed"
 )
 SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -87,12 +96,68 @@ def format_detection_result(api_response: dict[str, Any]) -> str:
         return "识别完成，但在图片中未检测到明显的大米颗粒。"
 
     summary = []
+    total_count = 0
     for item in detections:
         name = item.get("name", "未知品种")
         count = item.get("count", 0)
+        total_count += count
         summary.append(f"{name}({count}粒)")
 
-    return "识别成功。检测结果: " + "、".join(summary)
+    return f"识别成功，共{total_count}粒。检测结果: " + "、".join(summary)
+
+
+def build_enhanced_output(
+    base_result: str,
+    api_response: dict[str, Any],
+    explanation: str | None = None
+) -> str:
+    """构建增强输出，包含文本摘要和详细数据。
+
+    输出格式为 JSON 字符串，包含：
+    - text: 用于 Agent 理解的文本摘要
+    - data: 详细检测数据（供前端可视化）
+
+    Args:
+        base_result: 基础检测结果文本
+        api_response: API 返回的完整响应
+        explanation: LLM 生成的解释文本
+
+    Returns:
+        JSON 格式的增强输出字符串
+    """
+    # 提取详细检测数据
+    detailed_detections = api_response.get("detailed_detections", [])
+    image_info = api_response.get("image_info", {})
+
+    # 计算总数
+    detections = api_response.get("detections", [])
+    total_count = sum(d.get("count", 0) for d in detections)
+
+    # 计算平均置信度
+    avg_confidence = api_response.get("avg_confidence", 0.0)
+    if not avg_confidence and detailed_detections:
+        confidences = [d.get("confidence", 0) for d in detailed_detections]
+        avg_confidence = sum(confidences) / len(confidences)
+
+    # 构建输出数据
+    output = {
+        "text": base_result,  # Agent 用于理解的文本
+        "data": {
+            "detections": detections,
+            "totalCount": total_count,
+            "severity": "none",  # 大米检测没有严重程度概念
+            "summary": base_result.split("\n")[0] if base_result else "",
+            "detailed_detections": detailed_detections,
+            "image_info": image_info,
+            "avg_confidence": avg_confidence,
+        }
+    }
+
+    # 添加 LLM 解释（如果有）
+    if explanation:
+        output["text"] = f"{base_result}\n\n---\n\n{explanation}"
+
+    return json.dumps(output, ensure_ascii=False)
 
 
 @tool
@@ -102,12 +167,18 @@ def rice_detection_tool(runtime: ToolRuntime) -> str:
     自动从对话历史中提取用户上传的图片，无需手动传递图片路径。
     支持多模态模型（base64 图片）和非多模态模型（图片路径）。
 
+    **增强版本**: 返回详细检测数据（边界框、置信度），供前端可视化展示。
+
     Returns:
-        识别结果的文字摘要，示例：
-        - 成功："识别成功。检测结果: 丝苗米(25粒)、珍珠米(18粒)"
-        - 未检测到："识别完成，但在图片中未检测到明显的大米颗粒。"
-        - 未找到图片："未找到图片信息，请先上传图片"
-        - 失败："识别服务报错: [错误原因]"
+        JSON 格式的检测结果，包含：
+        - text: 用于 Agent 理解的文本摘要
+        - data: 详细检测数据（供前端可视化）
+
+        示例：
+        - 成功：{"text": "识别成功，共20粒...", "data": {...}}
+        - 未检测到：{"text": "识别完成，未检测到大米。", "data": {...}}
+        - 未找到图片：未找到图片信息，请先上传图片
+        - 失败：识别服务报错: [错误原因]
     """
     try:
         # 从消息历史中提取图片信息
@@ -128,19 +199,17 @@ def rice_detection_tool(runtime: ToolRuntime) -> str:
             image_base64 = encode_image_to_base64(image_path)
             logger.info(f"使用图片路径进行识别: {image_path}")
 
-        payload = {
-            "image_base64": image_base64,
-            "task_type": "品种分类",
-            "session_id": str(uuid.uuid4())
-        }
+        payload = {"image_base64": image_base64}
 
+        # 调用详细检测 API（获取 bbox 和 confidence）
         response = requests.post(
-            API_URL,
+            DETECTION_API_URL_DETAILED,
             json=payload,
-            headers={"Content-Type": "application/json"},
             timeout=60
         )
-        response.raise_for_status()
+
+        if response.status_code != 200:
+            return f"识别服务请求失败 (HTTP {response.status_code})"
 
         api_response = response.json()
 
@@ -166,10 +235,8 @@ def rice_detection_tool(runtime: ToolRuntime) -> str:
             model_id=model_id
         )
 
-        # 合并输出
-        if explanation:
-            return f"{base_result}\n\n---\n\n{explanation}"
-        return base_result
+        # 构建增强输出（JSON 格式）
+        return build_enhanced_output(base_result, api_response, explanation)
 
     except FileNotFoundError as e:
         return f"文件错误: {str(e)}"
