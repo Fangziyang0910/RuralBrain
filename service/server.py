@@ -776,13 +776,126 @@ def get_agent_version() -> str:
 
 @app.on_event("startup")
 async def startup_event():
-    """启动时预加载模型"""
+    """启动时预加载模型和知识库"""
     logger.info("RuralBrain 服务启动中...")
     logger.info("Agent 配置: Orchestrator Agent (统一编排)")
+
+    # 自动检查并构建疾病知识库
+    await ensure_disease_knowledge_base()
 
     get_agent()  # 预加载 Orchestrator Agent
 
     logger.info("RuralBrain 服务启动完成")
+
+
+async def ensure_disease_knowledge_base():
+    """确保疾病知识库已构建，如果不存在则自动构建"""
+    from pathlib import Path
+    import time
+
+    collection_name = "diseases_knowledge"
+    persist_dir = project_root / "knowledge_base" / "diseases" / "chroma_db"
+    data_dir = project_root / "src" / "data"
+    diseases_dir = data_dir / "diseases"
+
+    # 检查知识库是否存在
+    if persist_dir.exists():
+        logger.info(f"[OK] 疾病知识库已存在: {persist_dir}")
+        return
+
+    logger.info(f"[INFO] 疾病知识库不存在，开始自动构建...")
+    logger.info(f"   目标位置: {persist_dir}")
+    logger.info(f"   源数据: {diseases_dir}")
+
+    try:
+        # 导入必要的模块
+        from src.rag.config import get_embeddings_cached
+        from src.rag.utils.loaders import MarkdownLoader
+        from langchain_chroma import Chroma
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        from langchain_core.documents import Document
+
+        # 检查源数据目录
+        if not diseases_dir.exists():
+            logger.warning(f"[WARN] 源数据目录不存在: {diseases_dir}")
+            logger.warning("   跳过疾病知识库构建")
+            return
+
+        # 加载文档
+        logger.info(f"[LOAD] 正在加载文档...")
+        documents = []
+
+        for animal_type in ["牛", "猪", "羊", "家禽", "其他"]:
+            animal_dir = diseases_dir / animal_type
+            if not animal_dir.exists():
+                continue
+
+            logger.info(f"   处理 {animal_type}/:")
+
+            for file_path in sorted(animal_dir.iterdir()):
+                if not file_path.is_file() or file_path.suffix.lower() != '.md':
+                    continue
+
+                try:
+                    loader = MarkdownLoader(file_path, category="diseases")
+                    docs = loader.load()
+                    documents.extend(docs)
+                except Exception as e:
+                    logger.warning(f"      [SKIP] {file_path.name}: {e}")
+
+        logger.info(f"[OK] 已加载 {len(documents)} 个文档片段")
+
+        if not documents:
+            logger.warning("[WARN] 未找到任何文档，跳过构建")
+            return
+
+        # 分割文档
+        logger.info(f"[SPLIT] 正在分割文档...")
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=500,
+            chunk_overlap=50,
+            length_function=len,
+        )
+
+        splits = []
+        for doc in documents:
+            split_docs = text_splitter.split_text(doc.page_content)
+            for i, split in enumerate(split_docs):
+                splits.append(Document(
+                    page_content=split,
+                    metadata={
+                        **doc.metadata,
+                        "chunk_index": i,
+                    }
+                ))
+
+        logger.info(f"[OK] 分割为 {len(splits)} 个文本块")
+
+        # 向量化
+        logger.info(f"[VECTOR] 正在向量化...")
+        start_time = time.time()
+
+        embeddings = get_embeddings_cached()
+        persist_dir.mkdir(parents=True, exist_ok=True)
+
+        # 创建向量数据库（不保存引用，只用于触发构建）
+        Chroma.from_documents(
+            documents=splits,
+            embedding=embeddings,
+            persist_directory=str(persist_dir),
+            collection_name=collection_name,
+        )
+
+        elapsed = time.time() - start_time
+        logger.info(f"[OK] 向量化完成 (用时 {elapsed:.1f}秒)")
+        logger.info(f"[INFO] Collection: {collection_name}")
+        logger.info(f"[INFO] 文档块: {len(splits)}")
+
+    except Exception as e:
+        logger.error(f"[ERROR] 疾病知识库构建失败: {e}")
+        logger.warning("   服务将启动，但疾病预测功能可能不可用")
+        import traceback
+        traceback.print_exc()
 
 
 # -------- 意图识别函数 --------
