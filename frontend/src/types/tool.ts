@@ -47,6 +47,44 @@ export interface DetectionData {
 }
 
 /**
+ * 详细检测结果（单个目标）
+ * 包含边界框、置信度等信息，用于前端标注框可视化
+ */
+export interface DetailedDetection {
+  class_name: string;           // 类别名称
+  confidence: number;           // 置信度 0-1
+  bbox: [number, number, number, number];  // 边界框坐标 [x1, y1, x2, y2]
+  center: [number, number];     // 中心点坐标 [x, y]
+  size: {
+    width: number;
+    height: number;
+    area: number;
+  };
+  relative_position: {
+    x: number;  // 相对 x 位置 (0-1)
+    y: number;  // 相对 y 位置 (0-1)
+  };
+}
+
+/**
+ * 图像信息
+ */
+export interface ImageInfo {
+  width: number;
+  height: number;
+  total_cows?: number;
+}
+
+/**
+ * 增强的检测数据（包含详细检测结果）
+ */
+export interface EnhancedDetectionData extends DetectionData {
+  detailed_detections?: DetailedDetection[];
+  image_info?: ImageInfo;
+  avg_confidence?: number;
+}
+
+/**
  * 单个疾病预测结果
  */
 export interface DiseasePrediction {
@@ -130,5 +168,5 @@ export interface ToolCallEventData {
   tool_name: string;
   status: '运行中' | '已完成';
   result_image?: string;
-  result_data?: WebSearchData | DetectionData | DiseasePredictionData | InspectionData;
+  result_data?: WebSearchData | DetectionData | DiseasePredictionData | InspectionData | EnhancedDetectionData;
 }

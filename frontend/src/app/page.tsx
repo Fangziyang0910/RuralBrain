@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ImagePreviewCard } from "@/components/ui/ImagePreviewCard";
 import { FeatureDemoCard, adaptDemoCard } from "@/components/FeatureDemoCard";
 import { ExternalServiceCard } from "@/components/ExternalServiceCard";
-import { WebSearchData } from "@/types/tool";
+import { WebSearchData, DetectionData, DiseasePredictionData, EnhancedDetectionData } from "@/types/tool";
 import {
   externalServices,
   layer1ExternalServices,
@@ -410,7 +410,8 @@ export default function Home() {
                 } else if (data.type === "tool_call") {
                   // 工具调用事件（支持结构化数据）
                   const resultImageUrl = data.result_image || undefined;
-                  const resultData = data.result_data as WebSearchData | undefined;
+                  // 支持多种结构化数据类型（联网搜索、检测、疾病预测）
+                  const resultData = data.result_data as WebSearchData | DetectionData | DiseasePredictionData | EnhancedDetectionData | undefined;
 
                   const toolCall = {
                     name: data.tool_name,

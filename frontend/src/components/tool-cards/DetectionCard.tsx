@@ -3,6 +3,8 @@
 import React from "react";
 import { Bug, CheckCircle2, AlertTriangle, Info, PieChart } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { ConfidenceDistributionChart, AverageConfidenceDisplay } from "@/components/ui/ConfidenceGauge";
+import { EnhancedDetectionData } from "@/types/tool";
 
 /**
  * 单个检测结果
@@ -25,7 +27,7 @@ export interface DetectionCardData {
 }
 
 interface DetectionCardProps {
-  data: DetectionCardData;
+  data: DetectionCardData | EnhancedDetectionData;
   toolName: string;
 }
 
@@ -166,6 +168,12 @@ export const DetectionCard: React.FC<DetectionCardProps> = ({
 
   const severityConfig = getSeverityConfig(data.severity);
 
+  // 检查是否有详细检测数据（用于置信度展示）
+  const enhancedData = data as EnhancedDetectionData;
+  const hasDetailedData = enhancedData.detailed_detections && enhancedData.detailed_detections.length > 0;
+  const detailedDetections = enhancedData.detailed_detections || [];
+  const avgConfidence = enhancedData.avg_confidence || 0;
+
   return (
     <div className={cn(
       "rounded-xl border transition-all duration-200",
@@ -210,6 +218,18 @@ export const DetectionCard: React.FC<DetectionCardProps> = ({
           <div className="bg-white/60 rounded-xl p-4 shadow-sm">
             <div className="text-xs font-semibold text-stone-600 mb-3">📊 检测分布</div>
             <DistributionChart detections={data.detections} />
+          </div>
+        )}
+
+        {/* 置信度展示（有详细数据时） */}
+        {hasDetailedData && (
+          <div className="bg-white/60 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-stone-600 mb-3">🎯 置信度分析</div>
+            {avgConfidence > 0 ? (
+              <AverageConfidenceDisplay avgConfidence={avgConfidence} count={detailedDetections.length} />
+            ) : (
+              <ConfidenceDistributionChart detections={detailedDetections} />
+            )}
           </div>
         )}
 

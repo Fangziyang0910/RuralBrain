@@ -9,7 +9,7 @@ import { cn } from "@/utils/cn";
 import { LoadingDots } from "./ui/LoadingDots";
 import { MessageImageGallery } from "./ui/MessageImageGallery";
 import { getToolConfig } from "@/config/tool-icons";
-import { WebSearchData, DetectionData, DiseasePredictionData, InspectionData } from "@/types/tool";
+import { WebSearchData, DetectionData, DiseasePredictionData, InspectionData, EnhancedDetectionData } from "@/types/tool";
 import { WebSearchCard } from "./WebSearchCard";
 import { DetectionCard } from "./tool-cards/DetectionCard";
 import { DiseasePredictionCard } from "./tool-cards/DiseasePredictionCard";
@@ -21,7 +21,7 @@ export interface ToolCall {
   status: "运行中" | "已完成";
   resultImage?: string;
   summary?: string[];
-  resultData?: WebSearchData | DetectionData | DiseasePredictionData | InspectionData;
+  resultData?: WebSearchData | DetectionData | DiseasePredictionData | InspectionData | EnhancedDetectionData;
 }
 
 interface KnowledgeSource {
