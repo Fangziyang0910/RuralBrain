@@ -47,6 +47,83 @@ SSE_HEADERS = {
 
 # ==================== 检测工具结构化数据解析 ====================
 
+def parse_farm_inspection_output(tool_output: str) -> dict | None:
+    """解析巡检工具的输出，提取结构化数据
+
+    Args:
+        tool_output: 工具返回的 JSON 字符串
+
+    Returns:
+        结构化的巡检数据，解析失败返回 None
+    """
+    try:
+        import re
+
+        # 尝试解析 JSON
+        data = json.loads(tool_output)
+
+        # 验证基本结构
+        if not isinstance(data, dict):
+            return None
+
+        # 提取巡检类型
+        inspection_type = data.get("inspection_type", "")
+
+        # 构建返回数据
+        result = {
+            "inspection_type": inspection_type,
+            "inspection_time": data.get("inspection_time", ""),
+            "farm_id": data.get("farm_id", ""),
+        }
+
+        # 智能巡检模式
+        if inspection_type in ["智能巡检", "多图智能巡检"]:
+            result["media_type"] = data.get("media_type", "")
+            result["media_type_name"] = data.get("media_type_name", "")
+            result["image_count"] = data.get("image_count", 0)
+
+            # 场景分类
+            scene_classification = data.get("scene_classification", {})
+            if scene_classification:
+                result["scene_classification"] = {
+                    "primary_scene": scene_classification.get("primary_scene", ""),
+                    "primary_scene_type": scene_classification.get("primary_scene_type", ""),
+                    "all_scenes": scene_classification.get("all_scenes", [])
+                }
+
+            # 推荐工具
+            recommended_tools = data.get("recommended_tools", [])
+            if recommended_tools:
+                result["recommended_tools"] = recommended_tools
+
+            # 多模态分析报告
+            multimodal_analysis = data.get("multimodal_analysis")
+            if multimodal_analysis and multimodal_analysis.get("report"):
+                result["multimodal_analysis"] = {
+                    "enabled": multimodal_analysis.get("enabled", False),
+                    "report": multimodal_analysis.get("report", "")
+                }
+
+            # 建议行动（如果没有多模态报告）
+            if not multimodal_analysis and data.get("suggested_actions"):
+                result["suggested_actions"] = data.get("suggested_actions", [])
+
+        # 传感器巡检模式
+        elif inspection_type == "传感器巡检":
+            sensor_data = data.get("data", {})
+            if sensor_data:
+                result["sensor_data"] = sensor_data
+
+        return result
+
+    except json.JSONDecodeError as e:
+        logger.warning(f"解析巡检工具输出 JSON 失败: {e}")
+        return None
+    except Exception as e:
+        logger.warning(f"解析巡检工具输出失败: {e}")
+        return None
+
+
 def parse_detection_tool_output(tool_output: str, tool_name: str) -> dict | None:
     """解析检测工具的输出，提取结构化数据
 
@@ -208,6 +285,8 @@ def parse_detection_tool_output(tool_output: str, tool_name: str) -> dict | None
 def parse_disease_prediction_output(tool_output: str) -> dict | None:
     """解析疾病预测工具的输出，提取结构化数据
 
+    使用正则表达式从人类可读报告中提取疾病预测信息。
+
     Args:
         tool_output: 工具返回的文本内容
 
@@ -216,6 +295,12 @@ def parse_disease_prediction_output(tool_output: str) -> dict | None:
     """
     try:
         import re
+
+        # 如果不是字符串，转换为字符串
+        if not isinstance(tool_output, str):
+            tool_output = str(tool_output)
+
+        # ========== 使用正则表达式从人类可读报告中提取结构化数据 ==========
 
         # 清理 Markdown 格式标记
         def clean_markdown(text: str) -> str:
@@ -411,6 +496,106 @@ def parse_disease_prediction_output(tool_output: str) -> dict | None:
     except Exception as e:
         logger.warning(f"解析疾病预测输出失败: {e}")
         return None
+
+
+# ==================== 工具输出清理 ====================
+
+def clean_tool_output_json(output: str) -> str:
+    """清理工具输出中的 JSON 部分，只保留人类可读的报告
+
+    如果输出是纯JSON（用于结构化数据），则返回空字符串。
+
+    Args:
+        output: 原始工具输出文本
+
+    Returns:
+        清理后的文本（移除 JSON 代码块）
+    """
+    import re
+
+    # 检查是否是纯 JSON 输出（用于结构化数据）
+    stripped = output.strip()
+    if stripped.startswith('{') and '"diseases"' in stripped:
+        # 尝试解析为 JSON
+        try:
+            json.loads(stripped)
+            # 是有效的 JSON，返回空字符串（不显示在聊天气泡中）
+            logger.info(f"clean_tool_output_json: 检测到纯JSON输出，返回空字符串")
+            return ""
+        except json.JSONDecodeError:
+            pass
+
+    # 移除 ```json ... ``` 代码块（支持多行）
+    cleaned = re.sub(r'```json\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}\s*```', '', output, flags=re.DOTALL)
+    if cleaned.strip() != output:
+        # 成功移除了 JSON 代码块
+        logger.info(f"clean_tool_output_json: 移除了JSON代码块")
+        return cleaned.strip()
+
+    # 移除独立的 JSON 对象（包含 "diseases"、"inspection_type" 等字段的）
+    # 匹配从 { 开始到对应的 } 结束的完整 JSON 对象
+    json_patterns = [
+        r'\{[^{}]*"diseases"[^{}]*\}',  # 疾病预测 JSON
+        r'\{[^{}]*"inspection_type"[^{}]*\}',  # 巡检 JSON
+        r'\{[^{}]*"ai_summary"[^{}]*\}',  # 联网搜索 JSON
+    ]
+
+    for pattern in json_patterns:
+        cleaned = re.sub(pattern, '', cleaned, flags=re.DOTALL)
+
+    result = cleaned.strip()
+    if result:
+        logger.info(f"clean_tool_output_json: 清理后剩余内容长度: {len(result)}")
+    else:
+        logger.info(f"clean_tool_output_json: 清理后无剩余内容")
+    return result
+
+
+def clean_json_from_content(content: str) -> str:
+    """从内容中清理 JSON 代码块（用于流式输出）
+
+    专门用于清理流式传输中的 JSON 代码块，避免将其显示给用户。
+
+    Args:
+        content: 流式内容
+
+    Returns:
+        清理后的内容
+    """
+    import re
+
+    # 移除 ```json 开始标记
+    content = re.sub(r'```json\s*', '', content)
+
+    # 如果检测到 JSON 代码块开始，标记直到找到结束标记
+    lines = content.split('\n')
+    filtered_lines = []
+    in_json_block = False
+
+    for line in lines:
+        # 检查是否在 JSON 块中
+        if in_json_block:
+            if line.strip().startswith('```'):
+                in_json_block = False
+            # 跳过 JSON 块内的所有行
+            continue
+
+        # 检查 JSON 块开始
+        if line.strip().startswith('```json'):
+            in_json_block = True
+            continue
+
+        # 跳过独立的 JSON 对象行
+        stripped = line.strip()
+        if stripped.startswith('{') and '"diseases"' in stripped:
+            # 这是一个 JSON 对象，检查是否在同一行内结束
+            if not stripped.endswith('}'):
+                # 多行 JSON，跳过后续行直到找到 }
+                continue
+
+        filtered_lines.append(line)
+
+    return '\n'.join(filtered_lines)
 
 
 # ==================== 推理过程过滤器 ====================
@@ -816,9 +1001,11 @@ async def chat_stream(request: ChatRequest):
                                 if len("".join(content_buffer)) >= BUFFER_SIZE:
                                     buffered_content = "".join(content_buffer)
                                     full_content += buffered_content
+                                    # 清理 JSON 代码块（移除 ```json ... ``` 部分）
+                                    cleaned_content = clean_json_from_content(buffered_content)
                                     event_data = {
                                         "type": "content",
-                                        "content": buffered_content,
+                                        "content": cleaned_content,
                                     }
                                     yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
                                     content_buffer = []
@@ -901,6 +1088,16 @@ async def chat_stream(request: ChatRequest):
                             if result_data:
                                 logger.info(f"disease_prediction_tool 结构化数据: {len(result_data['diseases'])} 个疾病预测 - {result_data['diseases'][:2]}")
 
+                            # 清理工具输出文本，移除 JSON 部分，只保留人类可读的报告
+                            if tool_output_text:
+                                tool_output_text = clean_tool_output_json(tool_output_text)
+
+                        # 解析巡检工具的结构化输出
+                        elif tool_name == "farm_inspection_tool":
+                            result_data = parse_farm_inspection_output(tool_output_text or "")
+                            if result_data:
+                                logger.info(f"farm_inspection_tool 结构化数据: {result_data.get('inspection_type', 'unknown')}")
+
                         # 发送工具调用完成事件
                         # 添加完整的基础 URL（前端通过前端 API 路由访问）
                         tool_event = {
@@ -916,9 +1113,11 @@ async def chat_stream(request: ChatRequest):
                 if content_buffer:
                     buffered_content = "".join(content_buffer)
                     full_content += buffered_content
+                    # 清理 JSON 代码块（移除 ```json ... ``` 部分）
+                    cleaned_content = clean_json_from_content(buffered_content)
                     event_data = {
                         "type": "content",
-                        "content": buffered_content,
+                        "content": cleaned_content,
                     }
                     yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
 

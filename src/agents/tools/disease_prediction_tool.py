@@ -10,6 +10,7 @@
 - 非多模态模型：自动从消息历史中提取图片路径
 """
 import os
+import json
 import logging
 from datetime import datetime
 from typing import Optional
@@ -363,16 +364,15 @@ def _predict_with_llm(
 - 重点放在疾病分析、处理建议和防控措施上
 - 追问问题只是末尾的小附加部分，不要喧宾夺主
 
-输出格式：
+## 输出格式要求
+
+请按照以下格式输出疾病预测分析报告：
 
 ---
 ### 🩺 疾病预测分析
 
 #### 可能的疾病
 1. **疾病名称**（可能性：XX%）
-   - 判断依据：说明原因
-
-2. **疾病名称**（可能性：XX%）
    - 判断依据：说明原因
 
 #### 关键症状依据
@@ -397,10 +397,10 @@ def _predict_with_llm(
 ---
 
 注意：
-- 直接输出报告文本，不要使用 JSON 格式
-- 不要包含代码块标记
-- 紧急程度根据疾病传染性、严重程度判断
-- 处理建议要具体、可操作"""
+- 使用 Markdown 格式输出
+- 疾病名称使用粗体标记
+- 可能性用百分比表示
+- 紧急程度用表情符号标识"""
 
         # 调用模型
         # 判断是否需要构建多模态消息
@@ -449,7 +449,7 @@ def _predict_with_llm(
             message = HumanMessage(content=prompt)
 
         response = model.invoke([message])
-        report_text = response.content.strip().replace("```json", "").replace("```", "").strip()
+        report_text = response.content.strip()
 
         return {
             "success": True,

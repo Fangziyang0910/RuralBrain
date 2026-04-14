@@ -71,6 +71,58 @@ export interface DiseasePredictionData {
 }
 
 /**
+ * 场景分类信息
+ */
+export interface SceneClassification {
+  primary_scene: string;
+  primary_scene_type: string;
+  all_scenes: SceneInfo[];
+}
+
+/**
+ * 单个场景信息
+ */
+export interface SceneInfo {
+  index: number;
+  scene_type: string;
+  scene_name: string;
+  confidence: number;
+}
+
+/**
+ * 推荐工具信息
+ */
+export interface RecommendedTool {
+  tool: string;
+  reason: string;
+}
+
+/**
+ * 多模态分析结果
+ */
+export interface MultimodalAnalysis {
+  enabled: boolean;
+  report: string;
+}
+
+/**
+ * 巡检工具结果数据
+ */
+export interface InspectionData {
+  inspection_type: string;
+  inspection_time: string;
+  farm_id: string;
+  media_type?: string;
+  media_type_name?: string;
+  image_count?: number;
+  scene_classification?: SceneClassification;
+  recommended_tools?: RecommendedTool[];
+  multimodal_analysis?: MultimodalAnalysis;
+  suggested_actions?: string[];
+  sensor_data?: Record<string, any>;
+}
+
+/**
  * 工具调用事件（扩展后）
  */
 export interface ToolCallEventData {
@@ -78,5 +130,5 @@ export interface ToolCallEventData {
   tool_name: string;
   status: '运行中' | '已完成';
   result_image?: string;
-  result_data?: WebSearchData | DetectionData | DiseasePredictionData;
+  result_data?: WebSearchData | DetectionData | DiseasePredictionData | InspectionData;
 }

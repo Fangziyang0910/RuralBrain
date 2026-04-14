@@ -4,23 +4,24 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChevronUp, ChevronDown, FileText, BookOpen, CheckCircle2, Loader2 } from "lucide-react";
+import { ChevronUp, ChevronDown, FileText, BookOpen } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { LoadingDots } from "./ui/LoadingDots";
 import { MessageImageGallery } from "./ui/MessageImageGallery";
-import { ToolResultImage } from "./ui/ToolResultImage";
-import { getToolConfig, getToolColorClass } from "@/config/tool-icons";
-import { WebSearchData, DetectionData, DiseasePredictionData } from "@/types/tool";
+import { getToolConfig } from "@/config/tool-icons";
+import { WebSearchData, DetectionData, DiseasePredictionData, InspectionData } from "@/types/tool";
 import { WebSearchCard } from "./WebSearchCard";
 import { DetectionCard } from "./tool-cards/DetectionCard";
 import { DiseasePredictionCard } from "./tool-cards/DiseasePredictionCard";
+import { InspectionCard } from "./tool-cards/InspectionCard";
+import { ToolCallCard } from "./ui/ToolCallCard";
 
 export interface ToolCall {
   name: string;
   status: "运行中" | "已完成";
   resultImage?: string;
   summary?: string[];
-  resultData?: WebSearchData | DetectionData | DiseasePredictionData;
+  resultData?: WebSearchData | DetectionData | DiseasePredictionData | InspectionData;
 }
 
 interface KnowledgeSource {
@@ -79,20 +80,20 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
         {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
           <div className="w-full space-y-2">
             {message.toolCalls.map((toolCall, idx) => (
-              <div key={idx} className="animate-slide-up" style={{ animationDelay: `${idx * 0.1}s` }}>
-                {/* 原始工具调用卡片 - 始终显示（工具名称 + 状态 + 结果图片） */}
-                <ToolCallDisplay toolCall={toolCall} />
+              <div key={idx} className="tool-call-animate-in tool-call-stagger-0" style={{ animationDelay: `${idx * 100}ms` }}>
+                {/* 增强的工具调用卡片 - 始终显示（工具名称 + 状态 + 结果图片） */}
+                <ToolCallCard toolCall={toolCall} index={idx} />
 
                 {/* 结构化数据专用卡片 - 额外展示在下方 */}
                 {toolCall.name === "disease_prediction_tool" && toolCall.resultData && (
-                  <div className="mt-2">
+                  <div className="mt-2 tool-call-animate-in" style={{ animationDelay: `${idx * 100 + 200}ms` }}>
                     <DiseasePredictionCard data={toolCall.resultData as DiseasePredictionData} />
                   </div>
                 )}
                 {(toolCall.name === "pest_detection_tool" ||
                   toolCall.name === "rice_detection_tool" ||
                   toolCall.name === "cow_detection_tool") && toolCall.resultData && (
-                  <div className="mt-2">
+                  <div className="mt-2 tool-call-animate-in" style={{ animationDelay: `${idx * 100 + 200}ms` }}>
                     <DetectionCard
                       data={toolCall.resultData as DetectionData}
                       toolName={getToolConfig(toolCall.name).label}
@@ -100,8 +101,13 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
                   </div>
                 )}
                 {toolCall.name === "web_search_tool" && toolCall.resultData && (
-                  <div className="mt-2">
+                  <div className="mt-2 tool-call-animate-in" style={{ animationDelay: `${idx * 100 + 200}ms` }}>
                     <WebSearchCard data={toolCall.resultData as WebSearchData} />
+                  </div>
+                )}
+                {toolCall.name === "farm_inspection_tool" && toolCall.resultData && (
+                  <div className="mt-2 tool-call-animate-in" style={{ animationDelay: `${idx * 100 + 200}ms` }}>
+                    <InspectionCard data={toolCall.resultData as InspectionData} />
                   </div>
                 )}
               </div>
@@ -190,140 +196,6 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
     </div>
   );
 };
-
-function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // 从配置获取工具图标和颜色
-  const config = getToolConfig(toolCall.name);
-  const colorClass = getToolColorClass(config.color);
-
-  return (
-    <div className={cn(
-      "rounded-xl border transition-all duration-200",
-      "p-3.5 sm:p-4", // 响应式内边距
-      colorClass.bg,
-      colorClass.border,
-      "hover:shadow-sm"
-    )}>
-      <div
-        className={cn(
-          "flex items-center justify-between cursor-pointer group",
-          "gap-2 sm:gap-3" // 响应式间距
-        )}
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className={cn(
-          "flex items-center gap-2 sm:gap-3", // 响应式间距
-          "flex-1 min-w-0" // 允许内容换行
-        )}>
-          {/* 工具图标 */}
-          <span
-            className={cn(
-              "text-xl sm:text-2xl", // 响应式图标大小
-              "flex-shrink-0"
-            )}
-            role="img"
-            aria-label={config.label}
-          >
-            {config.icon}
-          </span>
-          {/* 工具名称 - 响应式字体大小 */}
-          <span className={cn(
-            "font-semibold truncate", // 截断过长文本
-            "text-sm sm:text-base", // 响应式字体
-            colorClass.text
-          )}>
-            {config.label}
-          </span>
-          {/* 状态指示器 */}
-          <div className={cn(
-            "flex items-center gap-1 sm:gap-1.5", // 响应式间距
-            "flex-shrink-0" // 不允许缩小
-          )}>
-            {toolCall.status === "已完成" ? (
-              <CheckCircle2 className={cn(
-                "text-green-500",
-                "w-3.5 h-3.5 sm:w-4 sm:h-4" // 响应式图标大小
-              )} />
-            ) : (
-              <Loader2 className={cn(
-                "text-amber-500 animate-spin",
-                "w-3.5 h-3.5 sm:w-4 sm:h-4" // 响应式图标大小
-              )} />
-            )}
-            <span className={cn(
-              "rounded-full font-medium",
-              "text-[10px] sm:text-xs", // 响应式字体
-              "px-1.5 sm:px-2 py-0.5", // 响应式内边距
-              toolCall.status === "已完成"
-                ? "bg-green-100 text-green-700"
-                : "bg-amber-100 text-amber-700"
-            )}>
-              {toolCall.status}
-            </span>
-          </div>
-        </div>
-        {isExpanded ? (
-          <ChevronUp className={cn(
-            "transition-colors opacity-60 group-hover:opacity-100",
-            colorClass.text,
-            "w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" // 响应式图标大小
-          )} />
-        ) : (
-          <ChevronDown className={cn(
-            "transition-colors opacity-60 group-hover:opacity-100",
-            colorClass.text,
-            "w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" // 响应式图标大小
-          )} />
-        )}
-      </div>
-
-      {isExpanded && (
-        <div className={cn(
-          "border-t space-y-2 sm:space-y-3 animate-fade-in",
-          "mt-3 sm:mt-4 pt-3 sm:pt-4", // 响应式间距
-          colorClass.border
-        )}>
-          {/* 检测结果图片 */}
-          {toolCall.resultImage && (
-            <ToolResultImage
-              src={toolCall.resultImage}
-              alt="工具检测结果"
-              toolName={config.label}
-            />
-          )}
-
-          {/* 工具调用摘要 */}
-          {toolCall.summary && toolCall.summary.length > 0 && (
-            <div>
-              <div className={cn(
-                "font-semibold mb-2 uppercase tracking-wide",
-                "text-[10px] sm:text-xs", // 响应式字体
-                colorClass.text,
-                "opacity-70"
-              )}>
-                执行摘要
-              </div>
-              <ul className="space-y-1 sm:space-y-1.5">
-                {toolCall.summary.map((item, idx) => (
-                  <li key={idx} className={cn(
-                    "flex items-start gap-1.5 sm:gap-2", // 响应式间距
-                    "text-stone-700",
-                    "text-xs sm:text-sm" // 响应式字体
-                  )}>
-                    <span className={cn("mt-0.5", colorClass.text)}>•</span>
-                    <span className="flex-1 break-words">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function KnowledgeSourceDisplay({ sources }: { sources: KnowledgeSource[] }) {
   const [isExpanded, setIsExpanded] = useState(false);

@@ -34,6 +34,100 @@ interface DiseasePredictionCardProps {
 }
 
 /**
+ * 疾病判断依据组件（支持展开/收起）
+ */
+function DiseaseReasonDisplay({ reason }: { reason: string }) {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  // 提取关键信息：移除冗余词汇，保留核心内容
+  const formatReason = (text: string) => {
+    return text
+      .replace(/症状与.{1,10}?高度吻合：?/, "") // 移除"症状与XXX高度吻合"
+      .replace(/检测模型.{3,30}?列为.{3,15}?(?:主要|次要)可能。?/, "") // 移除检测模型说明
+      .replace(/知识库中.{3,30}?但.{3,15}?是.{3,30}?。?/, "") // 移除知识库说明
+      .replace(/当前描述.{3,30}?，?故.{3,15}?较低。?$/, "") // 移除"当前描述...故较低"
+      .replace(/不能完全排除.{3,30}?，?但.{3,15}?更指向。?$/, "") // 移除"不能完全排除"
+      .trim();
+  };
+
+  const formattedReason = formatReason(reason);
+  const shouldTruncate = formattedReason.length > 60;
+  const displayReason = shouldTruncate && !isExpanded
+    ? formattedReason.substring(0, 60) + "..."
+    : formattedReason;
+
+  return (
+    <div className="text-xs text-stone-600 mt-1.5">
+      <div className="bg-stone-50 rounded-lg p-2">
+        <div className="flex items-start gap-1">
+          <span className="flex-shrink-0 mt-0.5">🔍</span>
+          <span className="flex-1 leading-relaxed">
+            <span>{displayReason}</span>
+            {shouldTruncate && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="ml-2 text-blue-600 hover:text-blue-700 font-medium underline decoration-blue-600 underline-offset-2 whitespace-nowrap"
+              >
+                {isExpanded ? "收起" : "展开"}
+              </button>
+            )}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 处理建议项组件（支持展开/收起）
+ */
+interface SuggestionItemProps {
+  icon: string;
+  title: string;
+  content: string;
+}
+
+function SuggestionItem({ icon, title, content }: SuggestionItemProps) {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  // 拆分内容为多个要点
+  const parseContent = (text: string) => {
+    // 按编号或句号拆分
+    const items = text.split(/(?=\d+[\.\、)]|(?<=。))/).filter(s => s.trim());
+    return items;
+  };
+
+  const items = parseContent(content);
+  const shouldTruncate = !isExpanded && items.length > 2;
+  const displayItems = shouldTruncate ? items.slice(0, 2) : items;
+
+  return (
+    <div className="flex items-start gap-2 text-sm text-stone-700 bg-white/50 p-2.5 rounded-lg">
+      <span className="mt-0.5">{icon}</span>
+      <div className="flex-1">
+        <div className="font-semibold text-stone-900 text-xs mb-1">{title}</div>
+        <div className="text-xs text-stone-600 space-y-1">
+          {displayItems.map((item, idx) => (
+            <div key={idx} className="flex items-start gap-1">
+              <span className="flex-shrink-0 text-stone-400">•</span>
+              <span className="leading-relaxed">{item.trim()}</span>
+            </div>
+          ))}
+        </div>
+        {items.length > 2 && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium underline"
+          >
+            {isExpanded ? "收起" : `查看全部 ${items.length} 项`}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
  * 紧急程度仪表盘组件
  */
 function UrgencyGauge({ urgency }: { urgency: DiseasePredictionCardData["urgency"] }) {
@@ -116,14 +210,76 @@ function DiseaseProbabilityChart({ diseases }: { diseases: DiseasePrediction[] }
               <div className="absolute inset-0 bg-white/20 animate-pulse" />
             </div>
           </div>
-          {disease.reason && (
-            <div className="text-xs text-stone-600 flex items-start gap-1">
-              <span>🔍</span>
-              <span className="line-clamp-1">{disease.reason}</span>
-            </div>
-          )}
+          {disease.reason && <DiseaseReasonDisplay reason={disease.reason} />}
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * 前三名疾病柱状图组件
+ */
+function TopDiseasesBarChart({ diseases }: { diseases: DiseasePrediction[] }) {
+  // 取前三名疾病
+  const topDiseases = diseases
+    .sort((a, b) => b.probability - a.probability)
+    .slice(0, 3);
+
+  if (topDiseases.length === 0) return null;
+
+  const maxProbability = Math.max(...topDiseases.map(d => d.probability), 100);
+  const colors = ["#ef4444", "#f59e0b", "#eab308"]; // 红、橙、黄
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-end justify-center gap-6 h-36 px-4">
+        {topDiseases.map((disease, idx) => {
+          const heightPercent = (disease.probability / maxProbability) * 100;
+          const barHeight = Math.max(heightPercent * 0.8, 15); // 0.8是缩放因子，确保柱子不会太高，最小15px
+
+          return (
+            <div key={idx} className="flex flex-col items-center gap-2 flex-1 max-w-[90px]">
+              {/* 概率数值 */}
+              <span className="text-sm font-bold text-stone-900">{disease.probability}%</span>
+
+              {/* 柱状图容器 */}
+              <div className="relative w-16 bg-stone-100 rounded-t-lg overflow-hidden" style={{ height: '100px' }}>
+                {/* 柱子 */}
+                <div
+                  className="absolute bottom-0 left-0 right-0 rounded-t-lg transition-all duration-700 ease-out relative overflow-hidden"
+                  style={{
+                    height: `${barHeight}px`,
+                    backgroundColor: colors[idx],
+                  }}
+                >
+                  {/* 渐变效果 */}
+                  <div
+                    className="absolute inset-0 opacity-20"
+                    style={{
+                      background: `linear-gradient(to top, ${colors[idx]}, transparent)`,
+                    }}
+                  />
+                  {/* 光泽效果 */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-white/30" />
+                  {/* 概率标签（柱子内部） */}
+                  <div className="absolute top-2 left-0 right-0 text-center">
+                    <span className="text-xs font-bold text-white/90 drop-shadow">{disease.probability}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 底部标签 */}
+              <div className="text-center w-16">
+                <div className="text-xs font-semibold text-stone-800 line-clamp-2 leading-tight">
+                  {disease.name}
+                </div>
+                <div className="text-[10px] text-stone-500 mt-0.5">#{idx + 1}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -220,10 +376,18 @@ export const DiseasePredictionCard: React.FC<DiseasePredictionCardProps> = ({
           <UrgencyGauge urgency={data.urgency} />
         </div>
 
+        {/* 前三名疾病柱状图 */}
+        {data.diseases.length > 0 && (
+          <div className="bg-white/60 rounded-xl p-4 shadow-sm">
+            <div className="text-xs font-semibold text-stone-600 mb-3">📊 前三名疾病预测</div>
+            <TopDiseasesBarChart diseases={data.diseases} />
+          </div>
+        )}
+
         {/* 疾病概率图表 */}
         {data.diseases.length > 0 && (
           <div className="bg-white/60 rounded-xl p-4 shadow-sm">
-            <div className="text-xs font-semibold text-stone-600 mb-3">📊 疾病概率</div>
+            <div className="text-xs font-semibold text-stone-600 mb-3">📋 详细概率分析</div>
             <DiseaseProbabilityChart diseases={data.diseases} />
           </div>
         )}
@@ -263,31 +427,25 @@ export const DiseasePredictionCard: React.FC<DiseasePredictionCardProps> = ({
             </div>
             <div className="space-y-2">
               {data.suggestions.isolation && (
-                <div className="flex items-start gap-2 text-sm text-stone-700 bg-white/50 p-2.5 rounded-lg">
-                  <span className="mt-0.5">🏠</span>
-                  <div>
-                    <div className="font-semibold text-stone-900 text-xs mb-0.5">隔离观察</div>
-                    <div className="text-xs text-stone-600">{data.suggestions.isolation}</div>
-                  </div>
-                </div>
+                <SuggestionItem
+                  icon="🏠"
+                  title="隔离观察"
+                  content={data.suggestions.isolation}
+                />
               )}
               {data.suggestions.treatment && (
-                <div className="flex items-start gap-2 text-sm text-stone-700 bg-white/50 p-2.5 rounded-lg">
-                  <span className="mt-0.5">💊</span>
-                  <div>
-                    <div className="font-semibold text-stone-900 text-xs mb-0.5">对症治疗</div>
-                    <div className="text-xs text-stone-600">{data.suggestions.treatment}</div>
-                  </div>
-                </div>
+                <SuggestionItem
+                  icon="💊"
+                  title="对症治疗"
+                  content={data.suggestions.treatment}
+                />
               )}
               {data.suggestions.prevention && (
-                <div className="flex items-start gap-2 text-sm text-stone-700 bg-white/50 p-2.5 rounded-lg">
-                  <span className="mt-0.5">🛡️</span>
-                  <div>
-                    <div className="font-semibold text-stone-900 text-xs mb-0.5">预防措施</div>
-                    <div className="text-xs text-stone-600">{data.suggestions.prevention}</div>
-                  </div>
-                </div>
+                <SuggestionItem
+                  icon="🛡️"
+                  title="预防措施"
+                  content={data.suggestions.prevention}
+                />
               )}
             </div>
           </div>
