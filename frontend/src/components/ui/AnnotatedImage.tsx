@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { X, Crosshair, Maximize2 } from 'lucide-react';
+import { X, Crosshair } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { DetailedDetection } from '@/types/tool';
 
@@ -121,7 +121,6 @@ export const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
 }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [showAllLabels, setShowAllLabels] = useState(false);
 
   // 如果没有检测数据或图片尺寸无效，只显示图片
   if (!detections || detections.length === 0 || imageWidth <= 0 || imageHeight <= 0) {
@@ -194,8 +193,8 @@ export const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
                 </>
               )}
 
-              {/* 标签（悬停、选中或全局显示时） */}
-              {(isHovered || isSelected || showAllLabels) && (
+              {/* 标签（悬停或选中时显示） */}
+              {(isHovered || isSelected) && (
                 <g>
                   {/* 标签背景 */}
                   <rect
@@ -223,24 +222,6 @@ export const AnnotatedImage: React.FC<AnnotatedImageProps> = ({
           );
         })}
       </svg>
-
-      {/* 控制按钮：显示/隐藏所有标签 */}
-      {detections.length > 0 && (
-        <button
-          onClick={() => setShowAllLabels(!showAllLabels)}
-          className={cn(
-            "absolute top-3 right-3",
-            "flex items-center gap-1",
-            "px-2 py-1 rounded-lg",
-            "bg-white/90 backdrop-blur-sm shadow",
-            "text-xs font-medium text-stone-700",
-            "hover:bg-white transition-colors"
-          )}
-        >
-          <Maximize2 className="w-3 h-3" />
-          {showAllLabels ? "隐藏标签" : "显示所有"}
-        </button>
-      )}
 
       {/* 检测数量统计 */}
       <div className={cn(

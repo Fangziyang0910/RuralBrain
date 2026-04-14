@@ -9,6 +9,7 @@ import { cn } from "@/utils/cn";
 import { LoadingDots } from "./ui/LoadingDots";
 import { MessageImageGallery } from "./ui/MessageImageGallery";
 import { ToolResultImage } from "./ui/ToolResultImage";
+import { AnnotatedImage } from "./ui/AnnotatedImage";
 import { getToolConfig, getToolColorClass } from "@/config/tool-icons";
 import { WebSearchData, DetectionData, DiseasePredictionData, InspectionData, EnhancedDetectionData } from "@/types/tool";
 import { WebSearchCard } from "./WebSearchCard";
@@ -290,13 +291,38 @@ function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
           "mt-3 sm:mt-4 pt-3 sm:pt-4", // 响应式间距
           colorClass.border
         )}>
-          {/* 检测结果图片 */}
+          {/* 检测结果图片 - 有详细检测数据时使用 AnnotatedImage */}
           {toolCall.resultImage && (
-            <ToolResultImage
-              src={toolCall.resultImage}
-              alt="工具检测结果"
-              toolName={config.label}
-            />
+            (() => {
+              // 检查是否有详细检测数据
+              const enhancedData = toolCall.resultData as EnhancedDetectionData | undefined;
+              const hasDetailedDetections = enhancedData?.detailed_detections && enhancedData.detailed_detections.length > 0;
+              const imageInfo = enhancedData?.image_info;
+
+              if (hasDetailedDetections && imageInfo) {
+                // 使用交互式 AnnotatedImage
+                return (
+                  <AnnotatedImage
+                    src={toolCall.resultImage}
+                    detections={enhancedData.detailed_detections!}
+                    imageWidth={imageInfo.width || 800}
+                    imageHeight={imageInfo.height || 600}
+                    onBoxClick={(det) => {
+                      console.log("点击标注框:", det);
+                    }}
+                  />
+                );
+              } else {
+                // 使用静态 ToolResultImage
+                return (
+                  <ToolResultImage
+                    src={toolCall.resultImage}
+                    alt="工具检测结果"
+                    toolName={config.label}
+                  />
+                );
+              }
+            })()
           )}
 
           {/* 工具调用摘要 */}
