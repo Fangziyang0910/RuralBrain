@@ -137,6 +137,30 @@ def parse_detection_tool_output(tool_output: str, tool_name: str) -> dict | None
     try:
         import re
 
+        # 优先尝试解析增强的 JSON 输出格式
+        # 增强格式：{"text": "...", "data": {...}}
+        if tool_output.strip().startswith("{"):
+            try:
+                parsed_json = json.loads(tool_output)
+                if "data" in parsed_json:
+                    data = parsed_json["data"]
+                    # 提取详细检测数据
+                    result = {
+                        "detections": data.get("detections", []),
+                        "totalCount": data.get("totalCount", 0),
+                        "severity": data.get("severity", "none"),
+                        "summary": data.get("summary", ""),
+                        "suggestions": data.get("suggestions"),
+                        # 新增：详细检测数据（bbox、confidence）
+                        "detailed_detections": data.get("detailed_detections", []),
+                        "image_info": data.get("image_info", {}),
+                        "avg_confidence": data.get("avg_confidence", 0.0),
+                    }
+                    logger.info(f"{tool_name} JSON 格式解析成功: {len(result['detailed_detections'])} 个详细检测")
+                    return result
+            except json.JSONDecodeError:
+                pass  # 不是 JSON，继续使用文本解析
+
         # 清理 Markdown 格式标记（**粗体**）
         def clean_markdown(text: str) -> str:
             """清理文本中的 Markdown 标记"""

@@ -23,7 +23,11 @@ from algorithms.detection.services.plant_disease_service import plant_disease_se
 # 导入数据模型
 from algorithms.detection.schemas.pest import DetectRequest as PestDetectionRequest, DetectResponse as PestDetectionResponse
 from algorithms.detection.schemas.rice import RicePredictionRequest as RiceDetectionRequest, RicePredictionResponse as RiceDetectionResponse
-from algorithms.detection.schemas.cow import DetectRequest as CowDetectionRequest, DetectResponse as CowDetectionResponse
+from algorithms.detection.schemas.cow import (
+    DetectRequest as CowDetectionRequest,
+    DetectResponse as CowDetectionResponse,
+    DetailedDetectResponse
+)
 from algorithms.detection.schemas.disease import DiseaseDetectRequest, DiseaseDetectResponse
 from algorithms.detection.schemas.scene import SceneClassifyRequest, SceneClassifyResponse, SupportedScenesResponse
 from algorithms.detection.schemas.plant_disease import PlantDiseaseDetectRequest, PlantDiseaseDetectResponse, SupportedPlantDiseasesResponse
@@ -101,6 +105,30 @@ async def detect_cows(request: CowDetectionRequest):
         return result
     except Exception as e:
         logger.error(f"奶牛检测失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/cow/detect_detailed", response_model=DetailedDetectResponse)
+async def detect_cows_detailed(request: CowDetectionRequest):
+    """
+    检测图片中的奶牛（详细模式）
+
+    返回完整的检测信息，包括：
+    - 每头牛的边界框坐标 (bbox)
+    - 置信度 (confidence)
+    - 牛只大小和位置信息
+
+    Args:
+        request: 包含 base64 编码的图片数据
+
+    Returns:
+        详细奶牛检测结果
+    """
+    try:
+        result = cow_service.detect_detailed(request.image_base64)
+        return result
+    except Exception as e:
+        logger.error(f"奶牛详细检测失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

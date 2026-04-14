@@ -4,11 +4,14 @@
 支持多模态和非多模态模型：
 - 多模态模型：自动从消息历史中提取 base64 图片
 - 非多模态模型：自动从消息历史中提取图片路径
+
+增强版本：返回详细检测数据（边界框、置信度），供前端可视化展示。
 """
 from pathlib import Path
 import os
 from typing import Any
 import logging
+import json
 
 import requests
 from langchain_core.tools import tool
@@ -24,9 +27,15 @@ from .detection_utils import (
 logger = logging.getLogger(__name__)
 
 
+# 基础检测 API URL
 DETECTION_API_URL = os.getenv(
     "COW_DETECTION_API_URL",
     "http://detection-service:8001/detection/cow/detect"
+)
+# 详细检测 API URL（新增）
+DETECTION_API_URL_DETAILED = os.getenv(
+    "COW_DETECTION_API_URL_DETAILED",
+    "http://detection-service:8001/detection/cow/detect_detailed"
 )
 SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -101,6 +110,66 @@ def format_detection_result(api_response: dict[str, Any]) -> str:
     return f"检测结果: {summary}，共计{total_count}只奶牛"
 
 
+def build_enhanced_output(
+    base_result: str,
+    api_response: dict[str, Any],
+    explanation: str | None = None
+) -> str:
+    """构建增强输出，包含文本摘要和详细数据。
+
+    输出格式为 JSON 字符串，包含：
+    - text: 用于 Agent 理解的文本摘要
+    - data: 详细检测数据（供前端可视化）
+
+    Args:
+        base_result: 基础检测结果文本
+        api_response: API 返回的完整响应
+        explanation: LLM 生成的解释文本
+
+    Returns:
+        JSON 格式的增强输出字符串
+    """
+    # 提取详细检测数据
+    detailed_detections = api_response.get("detailed_detections", [])
+    image_info = api_response.get("image_info", {})
+
+    # 计算平均置信度
+    avg_confidence = 0.0
+    if detailed_detections:
+        confidences = [d.get("confidence", 0) for d in detailed_detections]
+        avg_confidence = sum(confidences) / len(confidences)
+
+    # 判断严重程度
+    severity = "none"
+    if detailed_detections:
+        if avg_confidence >= 0.8:
+            severity = "low"  # 高置信度 = 确定检测，问题不大
+        elif avg_confidence >= 0.5:
+            severity = "medium"
+        else:
+            severity = "high"  # 低置信度 = 可能误检
+
+    # 构建输出数据
+    output = {
+        "text": base_result,  # Agent 用于理解的文本
+        "data": {
+            "detections": api_response.get("detections", []),
+            "totalCount": image_info.get("total_cows", 0),
+            "severity": severity,
+            "summary": base_result.split("\n")[0] if base_result else "",
+            "detailed_detections": detailed_detections,
+            "image_info": image_info,
+            "avg_confidence": avg_confidence,
+        }
+    }
+
+    # 添加 LLM 解释（如果有）
+    if explanation:
+        output["text"] = f"{base_result}\n\n---\n\n{explanation}"
+
+    return json.dumps(output, ensure_ascii=False)
+
+
 @tool
 def cow_detection_tool(runtime: ToolRuntime) -> str:
     """调用奶牛检测服务分析用户上传图片中的奶牛数量。
@@ -108,12 +177,18 @@ def cow_detection_tool(runtime: ToolRuntime) -> str:
     自动从对话历史中提取用户上传的图片，无需手动传递图片路径。
     支持多模态模型（base64 图片）和非多模态模型（图片路径）。
 
+    **增强版本**: 返回详细检测数据（边界框、置信度），供前端可视化展示。
+
     Returns:
-        检测结果字符串，示例：
-        - 成功："检测结果: cow(5只)，共计5只奶牛"
-        - 未检测到："检测完成，未发现奶牛。"
-        - 未找到图片："未找到图片信息，请先上传图片"
-        - 失败："检测失败: [错误原因]"
+        JSON 格式的检测结果，包含：
+        - text: 用于 Agent 理解的文本摘要
+        - data: 详细检测数据（供前端可视化）
+
+        示例：
+        - 成功：{"text": "检测结果: cow(5只)...", "data": {...}}
+        - 未检测到：{"text": "检测完成，未发现奶牛。", "data": {...}}
+        - 未找到图片：未找到图片信息，请先上传图片后再进行检测。
+        - 失败：检测失败: [错误原因]
     """
     try:
         # 从消息历史中提取图片信息
@@ -136,8 +211,9 @@ def cow_detection_tool(runtime: ToolRuntime) -> str:
 
         payload = {"image_base64": image_base64}
 
+        # 调用详细检测 API（获取 bbox 和 confidence）
         response = requests.post(
-            DETECTION_API_URL,
+            DETECTION_API_URL_DETAILED,
             json=payload,
             timeout=60
         )
@@ -169,10 +245,8 @@ def cow_detection_tool(runtime: ToolRuntime) -> str:
             model_id=model_id
         )
 
-        # 合并输出
-        if explanation:
-            return f"{base_result}\n\n---\n\n{explanation}"
-        return base_result
+        # 构建增强输出（JSON 格式）
+        return build_enhanced_output(base_result, api_response, explanation)
 
     except FileNotFoundError as e:
         return f"文件错误: {str(e)}"
