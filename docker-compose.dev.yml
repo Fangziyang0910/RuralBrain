@@ -1,8 +1,7 @@
 # RuralBrain 开发环境 Docker Compose 配置
-# 使用 ONNX Runtime + 开发模式前端
 
 services:
-  # 前端服务 (Next.js 开发模式，支持热重载)
+  # 前端服务 (Next.js 开发模式)
   frontend:
     image: zwxdockerbeginner/ruralbrain:frontend-dev
     container_name: ruralbrain-frontend
@@ -14,13 +13,12 @@ services:
       - BACKEND_URL=http://backend:8081
       - NEXT_PUBLIC_API_URL=http://localhost:8081
       - PORT=3001
+      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=500
+      - WATCHPACK_POLLING=true
     volumes:
-      # 挂载源代码实现热重载
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-      # 排除 node_modules 和 .next（使用容器内的版本）
+      - ./frontend:/app
       - /app/node_modules
-      - /app/.next
     depends_on:
       - backend
     restart: unless-stopped
@@ -43,7 +41,6 @@ services:
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
       - DISEASE_DETECTION_API_URL=http://detection-service:8001/detection/disease/detect
     volumes:
-      # knowledge_base 已内置在镜像中，无需挂载
       - ./src/rag:/app/src/rag
       - ./service:/app/service
       - ./src/agents:/app/src/agents
@@ -51,7 +48,6 @@ services:
       - ./src/config.py:/app/src/config.py
       - ./src/data:/app/src/data
       - ./tests:/app/tests
-      # 知识库目录映射（开发环境）
       - ./knowledge_base:/app/knowledge_base
     tmpfs:
       - /tmp/ruralbrain:size=500M,mode=0777

@@ -21,12 +21,16 @@ module.exports = {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: '#16a34a',
+          DEFAULT: '#15803D',
           foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
-          DEFAULT: '#eab308',
+          DEFAULT: '#22C55E',
           foreground: 'hsl(var(--secondary-foreground))',
+        },
+        accent: {
+          DEFAULT: '#A16207',
+          foreground: 'hsl(var(--accent-foreground))',
         },
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
@@ -36,10 +40,6 @@ module.exports = {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
         },
-        accent: {
-          DEFAULT: '#0ea5e9',
-          foreground: 'hsl(var(--accent-foreground))',
-        },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',
@@ -48,7 +48,43 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // 稻田绿系列
+        // 大地绿系列 - Organic Biophilic Primary
+        earth: {
+          50: '#F0FDF4',
+          100: '#DCFCE7',
+          200: '#BBF7D0',
+          300: '#86EFAC',
+          400: '#4ADE80',
+          500: '#22C55E',
+          600: '#16A34A',
+          700: '#15803D',
+          800: '#166534',
+          900: '#14532D',
+        },
+        // 丰收金系列 - Organic Biophilic Accent
+        harvest: {
+          50: '#FEFCE8',
+          100: '#FEF9C3',
+          200: '#FEF08A',
+          300: '#FDE047',
+          400: '#FACC15',
+          500: '#EAB308',
+          600: '#CA8A04',
+          700: '#A16207',
+          800: '#854D0E',
+          900: '#713F12',
+        },
+        // 自然色系列 - Nature Distilled
+        nature: {
+          terracotta: '#C67B5C',
+          sand: '#D4C4A8',
+          clay: '#B5651D',
+          cream: '#F5F0E1',
+          olive: '#6B7B3C',
+          forest: '#228B22',
+          sky: '#87CEEB',
+        },
+        // 稻田绿系列（兼容旧版）
         paddy: {
           50: '#f0fdf7',
           100: '#dcfce7',
@@ -61,7 +97,7 @@ module.exports = {
           800: '#166534',
           900: '#14532d',
         },
-        // 稻穗金系列
+        // 稻穗金系列（兼容旧版）
         gold: {
           50: '#fefce8',
           100: '#fef9c3',
@@ -102,7 +138,8 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Outfit', 'Noto Sans SC', 'system-ui', '-apple-system', 'sans-serif'],
+        // 主字体: Plus Jakarta Sans - 现代简约专业
+        sans: ['Plus Jakarta Sans', 'Noto Sans SC', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       fontSize: {
@@ -121,11 +158,27 @@ module.exports = {
         '128': '32rem',
       },
       borderRadius: {
+        // Organic Biophilic 圆角系统
+        'organic-sm': '12px',
+        'organic-md': '16px',
+        'organic-lg': '20px',
+        'organic-xl': '24px',
+        'organic-2xl': '28px',
+        'organic-full': '32px',
+        // 兼容旧版
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
       boxShadow: {
+        // 自然阴影系统 - Organic shadows
+        'organic': '0 8px 32px rgba(21, 128, 61, 0.08)',
+        'organic-md': '0 12px 48px rgba(21, 128, 61, 0.12)',
+        'organic-lg': '0 16px 64px rgba(21, 128, 61, 0.16)',
+        'natural': '0 4px 16px rgba(0, 0, 0, 0.06)',
+        'natural-md': '0 8px 24px rgba(0, 0, 0, 0.08)',
+        'natural-lg': '0 12px 32px rgba(0, 0, 0, 0.10)',
+        // 兼容旧版
         'xs': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
         'sm': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
         'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
@@ -134,6 +187,19 @@ module.exports = {
       animation: {
         'bounce-slow': 'bounce 3s infinite',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        // 有机动画
+        'organic-float': 'organicFloat 6s ease-in-out infinite',
+        'organic-pulse': 'organicPulse 4s ease-in-out infinite',
+      },
+      keyframes: {
+        organicFloat: {
+          '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+          '50%': { transform: 'translateY(-8px) rotate(2deg)' },
+        },
+        organicPulse: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.8', transform: 'scale(1.02)' },
+        },
       },
       transitionDuration: {
         '400': '400ms',
