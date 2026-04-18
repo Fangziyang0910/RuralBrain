@@ -69,5 +69,8 @@ EXPOSE 8001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8001/health || exit 1
 
+# 设置工作目录为 algorithms，便于 uvicorn 找到 api 模块
+WORKDIR /app/algorithms
+
 # 启动命令
 CMD ["python", "-m", "uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8001"]

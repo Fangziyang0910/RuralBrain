@@ -55,12 +55,12 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     --no-cache-dir
 
 # 复制后端代码
-COPY run_server.py /app/
 COPY service /app/service
 COPY src/agents /app/src/agents
 COPY src/config.py /app/src/
 COPY src/utils /app/src/utils
 COPY src/rag /app/src/rag
+COPY src/data /app/src/data
 
 # ==================== 疾病知识库（预构建）====================
 # 从 Git 历史 commit bdb6ae0 恢复的疾病知识库向量数据库
@@ -85,5 +85,5 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8081/docs || exit 1
 
-# 启动命令
-CMD ["python", "run_server.py"]
+# 启动命令 - 直接使用 uvicorn 启动 FastAPI 服务
+CMD ["python", "-m", "uvicorn", "service.server:app", "--host", "0.0.0.0", "--port", "8081"]
