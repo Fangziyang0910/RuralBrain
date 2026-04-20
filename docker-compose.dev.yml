@@ -27,7 +27,7 @@ services:
 
   # 后端主服务
   backend:
-    image: zwxdockerbeginner/ruralbrain:backend-onnx-v3
+    image: zwxdockerbeginner/ruralbrain:backend-onnx-v4
     container_name: ruralbrain-backend
     ports:
       - "8081:8081"
@@ -59,7 +59,7 @@ services:
 
   # 检测服务
   detection-service:
-    image: zwxdockerbeginner/ruralbrain:detection-onnx-v3
+    image: zwxdockerbeginner/ruralbrain:detection-onnx-v4
     container_name: ruralbrain-detection-service
     ports:
       - "8001:8001"
