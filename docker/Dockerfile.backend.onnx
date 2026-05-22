@@ -52,6 +52,8 @@ RUN pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
     filetype \
     python-pptx \
     dashscope \
+    rank-bm25 \
+    jieba \
     --no-cache-dir
 
 # 复制后端代码
