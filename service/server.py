@@ -6,6 +6,7 @@ import sys
 import json
 import uuid
 import logging
+import re
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -43,6 +44,39 @@ SSE_HEADERS = {
     "Cache-Control": "no-cache",
     "X-Accel-Buffering": "no",
 }
+
+SCRATCHPAD_SECTION_PATTERN = re.compile(
+    r"(?:^|\n)(?:#{1,6}\s*)?(SESSION INTENT|SUMMARY|ARTIFACTS|NEXT STEPS|PLAN|WORKLOG|INTERNAL NOTES|REASONING)\s*\n(?:.*?)(?=(?:\n(?:#{1,6}\s*)?(?:SESSION INTENT|SUMMARY|ARTIFACTS|NEXT STEPS|PLAN|WORKLOG|INTERNAL NOTES|REASONING)\s*\n)|\Z)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+INLINE_SCRATCHPAD_PATTERNS = [
+    re.compile(r"<(?:think|thinking|analysis|reasoning)>[\s\S]*?</(?:think|thinking|analysis|reasoning)>", re.IGNORECASE),
+    re.compile(r"```(?:thinking|analysis|reasoning|scratchpad)?\s*[\s\S]*?```", re.IGNORECASE),
+    re.compile(r"(?:^|\n)\s*(?:思考过程|推理过程|内部分析|工作思路|分析过程)[:：].*?(?=\n\n|\Z)", re.IGNORECASE | re.DOTALL),
+]
+
+
+FINAL_ANSWER_CUE_PATTERNS = [
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in [
+        r"^(?:最终(?:建议|回答|结论)|结论|建议如下|总结如下|综合建议|可以按以下|给您的建议)",
+        r"^(?:检测结果|识别结果|分析结果|查询结果|定价建议|防治建议|处理建议)[:：]",
+        r"^(?:根据(?:知识库|检测结果|您的情况)|结合(?:政策|案例|检测结果))",
+    ]
+]
+
+
+def strip_internal_scratchpad_content(text: str) -> str:
+    """移除误流出给前端的内部工作态文本块。"""
+    if not text:
+        return ""
+
+    cleaned = SCRATCHPAD_SECTION_PATTERN.sub("\n", text)
+    for pattern in INLINE_SCRATCHPAD_PATTERNS:
+        cleaned = pattern.sub("\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip("\n")
 
 
 # ==================== 检测工具结构化数据解析 ====================
@@ -626,89 +660,70 @@ def clean_json_from_content(content: str) -> str:
 
 class ThinkingProcessFilter:
     """
-    过滤 Agent 推理过程的冗余输出
+    过滤 Agent 推理过程的冗余输出。
 
-    限制"让我..."类推理句子的数量，减少前端显示的冗余信息。
+    对明显的过程性、工作态和寒暄式过渡语句直接拦截，
+    尽量只保留面向用户的结论、建议和结果。
     """
-    # 匹配"让我..."类句子的正则模式
+
     THINKING_PATTERNS = [
-        r"^(让我|现在让我|接下来让我|首先让我)",
-        r"^(我来帮您|我来)",
-        r"^(很好！|很好，|好的，)",
-        r"^(让我先|让我先查看|让我先尝试)",
+        r"^(让我|现在让我|接下来让我|首先让我|下面让我)",
+        r"^(我来帮您|我来|我先|先来)",
+        r"^(很好[！!，,]?|好的[，,]?|当然[，,]?|接下来[，,]?|现在[，,]?)",
+        r"^(让我先|让我先查看|让我先尝试|先分析一下|先看一下)",
+        r"^(我已经获取了|我将|我正在|我会先|我需要先)",
+        r"^(思考过程|推理过程|内部分析|工作思路|分析过程)[:：]",
     ]
 
-    # 最多允许的推理句子数量
-    MAX_THINKING_SENTENCES = 2
-
     def __init__(self):
-        self.thinking_sentence_count = 0
         self.current_sentence = ""
-        self.sentence_buffer = ""
         self.in_final_answer = False
 
     def process(self, content: str) -> tuple[str, bool]:
         """
-        处理流式内容，返回（过滤后的内容，是否应发送）
-
-        Args:
-            content: 流式输入的字符片段
-
-        Returns:
-            (过滤后的内容, 是否应该发送到前端)
+        处理流式内容，返回（过滤后的内容，是否应发送）。
         """
-        if self.in_final_answer:
-            # 已进入最终回答阶段，直接输出
-            return content, True
-
         self.current_sentence += content
 
-        # 检查是否到达句子边界
-        if self._is_sentence_boundary(self.current_sentence[-1:]):
-            sentence = self.current_sentence
-            self.current_sentence = ""
+        if not self._is_sentence_boundary(self.current_sentence[-1:]):
+            return "", False
 
-            # 检查是否是推理句子
-            if self._is_thinking_sentence(sentence):
-                self.thinking_sentence_count += 1
+        sentence = self.current_sentence
+        self.current_sentence = ""
 
-                # 超过阈值，过滤掉
-                if self.thinking_sentence_count > self.MAX_THINKING_SENTENCES:
-                    logger.info(f"过滤推理句子 (已超过 {self.MAX_THINKING_SENTENCES} 句): {sentence[:50]}...")
-                    return "", False
+        cleaned_sentence = strip_internal_scratchpad_content(clean_json_from_content(sentence)).strip()
+        if not cleaned_sentence:
+            return "", False
 
-            # 添加到缓冲
-            self.sentence_buffer += sentence
+        if self._looks_like_final_answer(cleaned_sentence):
+            self.in_final_answer = True
+            return cleaned_sentence, True
 
-            # 返回完整句子
-            return sentence, True
+        if self._is_thinking_sentence(cleaned_sentence):
+            logger.info(f"过滤推理句子: {cleaned_sentence[:80]}...")
+            return "", False
 
-        # 未到句子边界，返回空（继续累积）
-        return "", False
+        return cleaned_sentence, True
 
-    def mark_final_answer(self):
-        """标记进入最终回答阶段"""
-        self.in_final_answer = True
-        # 清空当前累积的内容
-        if self.current_sentence:
-            remaining = self.current_sentence
-            self.current_sentence = ""
-            return remaining
-        return ""
+    def flush_remaining(self) -> str:
+        """在流结束时刷新未闭合句子的剩余内容。"""
+        remaining = self.current_sentence.strip()
+        self.current_sentence = ""
+        return strip_internal_scratchpad_content(clean_json_from_content(remaining)).strip()
 
     def _is_sentence_boundary(self, char: str) -> bool:
         """检查字符是否是句子边界"""
         return char in "。！？\n"
 
+    def _looks_like_final_answer(self, sentence: str) -> bool:
+        return any(pattern.search(sentence) for pattern in FINAL_ANSWER_CUE_PATTERNS)
+
     def _is_thinking_sentence(self, sentence: str) -> bool:
         """检查句子是否是推理过程句子"""
-        import re
         sentence = sentence.strip()
-        for pattern in self.THINKING_PATTERNS:
-            # 使用 search 而不是 match，以匹配任何位置
-            if re.search(pattern, sentence):
-                return True
-        return False
+        if any(pattern.search(sentence) for pattern in FINAL_ANSWER_CUE_PATTERNS):
+            return False
+        return any(re.search(pattern, sentence, re.IGNORECASE) for pattern in self.THINKING_PATTERNS)
 
 app = FastAPI(
     title="RuralBrain API",
@@ -1140,11 +1155,13 @@ async def chat_stream(request: ChatRequest):
                                     full_content += buffered_content
                                     # 清理 JSON 代码块（移除 ```json ... ``` 部分）
                                     cleaned_content = clean_json_from_content(buffered_content)
-                                    event_data = {
-                                        "type": "content",
-                                        "content": cleaned_content,
-                                    }
-                                    yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+                                    cleaned_content = strip_internal_scratchpad_content(cleaned_content)
+                                    if cleaned_content:
+                                        event_data = {
+                                            "type": "content",
+                                            "content": cleaned_content,
+                                        }
+                                        yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
                                     content_buffer = []
 
                     # 处理工具调用结束事件
@@ -1252,11 +1269,24 @@ async def chat_stream(request: ChatRequest):
                     full_content += buffered_content
                     # 清理 JSON 代码块（移除 ```json ... ``` 部分）
                     cleaned_content = clean_json_from_content(buffered_content)
+                    cleaned_content = strip_internal_scratchpad_content(cleaned_content)
+                    if cleaned_content:
+                        event_data = {
+                            "type": "content",
+                            "content": cleaned_content,
+                        }
+                        yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+
+                remaining_content = thinking_filter.flush_remaining()
+                if remaining_content:
+                    full_content += remaining_content
                     event_data = {
                         "type": "content",
-                        "content": cleaned_content,
+                        "content": remaining_content,
                     }
                     yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+
+                full_content = strip_internal_scratchpad_content(clean_json_from_content(full_content))
 
                 # 发送完成事件
                 yield f"data: {json.dumps({'type': 'end', 'full_content': full_content}, ensure_ascii=False)}\n\n"

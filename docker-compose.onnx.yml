@@ -4,7 +4,7 @@
 services:
   # 前端服务 (Next.js)
   frontend:
-    image: zwxdockerbeginner/ruralbrain:frontend-onnx-v3
+    image: zwxdockerbeginner/ruralbrain:frontend-onnx-v4
     container_name: ruralbrain-frontend
     ports:
       - "3001:3001"
@@ -12,6 +12,7 @@ services:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
       - NEXT_PUBLIC_API_URL=http://localhost:8081
+      - BACKEND_URL=http://backend:8081
     depends_on:
       - backend
     restart: unless-stopped
@@ -20,7 +21,7 @@ services:
 
   # 后端主服务 (FastAPI + Agents)
   backend:
-    image: zwxdockerbeginner/ruralbrain:backend-onnx-v3
+    image: zwxdockerbeginner/ruralbrain:backend-onnx-v4
     container_name: ruralbrain-backend
     ports:
       - "8081:8081"
@@ -33,6 +34,7 @@ services:
       - PEST_DETECTION_API_URL=http://detection-service:8001/detection/pest/detect
       - RICE_DETECTION_API_URL=http://detection-service:8001/detection/rice/predict
       - COW_DETECTION_API_URL=http://detection-service:8001/detection/cow/detect
+      - DISEASE_DETECTION_API_URL=http://detection-service:8001/detection/disease/detect
     volumes:
       # knowledge_base 已内置在镜像中，无需挂载
       - ./src/rag:/app/src/rag
@@ -52,7 +54,7 @@ services:
   # 检测服务（整合病虫害、大米、奶牛等多种检测算法）
   # 使用 ONNX Runtime 进行推理，无需 PyTorch
   detection-service:
-    image: zwxdockerbeginner/ruralbrain:detection-onnx-v3
+    image: zwxdockerbeginner/ruralbrain:detection-onnx-v4
     container_name: ruralbrain-detection-service
     ports:
       - "8001:8001"  # 检测服务端口

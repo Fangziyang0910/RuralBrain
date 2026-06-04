@@ -20,9 +20,11 @@ import {
   layer2DetectionCards,
   layer3SalesCards,
   layer4PlanningCards,
-  otherCards
+  otherCards,
+  getAutoDemoScript,
+  type AutoDemoStep,
 } from "@/config/demo-cards";
-import { Upload, Send, Loader2, Mic, Database, Globe } from "lucide-react";
+import { Upload, Send, Loader2, Mic, Database, Globe, Play, Square, RotateCcw } from "lucide-react";
 import { useASR } from "@/hooks/useASR";
 import { cn } from "@/utils/cn";
 import { ToggleButton } from "@/components/ui/ToggleButton";
@@ -45,6 +47,12 @@ interface ModelsResponse {
   default_model: string;
 }
 
+interface SendMessageOptions {
+  enableKnowledgeBase?: boolean;
+  enableWebSearch?: boolean;
+  threadId?: string;
+}
+
 // export default 导出这个函数，让其他文件可以使用
 export default function Home() {
   // 统一的消息历史和会话ID
@@ -61,6 +69,12 @@ export default function Home() {
   const [enableWebSearch, setEnableWebSearch] = useState<boolean>(false);
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>("deepseek");
+  const [defaultThreadId, setDefaultThreadId] = useState<string>(() => `thread_${Date.now()}`);
+  const [autoDemoRunning, setAutoDemoRunning] = useState(false);
+  const [autoDemoIndex, setAutoDemoIndex] = useState<number | null>(null);
+  const [autoDemoThreadId, setAutoDemoThreadId] = useState<string | null>(null);
+  const autoDemoCancelRef = useRef(false);
+  const autoDemoScript = getAutoDemoScript();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -258,13 +272,13 @@ export default function Home() {
     }
   };
   // 删除全部图片处理
-  const handleRemoveAllImages = () => {
+  const handleRemoveAllImages = useCallback(() => {
     setSelectedImages([]);
     setImagePreviews([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
+  }, []);
 
   // 处理提交消息（点击发送按钮时执行）
   // FormEvent: TypeScript 表单事件类型
@@ -292,12 +306,31 @@ export default function Home() {
     }
   };
 
+  const loadDemoImageAsFile = useCallback(async (imageUrl: string) => {
+    const response = await fetch(imageUrl);
+
+    if (!response.ok) {
+      throw new Error(`图片加载失败: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const contentType = blob.type || "image/jpeg";
+    let extension = "jpg";
+    if (contentType.includes("png")) extension = "png";
+    else if (contentType.includes("webp")) extension = "webp";
+
+    const filename = `demo_${Date.now()}.${extension}`;
+    return new File([blob], filename, { type: contentType });
+  }, []);
+
   // 发送消息函数，支持图片上传和SSE流式响应
   const handleSendMessage = useCallback(
-    async (message: string, images?: File[]) => {
+    async (message: string, images?: File[], options?: SendMessageOptions) => {
       let imagePaths: string[] | undefined;
-      let imagePreviewUrls: string[] | undefined;
       let assistantMessageId: string | null = null;
+      const requestThreadId = options?.threadId ?? threadId;
+      const requestKnowledgeBase = options?.enableKnowledgeBase ?? enableKnowledgeBase;
+      const requestWebSearch = options?.enableWebSearch ?? enableWebSearch;
 
       // 添加用户消息
       const userMessage: Message = {
@@ -328,7 +361,6 @@ export default function Home() {
 
           const uploadData = await uploadResponse.json();
           imagePaths = uploadData.file_paths;
-          imagePreviewUrls = userMessage.images;
         }
 
         // 2. 发送聊天请求（SSE流式）- 由 Orchestrator Agent 智能路由
@@ -340,9 +372,9 @@ export default function Home() {
           body: JSON.stringify({
             message,
             image_paths: imagePaths,
-            thread_id: threadId,
-            enable_knowledge_base: enableKnowledgeBase,
-            enable_web_search: enableWebSearch,
+            thread_id: requestThreadId,
+            enable_knowledge_base: requestKnowledgeBase,
+            enable_web_search: requestWebSearch,
             model_id: selectedModelId,
           }),
         });
@@ -397,6 +429,9 @@ export default function Home() {
 
                 if (data.type === "start") {
                   console.log("流式输出开始, thread_id:", data.thread_id);
+                  if (data.thread_id && data.thread_id !== threadId) {
+                    setThreadId(data.thread_id);
+                  }
                 } else if (data.type === "content") {
                   // 直接使用函数式更新，避免闭包问题
                   setMessages((prev) =>
@@ -504,48 +539,102 @@ export default function Home() {
     [threadId, enableKnowledgeBase, enableWebSearch, selectedModelId]
   );
 
+  const runAutoDemoStep = useCallback(
+    async (step: AutoDemoStep, stepThreadId: string) => {
+      const images = step.image ? [await loadDemoImageAsFile(step.image)] : undefined;
+      setEnableKnowledgeBase(step.enableKnowledgeBase ?? false);
+      setEnableWebSearch(step.enableWebSearch ?? false);
+      setThreadId(stepThreadId);
+      setAutoDemoThreadId(stepThreadId);
+      await handleSendMessage(step.text, images, {
+        threadId: stepThreadId,
+        enableKnowledgeBase: step.enableKnowledgeBase,
+        enableWebSearch: step.enableWebSearch,
+      });
+    },
+    [handleSendMessage, loadDemoImageAsFile]
+  );
+
+  const handleStartAutoDemo = useCallback(async () => {
+    if (loading || autoDemoRunning) return;
+
+    const demoRunId = `demo_${Date.now()}`;
+    const nextDefaultThreadId = `thread_${Date.now()}_after_demo`;
+    autoDemoCancelRef.current = false;
+    setMessages([]);
+    setInput("");
+    handleRemoveAllImages();
+    setThreadId(demoRunId);
+    setAutoDemoThreadId(demoRunId);
+    setAutoDemoRunning(true);
+
+    try {
+      for (let index = 0; index < autoDemoScript.length; index += 1) {
+        if (autoDemoCancelRef.current) break;
+        setAutoDemoIndex(index);
+        const stepThreadId = `${demoRunId}_step_${index + 1}_${autoDemoScript[index].id}`;
+        await runAutoDemoStep(autoDemoScript[index], stepThreadId);
+        if (autoDemoCancelRef.current) break;
+        if (index < autoDemoScript.length - 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 1200));
+        }
+      }
+    } catch (error) {
+      console.error("自动演示执行失败:", error);
+    } finally {
+      setThreadId(nextDefaultThreadId);
+      setDefaultThreadId(nextDefaultThreadId);
+      setAutoDemoRunning(false);
+      setAutoDemoIndex(null);
+      setAutoDemoThreadId(null);
+      autoDemoCancelRef.current = false;
+    }
+  }, [autoDemoRunning, autoDemoScript, handleRemoveAllImages, loading, runAutoDemoStep]);
+
+  const handleCancelAutoDemo = useCallback(() => {
+    autoDemoCancelRef.current = true;
+    setThreadId(defaultThreadId);
+    setAutoDemoThreadId(null);
+    setAutoDemoRunning(false);
+    setAutoDemoIndex(null);
+  }, [defaultThreadId]);
+
+  const handleResetConversation = useCallback(() => {
+    autoDemoCancelRef.current = true;
+    setMessages([]);
+    setInput("");
+    handleRemoveAllImages();
+    const nextThreadId = `thread_${Date.now()}`;
+    setThreadId(nextThreadId);
+    setDefaultThreadId(nextThreadId);
+    setAutoDemoThreadId(null);
+    setAutoDemoRunning(false);
+    setAutoDemoIndex(null);
+  }, [handleRemoveAllImages]);
+
   // 处理演示卡片点击 - 从 URL 加载示例图片并发送
   const handleDemoClick = useCallback(
     async (query: string, imageUrl?: string) => {
       console.log("演示卡片点击:", query, imageUrl);
+      const isolatedThreadId = `thread_${Date.now()}_demo_click`;
+      setThreadId(isolatedThreadId);
+      setDefaultThreadId(isolatedThreadId);
+      setAutoDemoThreadId(null);
 
       if (imageUrl) {
         try {
           console.log("正在加载演示图片:", imageUrl);
-          // 从 URL 获取图片
-          const response = await fetch(imageUrl);
-
-          if (!response.ok) {
-            throw new Error(`图片加载失败: ${response.status}`);
-          }
-
-          const blob = await response.blob();
-          console.log("图片加载成功, size:", blob.size, "type:", blob.type);
-
-          // 获取文件扩展名
-          const contentType = blob.type || "image/jpeg";
-          let extension = "jpg";
-          if (contentType.includes("png")) extension = "png";
-          else if (contentType.includes("webp")) extension = "webp";
-
-          // 创建 File 对象
-          const filename = `demo_${Date.now()}.${extension}`;
-          const file = new File([blob], filename, { type: contentType });
-          console.log("File 对象创建成功:", filename);
-
-          // 发送消息和图片
-          await handleSendMessage(query, [file]);
+          const file = await loadDemoImageAsFile(imageUrl);
+          await handleSendMessage(query, [file], { threadId: isolatedThreadId });
         } catch (error) {
           console.error("加载演示图片失败:", error);
-          // 如果图片加载失败，仍然发送文本消息（不带图片）
-          await handleSendMessage(query);
+          await handleSendMessage(query, undefined, { threadId: isolatedThreadId });
         }
       } else {
-        // 没有图片，直接发送文本消息
-        await handleSendMessage(query);
+        await handleSendMessage(query, undefined, { threadId: isolatedThreadId });
       }
     },
-    [handleSendMessage]
+    [handleSendMessage, loadDemoImageAsFile]
   );
 
   return (
@@ -612,6 +701,51 @@ export default function Home() {
               <p className="text-earth-500 text-sm mb-8">
                 支持图像识别、规划咨询、科学方案等功能
               </p>
+
+              <div className="w-full max-w-4xl mb-6 rounded-3xl border border-earth-200 bg-gradient-to-r from-earth-50 via-white to-harvest-50 p-4 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-earth-900">一键演示</p>
+                    <p className="text-sm text-earth-600 mt-1">
+                      自动串联开场介绍、知识库问答、规划咨询、定价分析与图像检测，并复用同一会话。
+                    </p>
+                    {autoDemoRunning && autoDemoIndex !== null && (
+                      <p className="text-xs text-earth-500 mt-2">
+                        正在执行第 {autoDemoIndex + 1} / {autoDemoScript.length} 步：{autoDemoScript[autoDemoIndex]?.title}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleStartAutoDemo}
+                      disabled={loading || autoDemoRunning}
+                      className="btn btn-primary"
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      开始演示
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCancelAutoDemo}
+                      disabled={!autoDemoRunning}
+                    >
+                      <Square className="mr-2 h-4 w-4" />
+                      取消
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleResetConversation}
+                      disabled={loading}
+                    >
+                      <RotateCcw className="mr-2 h-4 w-4" />
+                      重置
+                    </Button>
+                  </div>
+                </div>
+              </div>
 
               {/* 功能演示卡片区域 */}
               <div className="w-full max-w-4xl mb-6">
@@ -722,6 +856,7 @@ export default function Home() {
               {/* 提示文字 */}
               <p className="text-earth-500 text-sm">
                 💡 上传图片或直接提问，我会自动判断如何帮助你
+                {autoDemoThreadId ? ` · 当前演示会话：${autoDemoThreadId}` : ""}
               </p>
             </div>
           ) : (
