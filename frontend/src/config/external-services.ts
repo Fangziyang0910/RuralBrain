@@ -37,6 +37,13 @@ export const externalServices: ExternalServiceConfig[] = [
     description: "农村法律咨询、合同审查、权益维护等法律服务",
     url: process.env.NEXT_PUBLIC_LEGAL_URL || "http://localhost:3004",
   },
+  {
+    id: "tourism",
+    title: "文旅服务",
+    icon: "🗺️",
+    description: "乡村旅游规划、景点推荐、路线导航、文化导览等服务",
+    url: process.env.NEXT_PUBLIC_TOURISM_URL || "http://localhost:5173",
+  },
 ];
 
 /**
@@ -56,7 +63,7 @@ export async function checkServiceStatus(url: string): Promise<boolean> {
  * ========== 四层架构分组配置 ==========
  */
 
-// 第一层：经营规划服务入口（乡村经营智能体 + 乡村规划智能体）
+// 第一层：经营规划服务入口（乡村经营智能体 + 乡村规划智能体 + 文旅服务）
 export const layer1ExternalServices: ExternalServiceConfig[] = [
   {
     id: "management",
@@ -71,6 +78,13 @@ export const layer1ExternalServices: ExternalServiceConfig[] = [
     icon: "📋",
     description: "乡村发展规划、产业布局、项目申报等专业方案",
     url: process.env.NEXT_PUBLIC_PLANNING_URL || "http://localhost:3003",
+  },
+  {
+    id: "tourism",
+    title: "文旅服务",
+    icon: "🗺️",
+    description: "乡村旅游规划、景点推荐、路线导航、文化导览等服务",
+    url: process.env.NEXT_PUBLIC_TOURISM_URL || "http://localhost:5173",
   },
 ];
 
