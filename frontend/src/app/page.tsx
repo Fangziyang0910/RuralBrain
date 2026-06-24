@@ -14,6 +14,7 @@ import {
   layer4LegalService
 } from "@/config/external-services";
 import {
+  allDemoCards,
   detectionDemoCards,
   businessDemoCards,
   planningDemoCards,
@@ -69,6 +70,13 @@ export default function Home() {
   const [enableWebSearch, setEnableWebSearch] = useState<boolean>(false);
   const [models, setModels] = useState<Model[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string>("deepseek");
+
+  // iframe 嵌入精简模式：由 URL 参数 embed=1 开启，隐藏标题栏与欢迎页卡片
+  // 注意：不能在 useState 初始化函数里读 window（SSR 无 window，会触发 hydration mismatch），
+  // 因此初值固定 false（与 SSR 一致），挂载后在 useEffect 中读取 URL 再切换。
+  const [isEmbed, setIsEmbed] = useState<boolean>(false);
+  // 深度链接自动演示去重守卫（React StrictMode 下防止重复触发）
+  const urlDemoTriggeredRef = useRef(false);
   const [defaultThreadId, setDefaultThreadId] = useState<string>(() => `thread_${Date.now()}`);
   const [autoDemoRunning, setAutoDemoRunning] = useState(false);
   const [autoDemoIndex, setAutoDemoIndex] = useState<number | null>(null);
@@ -637,6 +645,23 @@ export default function Home() {
     [handleSendMessage, loadDemoImageAsFile]
   );
 
+  // 客户端挂载后读取 URL 参数，设置 embed 精简模式与深度链接演示。
+  // 必须在 useEffect 中执行（而非 useState 初始化），避免 SSR 无 window 导致 hydration mismatch。
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    setIsEmbed(params.get("embed") === "1");
+
+    // 深度链接自动演示：URL 含 ?demo=<skill> 时，自动用对应引导语 + 示例图发起一次对话
+    if (urlDemoTriggeredRef.current) return;
+    const demoSkill = params.get("demo");
+    if (!demoSkill) return;
+    const card = allDemoCards.find((c) => c.skill === demoSkill);
+    if (!card) return;
+    urlDemoTriggeredRef.current = true;
+    handleDemoClick(card.demo_input.text, card.demo_input.image);
+  }, [handleDemoClick]);
+
   return (
     <div
       className="flex flex-col h-screen bg-organic-texture page-load-animate"
@@ -656,7 +681,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* 顶部标题栏 - Organic Biophilic 设计 */}
+      {/* 顶部标题栏 - Organic Biophilic 设计（embed 模式下隐藏） */}
+      {!isEmbed && (
       <header className="border-b-2 border-earth-100 glass bg-white/95">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
@@ -675,12 +701,21 @@ export default function Home() {
           </div>
         </div>
       </header>
+      )}
 
       {/* 对话区域 */}
       <main ref={mainContainerRef} className="flex-1 overflow-y-auto bg-white">
         <div className="max-w-4xl mx-auto px-4 py-6">
           {/* 条件渲染，显示欢迎信息或聊天消息 */}
           {messages.length === 0 ? (
+            isEmbed ? (
+              <div className="flex flex-col items-center justify-center h-full pt-16">
+                <div className="w-16 h-16 rounded-organic-2xl bg-gradient-to-br from-earth-400 to-earth-600 flex items-center justify-center text-3xl shadow-organic animate-organic-float">
+                  🌾
+                </div>
+                <p className="text-earth-600 mt-4 font-medium">正在为你演示，请稍候…</p>
+              </div>
+            ) : (
             <div className="flex flex-col items-center justify-center h-full pt-16">
               {/* 主图标区域 - Organic Biophilic */}
               <div className="relative mb-6">
@@ -859,6 +894,7 @@ export default function Home() {
                 {autoDemoThreadId ? ` · 当前演示会话：${autoDemoThreadId}` : ""}
               </p>
             </div>
+            )
           ) : (
             <div className="space-y-6">
               {/* 数组映射，把每条信息都渲染成一个消息气泡组件 */}
