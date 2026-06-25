@@ -358,6 +358,40 @@ def parse_disease_prediction_output(tool_output: str) -> dict | None:
         if not isinstance(tool_output, str):
             tool_output = str(tool_output)
 
+        # ========== 优先尝试解析新版本的 JSON 格式 ==========
+        stripped = tool_output.strip()
+        if stripped.startswith('{'):
+            try:
+                parsed = json.loads(stripped)
+
+                # 检查是否包含数据字段
+                if "data" in parsed:
+                    data = parsed["data"]
+                    # 验证数据结构
+                    if "diseases" in data and isinstance(data["diseases"], list):
+                        logger.info(f"疾病预测 JSON 解析成功: {len(data['diseases'])} 个疾病")
+                        return {
+                            "diseases": data["diseases"],
+                            "urgency": data.get("urgency", "medium"),
+                            "symptoms": data.get("symptoms", []),
+                            "suggestions": data.get("suggestions", {}),
+                            "reminder": data.get("reminder")
+                        }
+                elif "diseases" in parsed and isinstance(parsed["diseases"], list):
+                    # 直接包含 diseases 字段
+                    logger.info(f"疾病预测 JSON 解析成功: {len(parsed['diseases'])} 个疾病")
+                    return {
+                        "diseases": parsed["diseases"],
+                        "urgency": parsed.get("urgency", "medium"),
+                        "symptoms": parsed.get("symptoms", []),
+                        "suggestions": parsed.get("suggestions", {}),
+                        "reminder": parsed.get("reminder")
+                    }
+            except json.JSONDecodeError as e:
+                logger.warning(f"疾病预测 JSON 解析失败: {e}, 降级到文本解析")
+
+        # ========== 降级：使用正则表达式从人类可读报告中提取结构化数据 ==========
+
         # ========== 使用正则表达式从人类可读报告中提取结构化数据 ==========
 
         # 清理 Markdown 格式标记

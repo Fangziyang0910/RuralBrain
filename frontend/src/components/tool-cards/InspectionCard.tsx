@@ -203,17 +203,31 @@ export const InspectionCard: React.FC<InspectionCardProps> = ({
               <FileText className="w-3.5 h-3.5" />
               AI 综合分析报告
             </div>
-            <div className="prose prose-sm prose-stone max-w-none">
+            <div className="max-w-none">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  p: ({ children }) => <p className="my-2 text-sm text-stone-700">{children}</p>,
-                  strong: ({ children }) => <strong className="font-semibold text-stone-900">{children}</strong>,
-                  ul: ({ children }) => <ul className="list-none space-y-1 my-2 text-sm">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-sm">{children}</ol>,
-                  li: ({ children }) => <li className="my-1 text-stone-700">{children}</li>,
+                  p: ({ children }) => <p className="my-2 text-sm text-stone-700 leading-relaxed">{children}</p>,
+                  strong: ({ children }) => <strong className="font-bold text-stone-900">{children}</strong>,
+                  em: ({ children }) => <em className="italic text-stone-700">{children}</em>,
+                  ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-2 text-sm text-stone-800 pl-3">{children}</ul>,
+                  ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-2 text-sm text-stone-800 pl-3">{children}</ol>,
+                  li: ({ children }) => <li className="my-1 text-stone-700 leading-snug">{children}</li>,
+                  h1: ({ children }) => <h1 className="text-base font-bold my-2 text-stone-900">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-sm font-bold my-2 text-stone-900">{children}</h2>,
                   h3: ({ children }) => <h3 className="text-sm font-bold my-2 text-stone-900">{children}</h3>,
                   h4: ({ children }) => <h4 className="text-xs font-bold my-1.5 text-stone-900">{children}</h4>,
+                  hr: () => <hr className="my-3 border-t border-stone-300" />,
+                  a: ({ children, href }) => (
+                    <a
+                      href={href}
+                      className="text-earth-600 hover:text-earth-700 underline underline-offset-2 transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {children}
+                    </a>
+                  ),
                 }}
               >
                 {multimodalReport}

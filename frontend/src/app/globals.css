@@ -269,7 +269,10 @@
     @apply shadow-organic-md;
     @apply rounded-organic-xl rounded-br-organic-sm;
     width: fit-content;
-    max-width: 90%;
+    max-width: 85%;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 
   .message-ai-enhanced {
@@ -279,6 +282,9 @@
     @apply transition-shadow duration-200 ease-out;
     width: fit-content;
     max-width: 90%;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 
   .message-ai-enhanced:hover {
@@ -387,6 +393,9 @@
     @apply bg-white rounded-organic-xl border-2 border-earth-100 p-4;
     @apply shadow-natural hover:shadow-natural-md;
     @apply transition-all duration-300 ease-out;
+    overflow: hidden;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   /* 增强的工具调用卡片 */
@@ -534,6 +543,203 @@
   .hover-lift:hover {
     @apply -translate-y-1;
   }
+}
+
+/* ==================== Markdown 内容样式优化 ==================== */
+
+/* 确保 prose 类能正确渲染所有 markdown 元素 */
+.prose {
+  @apply text-stone-800;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  @apply font-bold text-stone-900;
+  @apply leading-tight;
+}
+
+.prose h1 {
+  @apply text-2xl;
+  @apply mt-6 mb-4;
+  @apply pb-2;
+  @apply border-b-2;
+  @apply border-stone-200;
+}
+
+.prose h2 {
+  @apply text-xl;
+  @apply mt-5 mb-3;
+}
+
+.prose h3 {
+  @apply text-lg;
+  @apply mt-4 mb-3;
+}
+
+.prose h4 {
+  @apply text-base;
+  @apply mt-3 mb-2;
+}
+
+.prose h5 {
+  @apply text-sm;
+  @apply mt-2 mb-2;
+}
+
+.prose h6 {
+  @apply text-xs;
+  @apply mt-2 mb-2;
+}
+
+.prose p {
+  @apply text-base;
+  @apply my-3;
+  @apply leading-relaxed;
+  @apply text-stone-800;
+}
+
+.prose strong {
+  @apply font-bold;
+  @apply text-stone-900;
+}
+
+.prose em {
+  @apply italic;
+  @apply text-stone-700;
+}
+
+.prose ul {
+  @apply list-disc;
+  @apply list-inside;
+  @apply my-3;
+  @apply space-y-2;
+  @apply text-base;
+  @apply text-stone-800;
+}
+
+.prose ol {
+  @apply list-decimal;
+  @apply list-inside;
+  @apply my-3;
+  @apply space-y-2;
+  @apply text-base;
+  @apply text-stone-800;
+}
+
+.prose li {
+  @apply my-1;
+  @apply leading-relaxed;
+  @apply text-stone-700;
+}
+
+.prose li > strong {
+  @apply font-bold;
+  @apply text-stone-900;
+}
+
+.prose hr {
+  @apply my-6;
+  @apply border-t-2;
+  @apply border-stone-300;
+}
+
+.prose blockquote {
+  @apply border-l-4;
+  @apply border-stone-400;
+  @apply pl-4;
+  @apply py-2;
+  @apply my-4;
+  @apply bg-stone-50;
+  @apply rounded-r;
+  @apply italic;
+  @apply text-stone-700;
+}
+
+.prose code {
+  @apply bg-stone-100;
+  @apply text-stone-800;
+  @apply px-1.5;
+  @apply py-0.5;
+  @apply rounded;
+  @apply text-sm;
+  @apply font-mono;
+}
+
+.prose pre {
+  @apply bg-stone-100;
+  @apply p-4;
+  @apply rounded-lg;
+  @apply overflow-x-auto;
+  @apply my-4;
+  @apply text-sm;
+  @apply border;
+  @apply border-stone-200;
+}
+
+.prose pre code {
+  @apply bg-transparent;
+  @apply p-0;
+  @apply border-none;
+}
+
+.prose a {
+  @apply text-earth-600;
+  @apply hover:text-earth-700;
+  @apply underline;
+  @apply underline-offset-2;
+  @apply transition-colors;
+  @apply font-medium;
+}
+
+.prose table {
+  @apply min-w-full;
+  @apply divide-y;
+  @apply divide-stone-200;
+  @apply border;
+  @apply border-stone-300;
+  @apply my-4;
+}
+
+.prose thead {
+  @apply bg-stone-100;
+}
+
+.prose tbody {
+  @apply bg-white;
+  @apply divide-y;
+  @apply divide-stone-200;
+}
+
+.prose th {
+  @apply px-4;
+  @apply py-2;
+  @apply text-left;
+  @apply text-sm;
+  @apply font-bold;
+  @apply text-stone-900;
+}
+
+.prose td {
+  @apply px-4;
+  @apply py-2;
+  @apply text-sm;
+  @apply text-stone-700;
+}
+
+/* 确保 message-bubble 内的 markdown 不会溢出 */
+.message-bubble .prose {
+  @apply max-w-full;
+  @apply overflow-hidden;
+}
+
+.message-bubble .prose * {
+  @apply max-w-full;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* ==================== 响应式优化 ==================== */

@@ -234,7 +234,7 @@ def _predict_with_llm(
 ) -> dict:
     """使用 LLM 进行疾病预测
 
-    通过构造专业的兽医诊断提示词，让 LLM 分析症状并返回格式化的报告。
+    通过构造专业的兽医诊断提示词，让 LLM 分析症状并返回结构化数据。
     支持多模态输入：图片（base64）+ 检测结果 + 症状描述。
 
     Args:
@@ -247,7 +247,7 @@ def _predict_with_llm(
         detection_result: 检测 API 的结果
 
     Returns:
-        预测结果字典，包含格式化的报告文本和结构化数据
+        包含结构化数据的预测结果字典
     """
     try:
         # 初始化模型管理器
@@ -352,7 +352,7 @@ def _predict_with_llm(
 
 补充这些信息后我可以提供更精准的分析。"""
 
-        # 构建完整提示词
+        # 构建完整提示词 - 要求返回 JSON 格式
         prompt = f"""你是一位专业的兽医专家，请根据以下信息进行疾病预测分析。
 
 ## 动物信息
@@ -376,41 +376,38 @@ def _predict_with_llm(
 
 ## 输出格式要求
 
-请按照以下格式输出疾病预测分析报告：
+请严格按照以下 JSON 格式输出（不要输出任何其他内容）：
 
----
-### 🩺 疾病预测分析
+```json
+{{
+  "diseases": [
+    {{
+      "name": "疾病名称",
+      "probability": 75,
+      "reason": "判断依据"
+    }}
+  ],
+  "urgency": "high",
+  "symptoms": ["症状1", "症状2", "症状3"],
+  "suggestions": {{
+    "isolation": "隔离观察建议",
+    "treatment": "治疗建议",
+    "prevention": "预防措施"
+  }},
+  "reminder": "重要提醒内容"
+}}
+```
 
-#### 可能的疾病
-1. **疾病名称**（可能性：XX%）
-   - 判断依据：说明原因
-
-#### 关键症状依据
-- 已知症状1
-- 已知症状2
-
-#### 紧急程度
-🚨 高/⚠️ 中/ℹ️ 低
-
-#### 处理建议
-1. **隔离观察**：建议内容
-2. **对症治疗**：建议内容
-3. **预防措施**：建议内容
-
-#### ⚠️ 重要提醒
-添加任何需要注意的特殊事项
-
----
+字段说明：
+- diseases: 疾病列表，每个疾病包含 name（名称）、probability（可能性百分比）、reason（判断依据）
+- urgency: 紧急程度，值为 "high"（高）、"medium"（中）、"low"（低）
+- symptoms: 关键症状列表
+- suggestions: 处理建议，包含 isolation（隔离）、treatment（治疗）、prevention（预防）
+- reminder: 重要提醒（可选）
 
 {followup_section}
 
----
-
-注意：
-- 使用 Markdown 格式输出
-- 疾病名称使用粗体标记
-- 可能性用百分比表示
-- 紧急程度用表情符号标识"""
+只返回 JSON，不要包含其他任何文字说明。"""
 
         # 调用模型
         # 判断是否需要构建多模态消息
@@ -459,46 +456,66 @@ def _predict_with_llm(
             message = HumanMessage(content=prompt)
 
         response = model.invoke([message])
-        report_text = response.content.strip()
+        response_text = response.content.strip()
 
-        return {
-            "success": True,
-            "report": report_text,
-            "model_used": "llm",
-            "analysis_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "input": {
-                "animal_type": animal_type,
-                "symptoms": symptoms,
-                "age": age,
-                "temperature": temperature,
-                "other_signs": other_signs
+        # 解析 JSON 响应
+        try:
+            # 提取 JSON 部分（可能包含在 ```json ``` 代码块中）
+            import re
+            json_match = re.search(r'```json\s*(.+?)\s*```', response_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1).strip()
+            else:
+                # 如果没有代码块，尝试直接解析整个响应
+                json_str = response_text.strip()
+
+            # 解析 JSON
+            parsed_data = json.loads(json_str)
+
+            return {
+                "success": True,
+                "data": parsed_data,
+                "model_used": "llm",
+                "analysis_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "input": {
+                    "animal_type": animal_type,
+                    "symptoms": symptoms,
+                    "age": age,
+                    "temperature": temperature,
+                    "other_signs": other_signs
+                }
             }
-        }
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON 解析失败: {e}, 原始响应: {response_text[:500]}")
+            # 如果 JSON 解析失败，返回错误
+            return {
+                "success": False,
+                "error": f"JSON 解析失败: {str(e)}",
+                "raw_response": response_text[:500]
+            }
 
     except Exception as e:
         # 降级响应
         return {
             "success": False,
             "error": str(e),
-            "report": f"""### 🩺 疾病预测分析
-
-#### 可能的疾病
-**需要进一步检查**（可能性：50%）
-- AI 分析暂时不可用，建议咨询专业兽医
-
-#### 关键症状依据
-- {symptoms}
-
-#### 紧急程度
-⚠️ 中
-
-#### 处理建议
-1. 建议联系专业兽医进行诊断
-2. 注意观察动物状态变化
-3. 如有恶化及时就医
-
-#### ⚠️ 重要提醒
-本分析仅供参考，不能替代专业兽医诊断。""",
+            "data": {
+                "diseases": [
+                    {
+                        "name": "需要进一步检查",
+                        "probability": 50,
+                        "reason": f"AI 分析暂时不可用，建议咨询专业兽医。症状：{symptoms}"
+                    }
+                ],
+                "urgency": "medium",
+                "symptoms": [symptoms] if symptoms else ["症状描述不足"],
+                "suggestions": {
+                    "isolation": "建议联系专业兽医进行诊断",
+                    "treatment": "注意观察动物状态变化",
+                    "prevention": "如有恶化及时就医"
+                },
+                "reminder": "本分析仅供参考，不能替代专业兽医诊断。"
+            },
             "model_used": "fallback"
         }
 
@@ -532,7 +549,9 @@ def disease_prediction_tool(
         media_path: 患处图片或视频路径（可选，如未提供则自动从消息历史提取）
 
     Returns:
-        格式化的疾病预测分析报告
+        JSON 格式的疾病预测结果，包含：
+        - text: 用于 Agent 理解的文本摘要
+        - data: 详细预测数据（供前端可视化）
     """
     try:
         # 步骤1: 确定图片来源（优先使用自动提取，备用手动路径）
@@ -567,7 +586,6 @@ def disease_prediction_tool(
                 image_analysis_note = f"\n\n#### 📷 图片分析结果\n图片分析失败：{detection_result['error']}"
 
         # 步骤3: 调用 LLM 进行综合疾病预测
-        # 现在传入原始症状（不做拼接），让 LLM 综合图片+检测结果+症状进行分析
         result = _predict_with_llm(
             animal_type=animal_type,
             symptoms=symptoms,
@@ -578,16 +596,47 @@ def disease_prediction_tool(
             detection_result=detection_result
         )
 
-        # 步骤4: 合并 LLM 分析和图片识别结果
-        final_report = result.get("report", "")
+        # 步骤4: 构建增强输出（JSON 格式）
+        if result.get("success") and result.get("data"):
+            # 成功获取结构化数据
+            data = result["data"]
 
-        # 如果检测失败，在报告中添加错误提示
-        if image_analysis_note:
-            final_report = final_report + image_analysis_note
+            # 构建文本摘要
+            diseases = data.get("diseases", [])
+            if diseases:
+                top_disease = diseases[0]
+                summary = f"根据症状分析，最可能的疾病是：{top_disease['name']}（可能性：{top_disease['probability']}%）"
+                if len(diseases) > 1:
+                    other_diseases = ", ".join([f"{d['name']}({d['probability']}%)" for d in diseases[1:]])
+                    summary += f"，其他可能：{other_diseases}"
+            else:
+                summary = "疾病预测分析已完成"
 
-        return final_report
+            # 构建输出
+            output = {
+                "text": summary,
+                "data": data
+            }
+
+            return json.dumps(output, ensure_ascii=False)
+        else:
+            # 失败或没有数据，返回错误信息
+            error_msg = result.get("error", "预测失败")
+            fallback_data = result.get("data")
+
+            if fallback_data:
+                # 有降级数据
+                output = {
+                    "text": f"疾病预测分析（降级模式）：{error_msg}",
+                    "data": fallback_data
+                }
+                return json.dumps(output, ensure_ascii=False)
+            else:
+                # 完全失败，返回错误文本
+                return f"### ⚠️ 疾病预测失败\n\n{error_msg}\n\n请稍后重试或直接咨询专业兽医。"
 
     except Exception as e:
+        # 异常处理
         return f"### ⚠️ 分析失败\n\n疾病预测工具遇到错误：{str(e)}\n\n请稍后重试或直接咨询专业兽医。"
 
 
