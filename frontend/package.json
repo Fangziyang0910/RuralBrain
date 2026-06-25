@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "node --test tests/*.test.js"
+    "test": "node --import tsx --test tests/*.test.js"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.1",
@@ -43,6 +43,7 @@
     "eslint-config-next": "14.2.15",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.0",
     "typescript": "^5.7.2"
   }
 }

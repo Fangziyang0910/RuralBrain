@@ -16,6 +16,7 @@ import { WebSearchCard } from "./WebSearchCard";
 import { DetectionCard } from "./tool-cards/DetectionCard";
 import { DiseasePredictionCard } from "./tool-cards/DiseasePredictionCard";
 import { InspectionCard } from "./tool-cards/InspectionCard";
+import { cleanupMarkdownRemnants, hasMarkdownRemnants } from "@/utils/markdownCleanup";
 
 export interface ToolCall {
   name: string;
@@ -52,6 +53,8 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
   message,
 }) => {
   const isUser = message.role === "user";
+  const shouldUsePlainText = !isUser && hasMarkdownRemnants(message.content);
+  const displayContent = shouldUsePlainText ? cleanupMarkdownRemnants(message.content) : message.content;
 
   // 调试：查看消息更新
   if (!isUser && message.isStreaming) {
@@ -133,32 +136,151 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({
               {!message.content && message.isStreaming ? (
                 <LoadingDots size="md" color="#22C55E" />
               ) : (
-                <div className="prose prose-stone max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-headings:my-3">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      p: ({ children }) => <p className="my-2 text-base text-earth-800">{children}</p>,
-                      strong: ({ children }) => <strong className="font-semibold text-earth-900">{children}</strong>,
-                      ul: ({ children }) => <ul className="list-none space-y-1.5 my-2 text-base">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1.5 my-2 text-base">{children}</ol>,
-                      li: ({ children }) => <li className="my-1 text-earth-700">{children}</li>,
-                      h1: ({ children }) => <h1 className="text-xl font-bold my-3 text-earth-900">{children}</h1>,
-                      h2: ({ children }) => <h2 className="text-lg font-bold my-2.5 text-earth-900">{children}</h2>,
-                      h3: ({ children }) => <h3 className="text-base font-bold my-2 text-earth-900">{children}</h3>,
+                <div className="max-w-none">
+                  {shouldUsePlainText ? (
+                    <div className="text-base text-stone-800 leading-relaxed whitespace-pre-wrap break-words">
+                      {displayContent}
+                    </div>
+                  ) : (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                      // 段落
+                      p: ({ children }) => (
+                        <p className="my-3 text-base text-stone-800 leading-relaxed">
+                          {children}
+                        </p>
+                      ),
+                      // 标题层级 - 使用更明显的样式
+                      h1: ({ children }) => (
+                        <h1 className="text-2xl font-bold my-4 text-stone-900 border-b-2 border-stone-200 pb-2">
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-xl font-bold my-4 text-stone-900">
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-bold my-3 text-stone-900">
+                          {children}
+                        </h3>
+                      ),
+                      h4: ({ children }) => (
+                        <h4 className="text-base font-bold my-3 text-stone-900">
+                          {children}
+                        </h4>
+                      ),
+                      h5: ({ children }) => (
+                        <h5 className="text-sm font-bold my-2 text-stone-900">
+                          {children}
+                        </h5>
+                      ),
+                      h6: ({ children }) => (
+                        <h6 className="text-xs font-bold my-2 text-stone-900">
+                          {children}
+                        </h6>
+                      ),
+                      // 文本样式
+                      strong: ({ children }) => (
+                        <strong className="font-bold text-stone-900">
+                          {children}
+                        </strong>
+                      ),
+                      em: ({ children }) => (
+                        <em className="italic text-stone-700">
+                          {children}
+                        </em>
+                      ),
+                      // 列表
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside space-y-2 my-3 text-base text-stone-800 pl-4">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside space-y-2 my-3 text-base text-stone-800 pl-4">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="my-1 text-stone-700 leading-relaxed ml-2">
+                          {children}
+                        </li>
+                      ),
+                      // 分隔线
+                      hr: () => (
+                        <hr className="my-6 border-t-2 border-stone-300" />
+                      ),
+                      // 引用块
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-stone-400 pl-4 py-2 my-4 bg-stone-50 rounded-r text-stone-700 italic">
+                          {children}
+                        </blockquote>
+                      ),
+                      // 代码
+                      code: ({ children, className }) => {
+                        return (
+                          <code className="bg-stone-100 text-stone-800 px-1.5 py-0.5 rounded text-sm font-mono">
+                            {children}
+                          </code>
+                        );
+                      },
+                      pre: ({ children }) => (
+                        <pre className="bg-stone-100 p-4 rounded-lg overflow-x-auto my-4 text-sm border border-stone-200">
+                          {children}
+                        </pre>
+                      ),
+                      // 链接
                       a: ({ children, href }) => (
                         <a
                           href={href}
-                          className="text-earth-600 hover:text-earth-700 underline underline-offset-2 transition-colors"
+                          className="text-earth-600 hover:text-earth-700 underline underline-offset-2 transition-colors font-medium"
                           target="_blank"
                           rel="noopener noreferrer"
                         >
                           {children}
                         </a>
                       ),
+                      // 表格
+                      table: ({ children }) => (
+                        <div className="overflow-x-auto my-4">
+                          <table className="min-w-full divide-y divide-stone-200 border border-stone-300">
+                            {children}
+                          </table>
+                        </div>
+                      ),
+                      thead: ({ children }) => (
+                        <thead className="bg-stone-100">
+                          {children}
+                        </thead>
+                      ),
+                      tbody: ({ children }) => (
+                        <tbody className="bg-white divide-y divide-stone-200">
+                          {children}
+                        </tbody>
+                      ),
+                      tr: ({ children }) => (
+                        <tr>
+                          {children}
+                        </tr>
+                      ),
+                      th: ({ children }) => (
+                        <th className="px-4 py-2 text-left text-sm font-bold text-stone-900">
+                          {children}
+                        </th>
+                      ),
+                      td: ({ children }) => (
+                        <td className="px-4 py-2 text-sm text-stone-700">
+                          {children}
+                        </td>
+                      ),
                     }}
-                  >
-                    {message.content}
-                  </ReactMarkdown>
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  )}
                   {message.isStreaming && (
                     <span className="inline-block w-0.5 h-4 ml-1 bg-earth-500 animate-pulse rounded-full align-middle" />
                   )}
