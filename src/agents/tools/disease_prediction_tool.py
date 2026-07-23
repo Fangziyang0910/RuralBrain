@@ -221,6 +221,94 @@ def _format_disease_name(name: str) -> str:
     return name.replace("_", " ") if name else "未知"
 
 
+def _build_disease_markdown_report(data: dict) -> str:
+    """构建稳定的疾病预测 Markdown 报告，供前端直接渲染。"""
+    diseases = data.get("diseases", []) or []
+    symptoms = data.get("symptoms", []) or []
+    suggestions = data.get("suggestions", {}) or {}
+    urgency = data.get("urgency", "medium")
+    reminder = data.get("reminder", "")
+
+    urgency_label = {
+        "high": "高",
+        "medium": "中",
+        "low": "低",
+    }.get(urgency, "未知")
+
+    lines = [
+        "### 🐄 症状分析",
+        "",
+    ]
+
+    if symptoms:
+        lines.append("图片或描述中识别到以下关键症状：")
+        for symptom in symptoms:
+            lines.append(f"- **{symptom}**")
+    else:
+        lines.append("当前症状信息有限，以下分析基于已提供的图片和描述。")
+
+    lines.extend([
+        "",
+        "### 🔍 疾病预测",
+        "",
+    ])
+
+    if diseases:
+        lines.append("综合症状特征与模型分析，可能疾病如下：")
+        for disease in diseases:
+            name = disease.get("name", "未知疾病")
+            probability = disease.get("probability", 0)
+            reason = disease.get("reason", "")
+            lines.append(f"- **{name}**：可能性 **{probability}%**")
+            if reason:
+                lines.append(f"  - 依据：{reason}")
+    else:
+        lines.append("暂未形成明确疾病候选，建议补充更多症状信息并联系兽医。")
+
+    lines.extend([
+        "",
+        "### ⚠️ 风险评估",
+        "",
+        f"- **紧急程度**：**{urgency_label}**",
+    ])
+
+    if diseases:
+        top_disease = diseases[0]
+        lines.append(f"- **重点关注**：{top_disease.get('name', '首要疑似疾病')}")
+
+    lines.extend([
+        "",
+        "### 🛡️ 防控建议",
+        "",
+    ])
+
+    suggestion_items = [
+        ("隔离观察", suggestions.get("isolation")),
+        ("对症治疗", suggestions.get("treatment")),
+        ("预防措施", suggestions.get("prevention")),
+    ]
+    has_suggestion = False
+    for title, content in suggestion_items:
+        if content:
+            has_suggestion = True
+            lines.append(f"1. **{title}**：{content}")
+
+    if not has_suggestion:
+        lines.append("1. **现场诊断**：建议尽快联系专业兽医进行检查。")
+        lines.append("2. **隔离观察**：疑似患病个体应与健康群体分开。")
+        lines.append("3. **环境消毒**：保持圈舍清洁，减少传播风险。")
+
+    if reminder:
+        lines.extend([
+            "",
+            "### 📌 重要提醒",
+            "",
+            reminder,
+        ])
+
+    return "\n".join(lines)
+
+
 # ==================== LLM 疾病预测 ====================
 
 def _predict_with_llm(
@@ -614,7 +702,7 @@ def disease_prediction_tool(
 
             # 构建输出
             output = {
-                "text": summary,
+                "text": _build_disease_markdown_report(data),
                 "data": data
             }
 
@@ -627,7 +715,7 @@ def disease_prediction_tool(
             if fallback_data:
                 # 有降级数据
                 output = {
-                    "text": f"疾病预测分析（降级模式）：{error_msg}",
+                    "text": _build_disease_markdown_report(fallback_data),
                     "data": fallback_data
                 }
                 return json.dumps(output, ensure_ascii=False)

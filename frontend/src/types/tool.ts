@@ -168,5 +168,6 @@ export interface ToolCallEventData {
   tool_name: string;
   status: '运行中' | '已完成';
   result_image?: string;
+  result_text?: string;
   result_data?: WebSearchData | DetectionData | DiseasePredictionData | InspectionData | EnhancedDetectionData;
 }

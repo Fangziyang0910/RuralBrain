@@ -4,6 +4,43 @@
  */
 
 /**
+ * 修复流式拼接后容易贴连在一起的 Markdown 语法。
+ *
+ * 这里保留 Markdown 标记本身，只补足必要的换行/空格，让 ReactMarkdown
+ * 能继续负责语义渲染。
+ */
+export function normalizeMarkdownForRendering(text: string): string {
+  if (!text || typeof text !== 'string') {
+    return text;
+  }
+
+  let normalized = text.replace(/\r\n?/g, '\n');
+
+  // 流式拼接或模型输出常把块级语法贴在上一句后面。
+  normalized = normalized.replace(/([^\n-])(-{3,})(?=#{1,6}\s*\S)/g, '$1\n\n$2\n\n');
+  normalized = normalized.replace(/([^\n\s#])(?=#{1,6}(?:\s+#{1,6}\s+|\s*[^\s#]))/g, '$1\n\n');
+  normalized = normalized.replace(/([^\n])(?=(?:\d+[\.)]|[-–—])[ \t]+\S)/g, '$1\n');
+
+  const lines = normalized.split('\n').map((line) => {
+    let nextLine = line.replace(/[ \t]+$/g, '');
+
+    // ## # 标题、### ## 标题 -> ## 标题
+    nextLine = nextLine.replace(/^(\s*)(#{1,6})\s+#{1,6}\s+(.+)$/, '$1$2 $3');
+
+    // ####标题 -> #### 标题
+    nextLine = nextLine.replace(/^(\s*)(#{1,6})([^\s#].*)$/, '$1$2 $3');
+
+    return nextLine;
+  });
+
+  normalized = lines.join('\n');
+  normalized = normalized.replace(/(^|\n)(#{1,6}\s+[^\n]+)\n(?!\n)/g, '$1$2\n\n');
+  normalized = normalized.replace(/\n{3,}/g, '\n\n');
+
+  return normalized.trim();
+}
+
+/**
  * 清理文本中残留的 Markdown 格式标记
  */
 export function cleanupMarkdownRemnants(text: string): string {

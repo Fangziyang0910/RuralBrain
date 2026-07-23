@@ -455,6 +455,7 @@ export default function Home() {
                 } else if (data.type === "tool_call") {
                   // 工具调用事件（支持结构化数据）
                   const resultImageUrl = data.result_image || undefined;
+                  const resultText = data.result_text || undefined;
                   // 支持多种结构化数据类型（联网搜索、检测、疾病预测）
                   const resultData = data.result_data as WebSearchData | DetectionData | DiseasePredictionData | EnhancedDetectionData | undefined;
 
@@ -462,6 +463,7 @@ export default function Home() {
                     name: data.tool_name,
                     status: data.status as "运行中" | "已完成",
                     resultImage: resultImageUrl,
+                    resultText,
                     resultData: resultData,  // 新增：联网搜索的结构化数据
                   };
                   setMessages((prev) =>

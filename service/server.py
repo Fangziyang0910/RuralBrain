@@ -690,6 +690,98 @@ def clean_json_from_content(content: str) -> str:
     return '\n'.join(filtered_lines)
 
 
+class StructuredJsonStreamFilter:
+    """过滤流式正文中误输出的结构化工具 JSON。"""
+
+    SUPPRESSED_KEYS = (
+        '"diseases"',
+        '"inspection_type"',
+        '"ai_summary"',
+        '"detailed_detections"',
+    )
+    MAX_PENDING_CHARS = 2048
+
+    def __init__(self):
+        self.pending = ""
+        self.suppressing = False
+        self.depth = 0
+        self.in_string = False
+        self.escape_next = False
+
+    def process(self, content: str) -> str:
+        if not content:
+            return ""
+
+        output = []
+        for char in content:
+            if self.suppressing:
+                self._consume_json_char(char)
+                if self.depth <= 0:
+                    self._reset()
+                continue
+
+            if self.pending:
+                self.pending += char
+                self._consume_json_char(char)
+
+                if any(key in self.pending for key in self.SUPPRESSED_KEYS):
+                    self.suppressing = True
+                    continue
+
+                if self.depth <= 0 or len(self.pending) > self.MAX_PENDING_CHARS:
+                    output.append(self.pending)
+                    self._reset()
+                continue
+
+            if char == "{":
+                self.pending = char
+                self.depth = 1
+                self.in_string = False
+                self.escape_next = False
+                continue
+
+            output.append(char)
+
+        return "".join(output)
+
+    def flush(self) -> str:
+        if self.suppressing:
+            self._reset()
+            return ""
+
+        pending = self.pending
+        self._reset()
+        return pending
+
+    def _consume_json_char(self, char: str) -> None:
+        if self.escape_next:
+            self.escape_next = False
+            return
+
+        if char == "\\" and self.in_string:
+            self.escape_next = True
+            return
+
+        if char == '"':
+            self.in_string = not self.in_string
+            return
+
+        if self.in_string:
+            return
+
+        if char == "{":
+            self.depth += 1
+        elif char == "}":
+            self.depth -= 1
+
+    def _reset(self) -> None:
+        self.pending = ""
+        self.suppressing = False
+        self.depth = 0
+        self.in_string = False
+        self.escape_next = False
+
+
 # ==================== 推理过程过滤器 ====================
 
 class ThinkingProcessFilter:
@@ -1160,6 +1252,7 @@ async def chat_stream(request: ChatRequest):
 
                 # 初始化推理过程过滤器
                 thinking_filter = ThinkingProcessFilter()
+                structured_json_filter = StructuredJsonStreamFilter()
 
                 # 流式处理 agent 响应
                 full_content = ""
@@ -1186,11 +1279,12 @@ async def chat_stream(request: ChatRequest):
                                 # 当缓冲达到大小时发送
                                 if len("".join(content_buffer)) >= BUFFER_SIZE:
                                     buffered_content = "".join(content_buffer)
-                                    full_content += buffered_content
                                     # 清理 JSON 代码块（移除 ```json ... ``` 部分）
                                     cleaned_content = clean_json_from_content(buffered_content)
                                     cleaned_content = strip_internal_scratchpad_content(cleaned_content)
+                                    cleaned_content = structured_json_filter.process(cleaned_content)
                                     if cleaned_content:
+                                        full_content += cleaned_content
                                         event_data = {
                                             "type": "content",
                                             "content": cleaned_content,
@@ -1237,6 +1331,7 @@ async def chat_stream(request: ChatRequest):
 
                         # 解析工具的结构化输出
                         result_data = None
+                        result_text = None
 
                         # 获取工具输出内容
                         tool_output = event.get("data")
@@ -1253,6 +1348,7 @@ async def chat_stream(request: ChatRequest):
                         if tool_name == "web_search_tool" and tool_output_text:
                             try:
                                 parsed = json.loads(tool_output_text)
+                                result_text = parsed.get("text") or parsed.get("ai_summary")
                                 result_data = {
                                     "ai_summary": parsed.get("ai_summary", ""),
                                     "results": parsed.get("results", []),
@@ -1264,6 +1360,12 @@ async def chat_stream(request: ChatRequest):
 
                         # 解析检测工具的结构化输出
                         elif tool_name in ["pest_detection_tool", "rice_detection_tool", "cow_detection_tool"]:
+                            try:
+                                parsed = json.loads(tool_output_text or "")
+                                if isinstance(parsed, dict):
+                                    result_text = parsed.get("text")
+                            except (json.JSONDecodeError, TypeError):
+                                result_text = tool_output_text
                             result_data = parse_detection_tool_output(tool_output_text or "", tool_name)
                             if result_data:
                                 logger.info(f"{tool_name} 结构化数据: {result_data['summary']}")
@@ -1272,6 +1374,12 @@ async def chat_stream(request: ChatRequest):
                         elif tool_name == "disease_prediction_tool":
                             # 添加调试日志
                             logger.info(f"疾病预测工具原始输出（前500字符）: {tool_output_text[:500] if tool_output_text else 'None'}")
+                            try:
+                                parsed = json.loads(tool_output_text or "")
+                                if isinstance(parsed, dict):
+                                    result_text = parsed.get("text")
+                            except (json.JSONDecodeError, TypeError):
+                                result_text = None
                             result_data = parse_disease_prediction_output(tool_output_text or "")
                             if result_data:
                                 logger.info(f"disease_prediction_tool 结构化数据: {len(result_data['diseases'])} 个疾病预测 - {result_data['diseases'][:2]}")
@@ -1294,17 +1402,19 @@ async def chat_stream(request: ChatRequest):
                             "status": "已完成",
                             "result_image": result_image,  # 相对路径，前端会通过代理访问
                             "result_data": result_data,  # 新增：联网搜索的结构化数据
+                            "result_text": result_text,  # 工具生成的稳定 Markdown 文本
                         }
                         yield f"data: {json.dumps(tool_event, ensure_ascii=False)}\n\n"
 
                 # 发送剩余的缓冲内容
                 if content_buffer:
                     buffered_content = "".join(content_buffer)
-                    full_content += buffered_content
                     # 清理 JSON 代码块（移除 ```json ... ``` 部分）
                     cleaned_content = clean_json_from_content(buffered_content)
                     cleaned_content = strip_internal_scratchpad_content(cleaned_content)
+                    cleaned_content = structured_json_filter.process(cleaned_content)
                     if cleaned_content:
+                        full_content += cleaned_content
                         event_data = {
                             "type": "content",
                             "content": cleaned_content,
@@ -1313,12 +1423,19 @@ async def chat_stream(request: ChatRequest):
 
                 remaining_content = thinking_filter.flush_remaining()
                 if remaining_content:
+                    remaining_content = structured_json_filter.process(remaining_content)
+                    remaining_content += structured_json_filter.flush()
+                    remaining_content = strip_internal_scratchpad_content(clean_json_from_content(remaining_content)).strip()
+
+                if remaining_content:
                     full_content += remaining_content
                     event_data = {
                         "type": "content",
                         "content": remaining_content,
                     }
                     yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
+                else:
+                    structured_json_filter.flush()
 
                 full_content = strip_internal_scratchpad_content(clean_json_from_content(full_content))
 
